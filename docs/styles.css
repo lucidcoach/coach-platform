@@ -170,6 +170,7 @@ button {
   position: relative;
   height: 152px;
   background: #0f111a;
+  overflow: hidden;
 }
 .featured-image img {
   width: 100%;
@@ -361,15 +362,20 @@ button {
 .coach-card.tier-good {
   border-color: #95c6ff;
 }
-.avatar {
+.avatar-frame {
   width: 100%;
   height: 132px;
-  min-height: 132px;
   border-radius: 8px;
-  object-fit: cover;
-  object-position: center 8%;
+  overflow: hidden;
   background: #e5e7eb;
   grid-row: 1 / span 2;
+}
+.avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 8%;
+  display: block;
 }
 .coach-main {
   padding: 0;
@@ -474,6 +480,7 @@ button {
   height: 178px;
   background: #111827;
   position: relative;
+  overflow: hidden;
 }
 .detail-hero img {
   width: 100%;
@@ -636,6 +643,11 @@ th {
   display: block;
   word-break: break-word;
 }
+.booking-detail-item a {
+  color: #175cd3;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .booking-detail-item.wide {
   grid-column: 1 / -1;
 }
@@ -669,13 +681,14 @@ th {
   gap: 12px;
   grid-row: span 3;
 }
-.image-preview img {
+.image-preview-frame {
   width: 120px;
   height: 96px;
-  object-fit: cover;
-  object-position: center 8%;
   border-radius: 8px;
   background: #d8dee8;
+  background-position: center 8%;
+  background-repeat: no-repeat;
+  background-size: 100%;
   overflow: hidden;
 }
 .image-preview span {
@@ -743,5 +756,5 @@ th {
   .image-preview { grid-row: auto; }
   .search { min-width: 0; }
   .coach-card { grid-template-columns: 82px minmax(0, 1fr); }
-  .avatar { height: 124px; min-height: 124px; }
+  .avatar-frame { height: 124px; }
 }

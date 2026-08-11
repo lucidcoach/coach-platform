@@ -671,7 +671,7 @@ function renderCoachCard(coach) {
   const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
   return `
     <article class="coach-card ${coach.id === state.selectedCoachId ? "active" : ""} ${getTierClass(coach)}" data-coach-id="${coach.id}">
-      <img class="avatar" src="${coach.image}" alt="" style="${imageStyle}">
+      <div class="avatar-frame"><img class="avatar" src="${coach.image}" alt="" style="${imageStyle}"></div>
       <div class="coach-main">
         ${badges.length ? `<div class="rank-badges">${badges.map(renderBadge).join("")}</div>` : ""}
         <h3>${coach.name}</h3>
@@ -889,6 +889,7 @@ async function loadReservations(options = {}) {
 }
 
 function mapReservationFromApi(reservation) {
+  const feedback = reservation.feedback_metadata || {};
   return {
     id: reservation.id || "",
     status: reservation.status || "신규",
@@ -897,6 +898,8 @@ function mapReservationFromApi(reservation) {
     coachName: reservation.coach_name || "-",
     coachPrice: reservation.coach_price || "-",
     source: reservation.source || "-",
+    feedback,
+    isDiscordFeedback: reservation.source === "discord-feedback",
     studentName: reservation.student_name || "-",
     preferredTime: reservation.preferred_time || "-",
     student: reservation.student_name || "-",
@@ -1063,6 +1066,24 @@ function renderBookingDetail() {
     panel.innerHTML = "";
     return;
   }
+  if (booking.isDiscordFeedback) {
+    const attachment = booking.feedback?.attachment || {};
+    panel.hidden = false;
+    panel.innerHTML = `
+      <h3>Discord /피드백 접수</h3>
+      <div class="booking-detail-grid">
+        ${renderDetailItem("신청 시간", booking.createdAtText)}
+        ${renderDetailItem("수강생 Riot ID", booking.studentName)}
+        ${renderDetailItem("챔피언 및 K/D/A", booking.coachPrice)}
+        ${renderDetailItem("현재 상태", booking.status)}
+        ${renderDetailItem("Discord 신청자", `${booking.feedback?.discord_display_name || "-"} (${booking.feedback?.discord_user_id || "-"})`)}
+        ${renderDetailItem("서버 / 채널", `${booking.feedback?.guild_name || "-"} / ${booking.feedback?.channel_name || "-"}`)}
+        ${renderDetailLink("ROFL 파일", attachment.filename, attachment.url)}
+        ${renderDetailItem("문의사항", booking.feedback?.inquiry || booking.memo, true)}
+      </div>
+    `;
+    return;
+  }
   panel.hidden = false;
   panel.innerHTML = `
     <h3>예약 상세</h3>
@@ -1086,6 +1107,16 @@ function renderDetailItem(label, value, wide = false) {
     <div class="booking-detail-item ${wide ? "wide" : ""}">
       <span>${label}</span>
       <strong>${escapeHtml(value || "-")}</strong>
+    </div>
+  `;
+}
+
+function renderDetailLink(label, text, url) {
+  const link = url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(text || "다운로드")}</a>` : "-";
+  return `
+    <div class="booking-detail-item">
+      <span>${label}</span>
+      <strong>${link}</strong>
     </div>
   `;
 }
@@ -1196,9 +1227,10 @@ function fillCoachForm(coach) {
 
 function updateCoachImagePreview() {
   const preview = $("coachImagePreview");
-  preview.src = $("coachImage").value.trim() || "assets/lollogo.png";
-  preview.style.objectPosition = $("coachImagePosition").value.trim() || "center 8%";
-  preview.style.transform = `scale(${Number($("coachImageZoom").value || 100) / 100})`;
+  const zoom = Number($("coachImageZoom").value || 100);
+  preview.style.backgroundImage = `url("${$("coachImage").value.trim() || "assets/lollogo.png"}")`;
+  preview.style.backgroundPosition = $("coachImagePosition").value.trim() || "center 8%";
+  preview.style.backgroundSize = `${Math.max(100, Math.min(180, zoom))}%`;
 }
 
 function updateCoachImagePositionFromControls() {
