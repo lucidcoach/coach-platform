@@ -582,6 +582,8 @@ legend {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: flex-start;
+  align-content: flex-start;
 }
 .choice-stack {
   display: grid;
@@ -606,9 +608,18 @@ legend {
   border-radius: 999px;
   background: var(--panel-2);
   font-size: 13px;
-}
-.choice-grid input {
   width: auto;
+  min-height: 0;
+  white-space: nowrap;
+}
+.choice-grid input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  flex: 0 0 auto;
+  border-radius: 3px;
 }
 .badge-picker {
   display: grid;
@@ -751,6 +762,7 @@ th {
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-bottom: 16px;
+  align-items: start;
 }
 .admin-form label small {
   margin-left: 6px;
