@@ -500,6 +500,9 @@ function bindEvents() {
   });
   $("coachImage").addEventListener("input", () => updateCoachImagePreview());
   $("coachImagePosition").addEventListener("input", () => updateCoachImagePreview());
+  $("coachImageX").addEventListener("input", updateCoachImagePositionFromControls);
+  $("coachImageY").addEventListener("input", updateCoachImagePositionFromControls);
+  $("coachImageZoom").addEventListener("input", updateCoachImagePreview);
   $("coachImageFile").addEventListener("change", handleCoachImageFile);
   $("bookingStatusFilter").addEventListener("change", (event) => {
     state.bookingFilterStatus = event.target.value;
@@ -634,6 +637,7 @@ function renderFeatured(visible) {
 function renderFeaturedCard(coach) {
   const originalPrice = getOriginalPrice(coach.price);
   const imageStyle = getImageStyle(coach);
+  const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
   return `
     <article class="featured-card ${getTierClass(coach)}" data-coach-id="${coach.id}">
       <div class="featured-image">
@@ -642,13 +646,9 @@ function renderFeaturedCard(coach) {
         <span class="tier-ribbon">${coach.tier}</span>
       </div>
       <div class="featured-body">
-        <div class="featured-tags">
-          <span>온라인</span>
-          <span>맞춤 피드백</span>
-        </div>
-        <h3>${coach.tagline}</h3>
-        <p>${coach.name}</p>
-        <p class="purpose-label">${getPurposeLabels(coach.purpose).slice(0, 2).join(" · ")}</p>
+        <h3>${coach.name}</h3>
+        <p class="purpose-label">${purposeText}</p>
+        <p class="featured-summary">${coach.tagline}</p>
         <div class="featured-rating">★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></div>
         <div class="featured-price">
           <strong>${coach.price}</strong>
@@ -668,14 +668,15 @@ function getOriginalPrice(price) {
 function renderCoachCard(coach) {
   const badges = getCoachBadges(coach);
   const imageStyle = getImageStyle(coach);
+  const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
   return `
     <article class="coach-card ${coach.id === state.selectedCoachId ? "active" : ""} ${getTierClass(coach)}" data-coach-id="${coach.id}">
       <img class="avatar" src="${coach.image}" alt="" style="${imageStyle}">
       <div class="coach-main">
         ${badges.length ? `<div class="rank-badges">${badges.map(renderBadge).join("")}</div>` : ""}
         <h3>${coach.name}</h3>
+        <span class="purpose-label">${purposeText}</span>
         <p>${coach.tagline}</p>
-        <span class="purpose-label">${getPurposeLabels(coach.purpose).slice(0, 2).join(" · ")}</span>
         <div class="chips">${(coach.roles || []).map((role) => `<span class="chip">${role}</span>`).join("")}</div>
       </div>
       <div class="card-foot">
@@ -705,7 +706,10 @@ function getTierClass(coach) {
 }
 
 function getImageStyle(coach) {
-  return `object-position: ${coach.imagePosition || "center 8%"}`;
+  const position = coach.imagePosition || "center 8%";
+  const scale = Number(coach.imageScale || 1);
+  const zoom = Number.isFinite(scale) && scale > 1 ? scale : 1;
+  return `object-position: ${position}; transform: scale(${zoom}); transform-origin: ${position};`;
 }
 
 function getCoachPurposes(coach) {
@@ -1180,6 +1184,8 @@ function fillCoachForm(coach) {
   $("coachPrice").value = coach?.price || "";
   $("coachImage").value = coach?.image || "assets/lollogo.png";
   $("coachImagePosition").value = coach?.imagePosition || "center 8%";
+  setImageControlsFromPosition(coach?.imagePosition || "center 8%");
+  $("coachImageZoom").value = Math.round(Number(coach?.imageScale || 1) * 100);
   $("coachBadges").value = (coach?.badges || []).join(", ");
   $("coachBio").value = coach?.bio || "";
   $("coachImageFile").value = "";
@@ -1190,6 +1196,18 @@ function updateCoachImagePreview() {
   const preview = $("coachImagePreview");
   preview.src = $("coachImage").value.trim() || "assets/lollogo.png";
   preview.style.objectPosition = $("coachImagePosition").value.trim() || "center 8%";
+  preview.style.transform = `scale(${Number($("coachImageZoom").value || 100) / 100})`;
+}
+
+function updateCoachImagePositionFromControls() {
+  $("coachImagePosition").value = `${$("coachImageX").value}% ${$("coachImageY").value}%`;
+  updateCoachImagePreview();
+}
+
+function setImageControlsFromPosition(position) {
+  const parts = String(position || "50% 8%").match(/(-?\d+(?:\.\d+)?)%?\s+(-?\d+(?:\.\d+)?)%?/);
+  $("coachImageX").value = parts ? Math.max(0, Math.min(100, Number(parts[1]))) : 50;
+  $("coachImageY").value = parts ? Math.max(0, Math.min(100, Number(parts[2]))) : 8;
 }
 
 function handleCoachImageFile(event) {
@@ -1228,6 +1246,7 @@ async function saveCoachFromForm() {
     price: $("coachPrice").value.trim() || "가격 상담",
     image: $("coachImage").value.trim() || "assets/lollogo.png",
     imagePosition: $("coachImagePosition").value.trim() || "center 8%",
+    imageScale: Number($("coachImageZoom").value || 100) / 100,
     badges: splitCsv($("coachBadges").value),
     rating: previous?.rating || 4.8,
     lessons: previous?.lessons || 0,
