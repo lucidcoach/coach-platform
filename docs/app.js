@@ -470,6 +470,7 @@ function migrateCoachImages(coaches) {
   return coaches.map((coach) => ({
     ...coach,
     image: imageMigration[coach.image] || coach.image || "assets/lollogo.png",
+    bannerImage: imageMigration[coach.bannerImage] || coach.bannerImage || "",
     imagePosition: coach.imagePosition || "center 8%",
   }));
 }
@@ -545,6 +546,7 @@ function bindEvents() {
   });
   $("coachImage")?.addEventListener("input", () => updateCoachImagePreview());
   $("coachImageFile").addEventListener("change", handleCoachImageFile);
+  $("coachBannerImageFile").addEventListener("change", handleCoachBannerImageFile);
   $("openCropBtn").addEventListener("click", openCropModal);
   $("cropCloseBtn").addEventListener("click", closeCropModal);
   $("applyCropBtn").addEventListener("click", applyImageCrop);
@@ -706,12 +708,12 @@ function renderFeatured(visible) {
 
 function renderFeaturedCard(coach) {
   const originalPrice = getOriginalPrice(coach.price);
-  const imageStyle = getImageStyle(coach);
+  const bannerImage = getBannerImage(coach);
   const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
   return `
     <article class="featured-card ${getTierClass(coach)}" data-coach-id="${coach.id}">
       <div class="featured-image">
-        <img src="${coach.image}" alt="" style="${imageStyle}">
+        <img src="${bannerImage}" alt="" style="${getBannerImageStyle(coach)}">
         <span class="ad-label">추천</span>
         <span class="tier-ribbon">${coach.tier}</span>
       </div>
@@ -779,6 +781,14 @@ function getImageStyle(coach) {
   return `object-position: ${coach.imagePosition || "center center"};`;
 }
 
+function getBannerImage(coach) {
+  return coach.bannerImage || coach.heroImage || coach.image || "assets/lollogo.png";
+}
+
+function getBannerImageStyle(coach) {
+  return `object-position: ${coach.bannerImagePosition || "center center"};`;
+}
+
 function getCoachPurposes(coach) {
   const raw = Array.isArray(coach?.purpose) ? coach.purpose : String(coach?.purpose || "").split(",");
   return raw.map((item) => String(item).trim()).filter(Boolean);
@@ -805,7 +815,7 @@ function renderDetail() {
   }
 
   $("coachDetail").innerHTML = `
-    <div class="detail-hero"><img src="${coach.image}" alt="" style="${getImageStyle(coach)}"></div>
+    <div class="detail-hero"><img src="${getBannerImage(coach)}" alt="" style="${getBannerImageStyle(coach)}"></div>
     <div class="detail-body">
       <div class="rank-badges">${getCoachBadges(coach).map(renderBadge).join("")}</div>
       <h2>${coach.name}</h2>
@@ -1342,10 +1352,13 @@ function fillCoachForm(coach) {
   renderAdminChoiceControls(getCoachPurposes(coach), coach?.roles || [], coach?.badges || []);
   setPriceFields(coach?.price || "");
   $("coachImage").value = coach?.image || "assets/lollogo.png";
+  $("coachBannerImage").value = coach?.bannerImage || "";
   $("coachImagePosition").value = coach?.imagePosition || "center center";
   $("coachBio").value = coach?.bio || "";
   $("coachImageFile").value = "";
+  $("coachBannerImageFile").value = "";
   updateCoachImagePreview();
+  updateCoachBannerImagePreview();
 }
 
 function renderAdminChoiceControls(selectedPurposes = [], selectedRoles = [], selectedBadges = []) {
@@ -1450,6 +1463,15 @@ function updateCoachImagePreview() {
   preview.style.backgroundSize = "cover";
 }
 
+function updateCoachBannerImagePreview() {
+  const preview = $("coachBannerImagePreview");
+  if (!preview) return;
+  const bannerImage = $("coachBannerImage").value.trim();
+  preview.style.backgroundImage = bannerImage ? `url("${bannerImage}")` : "none";
+  preview.style.backgroundPosition = "center center";
+  preview.style.backgroundSize = "cover";
+}
+
 function handleCoachImageFile(event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -1471,6 +1493,62 @@ function handleCoachImageFile(event) {
     openCropModal();
   });
   reader.readAsDataURL(file);
+}
+
+async function handleCoachBannerImageFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    alert("이미지 파일만 선택할 수 있습니다.");
+    event.target.value = "";
+    return;
+  }
+  if (file.size > 3 * 1024 * 1024) {
+    alert("배너 이미지는 3MB 이하로 올려주세요.");
+    event.target.value = "";
+    return;
+  }
+  try {
+    $("coachBannerImage").value = await resizeImageFileToDataUrl(file, 1200, 675, 0.82);
+    updateCoachBannerImagePreview();
+  } catch (error) {
+    alert(`배너 이미지를 처리하지 못했습니다.\n${error.message || error}`);
+    event.target.value = "";
+  }
+}
+
+function resizeImageFileToDataUrl(file, targetWidth, targetHeight, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const reader = new FileReader();
+    reader.addEventListener("error", () => reject(new Error("이미지 파일을 읽지 못했습니다.")));
+    reader.addEventListener("load", () => {
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const context = canvas.getContext("2d");
+        const sourceRatio = image.naturalWidth / image.naturalHeight;
+        const targetRatio = targetWidth / targetHeight;
+        let sourceWidth = image.naturalWidth;
+        let sourceHeight = image.naturalHeight;
+        let sourceX = 0;
+        let sourceY = 0;
+        if (sourceRatio > targetRatio) {
+          sourceWidth = image.naturalHeight * targetRatio;
+          sourceX = (image.naturalWidth - sourceWidth) / 2;
+        } else {
+          sourceHeight = image.naturalWidth / targetRatio;
+          sourceY = (image.naturalHeight - sourceHeight) / 2;
+        }
+        context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, targetWidth, targetHeight);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      image.onerror = () => reject(new Error("이미지를 불러오지 못했습니다."));
+      image.src = String(reader.result || "");
+    });
+    reader.readAsDataURL(file);
+  });
 }
 
 function openCropModal() {
@@ -1584,6 +1662,8 @@ async function saveCoachFromForm() {
     roles: getCheckedValues("coachRoleChoice"),
     price: (updateCoachPriceValue(), $("coachPrice").value.trim() || "가격 상담"),
     image: $("coachImage").value.trim() || "assets/lollogo.png",
+    bannerImage: $("coachBannerImage").value.trim(),
+    bannerImagePosition: "center center",
     imagePosition: $("coachImagePosition").value.trim() || "center center",
     imageScale: 1,
     badges: selectedBadges,
