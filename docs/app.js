@@ -63,9 +63,15 @@ const purposes = Object.values(filterSets).flatMap((set) => [...set.type, ...set
   (item, index, array) => item.id !== "all" && array.findIndex((candidate) => candidate.id === item.id) === index
 );
 
-const adminRoleOptions = {
-  league: ["탑", "미드", "정글", "원딜", "서폿", "운영", "라인전", "한타", "오브젝트", "시야", "고티어"],
-  valorant: ["타격대", "척후대", "감시자", "전략가", "에임", "피킹", "엔트리", "스크림"],
+const adminLineOptions = {
+  league: ["탑", "미드", "정글", "원딜", "서폿"],
+  valorant: ["타격대", "척후대", "감시자", "전략가"],
+  academy: ["기초 과정", "심화 과정", "운영/관리"],
+};
+
+const adminFieldOptions = {
+  league: ["운영", "라인전", "한타", "오브젝트", "시야", "고티어"],
+  valorant: ["에임", "피킹", "엔트리", "스크림", "리플레이", "팀 피드백"],
   academy: ["코치 입문", "커리큘럼", "피드백", "브랜딩", "운영", "수강생 관리"],
 };
 
@@ -516,8 +522,14 @@ function bindEvents() {
   $("newCoachBtn").addEventListener("click", () => fillCoachForm());
   $("deleteCoachBtn").addEventListener("click", deleteSelectedCoach);
   $("coachCategory").addEventListener("change", () => {
-    renderAdminChoiceControls([], []);
+    renderAdminChoiceControls([], [], []);
   });
+  if ($("addCoachBadgeBtn")) $("addCoachBadgeBtn").addEventListener("click", addSelectedBadge);
+  if ($("coachBadgeChoices")) {
+    $("coachBadgeChoices").addEventListener("change", () => {
+      renderBadgePicker(getCheckedValues("coachBadgeChoice"));
+    });
+  }
   $("coachPriceUnitType").addEventListener("change", () => {
     renderPriceUnitOptions($("coachPriceUnitType").value);
     updateCoachPriceValue();
@@ -1312,19 +1324,55 @@ function fillCoachForm(coach) {
 function renderAdminChoiceControls(selectedPurposes = [], selectedRoles = [], selectedBadges = []) {
   const category = $("coachCategory").value || state.category || "league";
   const filters = filterSets[category] || filterSets.league;
-  const purposeOptions = [...filters.type, ...filters.segment].filter((item) => item.id !== "all");
-  $("coachPurposeChoices").innerHTML = purposeOptions.map((item) => `
+  const purposeOptions = filters.type.filter((item) => item.id !== "all");
+  if ($("coachPurposeChoices")) $("coachPurposeChoices").innerHTML = purposeOptions.map((item) => `
     <label><input type="checkbox" name="coachPurposeChoice" value="${item.id}" ${selectedPurposes.includes(item.id) ? "checked" : ""}> ${item.label}</label>
   `).join("");
 
-  const roleOptions = adminRoleOptions[category] || adminRoleOptions.league;
-  $("coachRoleChoices").innerHTML = roleOptions.map((role) => `
-    <label><input type="checkbox" name="coachRoleChoice" value="${role}" ${selectedRoles.includes(role) ? "checked" : ""}> ${role}</label>
-  `).join("");
+  const lineOptions = adminLineOptions[category] || adminLineOptions.league;
+  const fieldOptions = adminFieldOptions[category] || adminFieldOptions.league;
+  if ($("coachRoleChoices")) $("coachRoleChoices").innerHTML = `
+    <div class="choice-subgroup">
+      <span>라인</span>
+      <div class="choice-grid">
+        ${lineOptions.map((role) => `<label><input type="checkbox" name="coachRoleChoice" value="${role}" ${selectedRoles.includes(role) ? "checked" : ""}> ${role}</label>`).join("")}
+      </div>
+    </div>
+    <div class="choice-subgroup">
+      <span>분야</span>
+      <div class="choice-grid">
+        ${fieldOptions.map((role) => `<label><input type="checkbox" name="coachRoleChoice" value="${role}" ${selectedRoles.includes(role) ? "checked" : ""}> ${role}</label>`).join("")}
+      </div>
+    </div>
+  `;
 
-  $("coachBadgeChoices").innerHTML = badgeOptions.map((badge) => `
-    <label><input type="checkbox" name="coachBadgeChoice" value="${badge}" ${selectedBadges.includes(badge) ? "checked" : ""}> ${badge}</label>
-  `).join("");
+  if ($("coachBadgeChoices") && $("coachBadgeSelect")) {
+    renderBadgePicker(selectedBadges);
+  } else if ($("coachBadges")) {
+    $("coachBadges").value = selectedBadges.join(", ");
+  }
+}
+
+function renderBadgePicker(selectedBadges = []) {
+  const selected = [...new Set(selectedBadges.filter(Boolean))];
+  if (!$("coachBadgeSelect") || !$("coachBadgeChoices")) return;
+  $("coachBadgeSelect").innerHTML = `
+    <option value="">배지 선택</option>
+    ${badgeOptions
+      .filter((badge) => !selected.includes(badge))
+      .map((badge) => `<option value="${badge}">${badge}</option>`)
+      .join("")}
+  `;
+  $("coachBadgeChoices").innerHTML = selected.length ? selected.map((badge) => `
+    <label><input type="checkbox" name="coachBadgeChoice" value="${badge}" checked> ${badge}</label>
+  `).join("") : `<span class="choice-empty">선택된 배지 없음</span>`;
+}
+
+function addSelectedBadge() {
+  if (!$("coachBadgeSelect")) return;
+  const badge = $("coachBadgeSelect").value;
+  if (!badge) return;
+  renderBadgePicker([...getCheckedValues("coachBadgeChoice"), badge]);
 }
 
 function getCheckedValues(name) {
@@ -1481,7 +1529,9 @@ async function saveCoachFromForm() {
   const previous = state.coaches.find((coach) => coach.id === id);
   const previousIndex = state.coaches.findIndex((coach) => coach.id === id);
   const selectedPurposes = getCheckedValues("coachPurposeChoice");
-  const selectedBadges = getCheckedValues("coachBadgeChoice");
+  const selectedBadges = $("coachBadgeChoices")
+    ? getCheckedValues("coachBadgeChoice")
+    : splitCsv($("coachBadges")?.value || (previous?.badges || []).join(", "));
   const next = {
     id,
     category: $("coachCategory").value,

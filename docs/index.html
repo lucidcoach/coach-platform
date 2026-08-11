@@ -125,7 +125,7 @@
           </fieldset>
           <fieldset class="choice-field">
             <legend id="labelRoles"></legend>
-            <div class="choice-grid" id="coachRoleChoices"></div>
+            <div class="choice-stack" id="coachRoleChoices"></div>
           </fieldset>
           <div class="price-builder">
             <label><span>가격</span><input id="coachPriceAmount" inputmode="numeric" placeholder="예: 70000"></label>
@@ -152,6 +152,10 @@
           </div>
           <fieldset class="choice-field">
             <legend id="labelBadges"></legend>
+            <div class="badge-picker">
+              <select id="coachBadgeSelect"></select>
+              <button type="button" class="secondary" id="addCoachBadgeBtn">추가</button>
+            </div>
             <div class="choice-grid" id="coachBadgeChoices"></div>
           </fieldset>
           <label class="wide"><span id="labelBio"></span><textarea id="coachBio" rows="4"></textarea></label>

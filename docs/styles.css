@@ -582,6 +582,20 @@ legend {
   flex-wrap: wrap;
   gap: 8px;
 }
+.choice-stack {
+  display: grid;
+  gap: 10px;
+}
+.choice-subgroup {
+  display: grid;
+  gap: 7px;
+}
+.choice-subgroup > span,
+.choice-empty {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
 .choice-grid label {
   display: inline-flex;
   align-items: center;
@@ -594,6 +608,12 @@ legend {
 }
 .choice-grid input {
   width: auto;
+}
+.badge-picker {
+  display: grid;
+  grid-template-columns: minmax(160px, 280px) auto;
+  gap: 8px;
+  align-items: end;
 }
 .price-builder {
   display: grid;
