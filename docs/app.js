@@ -83,11 +83,11 @@ const priceUnits = {
 const badgeOptions = ["엠버서더", "최우수", "우수", "추천", "일반", "저가 입문", "입문 추천", "리뷰 우수", "팀 피드백 가능"];
 
 const text = {
-  navMarket: "강의 탐색",
+  navMarket: "강의 목록",
   navBookings: "예약 관리",
   navAdmin: "코치 관리",
   sideLabel: "예약 안내",
-  sideCopy: "같은 코치가 여러 강의를 운영할 수 있습니다. 코치명으로 먼저 고르고, 원하는 강의 상품을 선택해 예약해 주세요.",
+  sideCopy: "코치 목록에서 원하는 상품을 고르면 상세 정보와 예약 신청이 바로 열립니다.",
   heroEyebrow: "LoL 리플레이 분석 · 라인전 교정 · 팀 피드백",
   heroTitle: "LoL 코칭 플랫폼",
   metricCoachesLabel: "강의",
@@ -451,6 +451,9 @@ const state = {
   segment: "all",
   selectedCoachId: null,
   query: "",
+  coachExplorerQuery: "",
+  coachExplorerRole: "all",
+  coachExplorerTier: "all",
   coaches: [],
   coachLoadState: "idle",
   bookings: [],
@@ -517,6 +520,14 @@ function bindEvents() {
   $("searchInput").addEventListener("input", (event) => {
     state.query = event.target.value.trim().toLowerCase();
     renderMarket();
+  });
+  $("coachExplorerCloseBtn")?.addEventListener("click", closeCoachExplorer);
+  $("coachExplorerModal")?.addEventListener("click", (event) => {
+    if (event.target.id === "coachExplorerModal") closeCoachExplorer();
+  });
+  $("coachExplorerSearch")?.addEventListener("input", (event) => {
+    state.coachExplorerQuery = event.target.value.trim().toLowerCase();
+    renderCoachExplorer();
   });
 
   $("coachForm").addEventListener("submit", async (event) => {
@@ -618,32 +629,151 @@ function renderSidebarCoaches() {
       const tierOrder = { "엠버서더": 0, "최우수": 1, "우수": 2 };
       return (tierOrder[a.tier] ?? 9) - (tierOrder[b.tier] ?? 9) || String(a.name).localeCompare(String(b.name), "ko-KR");
     });
+  const selected = state.coaches.find((coach) => coach.id === state.selectedCoachId);
+  const selectedMeta = selected ? (selected.roles || getPurposeLabels(selected.purpose)).slice(0, 2).join(" · ") : "";
 
-  target.innerHTML = coaches.length ? coaches.map((coach) => {
-    const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
-    const roleText = (coach.roles || []).slice(0, 3).join(" · ");
-    return `
-    <button class="side-coach-card ${coach.id === state.selectedCoachId ? "active" : ""}" type="button" data-coach-id="${coach.id}">
-      <img src="${coach.image}" alt="">
-      <span class="side-coach-info">
-        <strong>${escapeHtml(coach.name)}</strong>
-        <small>${escapeHtml(coach.tagline || purposeText || "코칭 상품")}</small>
-        <em>${escapeHtml(roleText || purposeText || categoryLabel(coach.category))}</em>
+  target.innerHTML = `
+    <button class="coach-explorer-open" id="openCoachExplorerBtn" type="button">
+      <span>
+        <strong>코치 목록 열기</strong>
+        <small>${escapeHtml(categoryLabel(state.category))} ${coaches.length}개 상품</small>
       </span>
-      <span class="side-coach-price">${escapeHtml(coach.price || "가격 상담")}</span>
+      <em>선택</em>
     </button>
+    ${selected ? `
+      <button class="selected-side-coach" type="button" data-selected-coach-id="${escapeHtml(selected.id)}">
+        <img src="${selected.image}" alt="">
+        <span>
+          <strong>${escapeHtml(selected.name)}</strong>
+          <small>${escapeHtml(selectedMeta || selected.price || "선택된 코치")}</small>
+        </span>
+      </button>
+    ` : `<p class="side-empty">아직 선택한 코치가 없습니다.</p>`}
   `;
-  }).join("") : `<p class="side-empty">등록된 코치가 없습니다.</p>`;
 
-  target.querySelectorAll("[data-coach-id]").forEach((button) => {
+  $("openCoachExplorerBtn")?.addEventListener("click", openCoachExplorer);
+  target.querySelector("[data-selected-coach-id]")?.addEventListener("click", () => {
+    state.activeView = "market";
+    render();
+  });
+}
+
+function openCoachExplorer() {
+  const modal = $("coachExplorerModal");
+  if (!modal) return;
+  modal.hidden = false;
+  if ($("coachExplorerSearch")) $("coachExplorerSearch").value = state.coachExplorerQuery;
+  renderCoachExplorer();
+  setTimeout(() => $("coachExplorerSearch")?.focus(), 0);
+}
+
+function closeCoachExplorer() {
+  const modal = $("coachExplorerModal");
+  if (modal) modal.hidden = true;
+}
+
+function getCoachExplorerFilters() {
+  const activeSet = getActiveFilterSet();
+  const roleFilters = activeSet.segment.filter((item) => item.id !== "all");
+  const tierFilters = ["엠버서더", "최우수", "우수", "일반"]
+    .filter((tier) => state.coaches.some((coach) => coach.category === state.category && coach.tier === tier))
+    .map((tier) => ({ id: tier, label: tier }));
+  return { roleFilters, tierFilters };
+}
+
+function getVisibleExplorerCoaches() {
+  return state.coaches.filter((coach) => {
+    const inCategory = coach.category === state.category;
+    const coachPurposes = getCoachPurposes(coach);
+    const inRole = state.coachExplorerRole === "all" || coachPurposes.includes(state.coachExplorerRole);
+    const inTier = state.coachExplorerTier === "all" || coach.tier === state.coachExplorerTier;
+    const purposeLabel = getPurposeLabels(coach.purpose).join(" ");
+    const haystack = [coach.name, coach.tier, coach.tagline, coach.bio, purposeLabel, ...(coach.roles || []), ...(coach.badges || [])]
+      .join(" ")
+      .toLowerCase();
+    return inCategory && inRole && inTier && (!state.coachExplorerQuery || haystack.includes(state.coachExplorerQuery));
+  }).sort((a, b) => {
+    const tierDiff = (tierRank[a.tier] ?? 9) - (tierRank[b.tier] ?? 9);
+    if (tierDiff) return tierDiff;
+    return (b.rating || 0) - (a.rating || 0);
+  });
+}
+
+function renderCoachExplorer() {
+  const modal = $("coachExplorerModal");
+  if (!modal || modal.hidden) return;
+  const { roleFilters, tierFilters } = getCoachExplorerFilters();
+  if (state.coachExplorerRole !== "all" && !roleFilters.some((filter) => filter.id === state.coachExplorerRole)) {
+    state.coachExplorerRole = "all";
+  }
+  if (state.coachExplorerTier !== "all" && !tierFilters.some((filter) => filter.id === state.coachExplorerTier)) {
+    state.coachExplorerTier = "all";
+  }
+  $("coachExplorerTitle").textContent = `${categoryLabel(state.category)} 코치 목록`;
+  $("coachExplorerMeta").textContent = `${state.coaches.filter((coach) => coach.category === state.category).length}개 상품`;
+  $("coachExplorerRoleFilters").innerHTML = [{ id: "all", label: "전체" }, ...roleFilters].map((filter) => `
+    <button class="explorer-filter ${state.coachExplorerRole === filter.id ? "active" : ""}" type="button" data-explorer-role="${escapeHtml(filter.id)}">
+      ${escapeHtml(filter.label)}
+    </button>
+  `).join("");
+  $("coachExplorerTierFilters").innerHTML = [{ id: "all", label: "전체 등급" }, ...tierFilters].map((filter) => `
+    <button class="explorer-filter ${state.coachExplorerTier === filter.id ? "active" : ""}" type="button" data-explorer-tier="${escapeHtml(filter.id)}">
+      ${escapeHtml(filter.label)}
+    </button>
+  `).join("");
+
+  const visible = getVisibleExplorerCoaches();
+  $("coachExplorerGrid").innerHTML = visible.length ? visible.map(renderCoachExplorerCard).join("") : `
+    <div class="empty">조건에 맞는 코치가 없습니다.</div>
+  `;
+  document.querySelectorAll("[data-explorer-role]").forEach((button) => {
     button.addEventListener("click", () => {
-      state.query = "";
-      if ($("searchInput")) $("searchInput").value = "";
-      state.selectedCoachId = button.dataset.coachId;
-      renderMarket();
-      renderSidebarCoaches();
+      state.coachExplorerRole = button.dataset.explorerRole;
+      renderCoachExplorer();
     });
   });
+  document.querySelectorAll("[data-explorer-tier]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.coachExplorerTier = button.dataset.explorerTier;
+      renderCoachExplorer();
+    });
+  });
+  document.querySelectorAll("[data-explorer-coach-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedCoachId = button.dataset.explorerCoachId;
+      state.query = "";
+      state.type = "all";
+      state.segment = "all";
+      if ($("searchInput")) $("searchInput").value = "";
+      closeCoachExplorer();
+      state.activeView = "market";
+      render();
+      $("coachDetail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+}
+
+function renderCoachExplorerCard(coach) {
+  const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
+  const roleText = (coach.roles || []).slice(0, 3).join(" · ");
+  const badges = getCoachBadges(coach).slice(0, 2).map((badge) => `<span>${escapeHtml(badge)}</span>`).join("");
+  return `
+    <button class="explorer-coach-card ${coach.id === state.selectedCoachId ? "active" : ""}" type="button" data-explorer-coach-id="${escapeHtml(coach.id)}">
+      <img src="${coach.image}" alt="" style="${getImageStyle(coach)}">
+      <span class="explorer-coach-body">
+        <span class="explorer-card-head">
+          <strong>${escapeHtml(coach.name)}</strong>
+          <em>${escapeHtml(coach.tier || "일반")}</em>
+        </span>
+        <small>${escapeHtml(coach.tagline || purposeText || "코칭 상품")}</small>
+        <span class="explorer-card-meta">${escapeHtml(roleText || purposeText || categoryLabel(coach.category))}</span>
+        <span class="explorer-card-foot">
+          <span>${badges}</span>
+          <b>${escapeHtml(coach.price || "가격 상담")}</b>
+        </span>
+      </span>
+    </button>
+  `;
 }
 
 function getVisibleCoaches() {
@@ -679,6 +809,7 @@ function renderMarket() {
       state.segment = "all";
       state.selectedCoachId = null;
       renderMarket();
+      renderSidebarCoaches();
     });
   });
 
@@ -731,6 +862,7 @@ function renderMarket() {
   const visible = getVisibleCoaches();
   if (state.selectedCoachId && !visible.some((coach) => coach.id === state.selectedCoachId)) {
     state.selectedCoachId = null;
+    renderSidebarCoaches();
   }
 
   renderFeatured(visible);

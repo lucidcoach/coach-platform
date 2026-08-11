@@ -204,6 +204,26 @@
       <button type="submit" class="primary" id="bookingSubmitBtn"></button>
     </form>
   </template>
+  <div class="coach-explorer-modal" id="coachExplorerModal" hidden>
+    <div class="coach-explorer-dialog" role="dialog" aria-modal="true" aria-labelledby="coachExplorerTitle">
+      <button class="crop-close" id="coachExplorerCloseBtn" type="button" aria-label="닫기">×</button>
+      <div class="coach-explorer-head">
+        <div>
+          <span id="coachExplorerMeta"></span>
+          <h3 id="coachExplorerTitle">코치 목록</h3>
+        </div>
+        <label class="coach-explorer-search">
+          <span>검색</span>
+          <input id="coachExplorerSearch" type="search" placeholder="코치명, 라인, 강의명">
+        </label>
+      </div>
+      <div class="coach-explorer-filters">
+        <div id="coachExplorerRoleFilters"></div>
+        <div id="coachExplorerTierFilters"></div>
+      </div>
+      <div class="coach-explorer-grid" id="coachExplorerGrid"></div>
+    </div>
+  </div>
   <div class="crop-modal" id="cropModal" hidden>
     <div class="crop-dialog">
       <button class="crop-close" id="cropCloseBtn" type="button" aria-label="닫기">×</button>
