@@ -1,0 +1,886 @@
+const categories = [
+  { id: "league", label: "리그오브레전드" },
+  { id: "valorant", label: "발로란트" },
+  { id: "academy", label: "테스트" },
+];
+
+const filterSets = {
+  league: {
+    type: [
+      { id: "all", label: "전체" },
+      { id: "value", label: "가성비 리플레이" },
+      { id: "low", label: "입문/저티어" },
+      { id: "high", label: "고티어/프로지망" },
+      { id: "team", label: "팀게임/스크림" },
+    ],
+    segment: [
+      { id: "all", label: "전체 라인" },
+      { id: "top", label: "탑" },
+      { id: "mid", label: "미드" },
+      { id: "jungle", label: "정글" },
+      { id: "adc", label: "원딜" },
+      { id: "support", label: "서폿" },
+    ],
+  },
+  valorant: {
+    type: [
+      { id: "all", label: "전체" },
+      { id: "value", label: "가성비 리플레이" },
+      { id: "low", label: "입문/저티어" },
+      { id: "high", label: "고티어/프로지망" },
+      { id: "team", label: "팀게임/스크림" },
+    ],
+    segment: [
+      { id: "all", label: "전체 역할" },
+      { id: "duelist", label: "타격대" },
+      { id: "controller", label: "전략가" },
+      { id: "initiator", label: "척후대" },
+      { id: "sentinel", label: "감시자" },
+      { id: "aim", label: "에임/피킹" },
+    ],
+  },
+  academy: {
+    type: [
+      { id: "all", label: "전체" },
+      { id: "entry", label: "입문" },
+      { id: "curriculum", label: "커리큘럼" },
+      { id: "branding", label: "브랜딩" },
+    ],
+    segment: [
+      { id: "all", label: "전체 과정" },
+      { id: "coach-basic", label: "기초 과정" },
+      { id: "coach-advanced", label: "심화 과정" },
+      { id: "operation", label: "운영/관리" },
+    ],
+  },
+};
+
+const purposes = Object.values(filterSets).flatMap((set) => [...set.type, ...set.segment]).filter(
+  (item, index, array) => item.id !== "all" && array.findIndex((candidate) => candidate.id === item.id) === index
+);
+
+const text = {
+  navMarket: "강의 탐색",
+  navBookings: "예약 관리",
+  navAdmin: "코치 관리",
+  sideLabel: "예약 안내",
+  sideCopy: "원하는 강의를 고르고 Riot ID와 디스코드 연락처를 남기면 운영진이 시간 조율을 도와드립니다.",
+  heroEyebrow: "LoL 리플레이 분석 · 라인전 교정 · 팀 피드백",
+  heroTitle: "LoL 코칭 플랫폼",
+  metricCoachesLabel: "코치",
+  metricBookingsLabel: "예약",
+  metricRatingLabel: "평점",
+  searchLabel: "검색",
+  searchPlaceholder: "코치명, 라인, 챔피언, 강의명",
+  bookingEyebrow: "관리자 화면",
+  bookingTitle: "예약 신청 목록",
+  clearBookingsBtn: "예약 샘플 초기화",
+  thStatus: "상태",
+  thStudent: "수강생",
+  thLesson: "강의",
+  thTime: "희망 시간",
+  thContact: "연락처",
+  thMemo: "메모",
+  adminEyebrow: "로컬 편집",
+  adminTitle: "코치 목록 수정",
+  resetCoachesBtn: "코치 샘플 초기화",
+  labelCategory: "카테고리",
+  labelName: "코치/상품명",
+  labelTagline: "한 줄 소개",
+  labelPurpose: "분류",
+  labelRoles: "전문 분야",
+  labelPrice: "가격",
+  labelImage: "이미지 경로",
+  labelImagePosition: "이미지 위치",
+  labelBadges: "배지",
+  labelBio: "상세 설명",
+  optLeague: "리그오브레전드",
+  optValorant: "발로란트",
+  optAcademy: "테스트",
+  saveCoachBtn: "저장",
+  newCoachBtn: "새 코치",
+  deleteCoachBtn: "삭제",
+  bookingStudentLabel: "수강생 이름",
+  bookingContactLabel: "Riot ID / Discord",
+  bookingTimeLabel: "희망 시간",
+  bookingMemoLabel: "요청사항",
+  bookingSubmitBtn: "예약 신청",
+  featuredTitle: "추천 코칭 상품",
+  featuredHint: "후기와 재예약률이 좋은 강의",
+  expertTitle: "코칭 상품 찾기",
+  expertHint: "포지션, 티어, 팀게임 기준으로 골라보세요.",
+};
+
+const samples = [
+  {
+    id: "lol-1",
+    category: "league",
+    name: "Shineast",
+    tier: "최우수",
+    tagline: "마스터 이상 대상, 라인전 디테일과 운영 설계",
+    purpose: ["top", "high"],
+    roles: ["탑", "운영", "고티어"],
+    price: "70,000원 / 1시간",
+    image: "assets/KakaoTalk_20250810_005153132_05.jpg",
+    imagePosition: "center 8%",
+    badges: ["최우수", "추천"],
+    rating: 4.9,
+    lessons: 248,
+    bio: "리플레이를 기준으로 라인전 첫 6분, 웨이브 설계, 사이드 운영, 오브젝트 전 턴 사용을 세밀하게 잡아주는 1:1 맞춤 코칭입니다.",
+    reviews: [
+      ["리조토", "라인전에서 왜 계속 손해보는지 처음으로 이해했어요. 다음 판부터 CS가 확 늘었습니다."],
+      ["봄", "상대 정글 위치를 근거로 플레이하는 법을 배워서 게임이 덜 흔들렸습니다."],
+    ],
+  },
+  {
+    id: "lol-2",
+    category: "league",
+    name: "Lucid Macro",
+    tier: "최우수",
+    tagline: "팀 게임 관점의 중후반 운영, 오더, 시야 컨트롤",
+    purpose: ["team", "high"],
+    roles: ["정글", "서폿", "운영"],
+    price: "75,000원 / 1시간",
+    image: "assets/KakaoTalk_20250810_005153132_04.jpg",
+    imagePosition: "center 8%",
+    badges: ["최우수", "추천"],
+    rating: 5.0,
+    lessons: 212,
+    bio: "솔랭과 내전 리플레이를 함께 보며 시야 장악, 오브젝트 전 준비, 사이드 압박, 콜 우선순위를 정리합니다.",
+    reviews: [
+      ["사이니스트", "복기하면서 제가 맵을 거의 안 보고 있었다는 걸 깨달았어요."],
+      ["메론", "왜 이기는 게임을 굴리지 못했는지 흐름 단위로 설명해줘서 좋았습니다."],
+    ],
+  },
+  {
+    id: "lol-3",
+    category: "league",
+    name: "Jungle Tempo",
+    tier: "우수",
+    tagline: "첫 동선, 갱 타이밍, 오브젝트 판단 집중 코칭",
+    purpose: ["jungle", "low"],
+    roles: ["정글", "동선", "오브젝트"],
+    price: "45,000원 / 1시간",
+    image: "assets/KakaoTalk_20250810_005153132_11.jpg",
+    imagePosition: "center 8%",
+    badges: ["우수", "추천"],
+    rating: 4.7,
+    lessons: 121,
+    bio: "첫 바퀴 이후 할 일이 사라지는 정글러를 위해 목적 있는 동선과 라인 개입 기준을 잡아줍니다.",
+    reviews: [
+      ["홍보서버", "매번 감으로 하던 걸 기준으로 바꾸니까 게임이 덜 흔들렸습니다."],
+      ["게스트", "내전 리플레이로 설명해줘서 이해가 빨랐어요."],
+    ],
+  },
+  {
+    id: "lol-4",
+    category: "league",
+    name: "Luna Mid Lab",
+    tier: "우수",
+    tagline: "미드 메이지 라인전, 로밍 타이밍, 시야 설계",
+    purpose: ["mid", "high"],
+    roles: ["미드", "메이지", "로밍"],
+    price: "42,000원 / 1시간",
+    image: "assets/KakaoTalk_20250810_005153132_06.jpg",
+    imagePosition: "center 8%",
+    badges: ["우수", "추천"],
+    rating: 4.8,
+    lessons: 136,
+    bio: "챔피언 숙련도보다 먼저 잡아야 할 미니맵 시선, 턴 사용, 귀환 타이밍을 중심으로 피드백합니다.",
+    reviews: [
+      ["테스트", "친절한데 핵심은 정확해서 만족했습니다."],
+      ["미드연습중", "라인을 밀어야 할 때와 받아야 할 때가 구분됐어요."],
+    ],
+  },
+  {
+    id: "lol-5",
+    category: "league",
+    name: "Bot Duo Class",
+    tier: "우수",
+    tagline: "원딜/서폿 듀오 라인전과 2:2 교전 설계",
+    purpose: ["adc", "support", "team"],
+    roles: ["원딜", "서폿", "듀오"],
+    price: "48,000원 / 1시간",
+    image: "assets/KakaoTalk_20250810_005153132_17.jpg",
+    imagePosition: "72% 12%",
+    badges: ["우수", "추천"],
+    rating: 4.8,
+    lessons: 103,
+    bio: "바텀 조합별 1레벨 운영, 선 2렙 타이밍, 귀환 턴, 용 전 시야 전환을 실제 리플레이로 정리합니다.",
+    reviews: [
+      ["새벽반", "둘이 말이 안 맞아서 지던 판이 줄었습니다."],
+      ["민트", "서폿 동선이 원딜 성장에 얼마나 큰지 체감했어요."],
+    ],
+  },
+  {
+    id: "lol-6",
+    category: "league",
+    name: "탑 라인전 30분 진단",
+    tier: "일반",
+    tagline: "한 경기만 보고 라인전 손해 원인 3가지를 짚어주는 입문 상품",
+    purpose: ["value", "top", "low"],
+    roles: ["저가 입문", "탑", "라인전"],
+    price: "9,900원 / 30분",
+    image: "assets/KakaoTalk_20250810_005153132_05.jpg",
+    imagePosition: "center 8%",
+    badges: ["저가 입문"],
+    rating: 4.5,
+    lessons: 61,
+    bio: "부담 없이 시작할 수 있는 짧은 진단 상품입니다. 한 경기 리플레이를 기준으로 웨이브, 딜교 타이밍, 갱 회피 와드 중 가장 손해가 큰 3가지를 정리합니다.",
+    reviews: [
+      ["탑유저", "무작정 싸우던 습관을 고쳤습니다."],
+      ["나르연습", "상성 설명이 쉬워서 좋았어요."],
+    ],
+  },
+  {
+    id: "lol-7",
+    category: "league",
+    name: "서폿 시야 입문 체크",
+    tier: "일반",
+    tagline: "와드 위치보다 먼저 잡아야 할 시야 타이밍 빠른 점검",
+    purpose: ["value", "support", "low"],
+    roles: ["저가 입문", "서폿", "시야"],
+    price: "12,000원 / 30분",
+    image: "assets/KakaoTalk_20250810_005153132_04.jpg",
+    imagePosition: "center 8%",
+    badges: ["저가 입문"],
+    rating: 4.4,
+    lessons: 54,
+    bio: "와드를 어디에 박는지보다 왜 그 타이밍에 움직이는지를 먼저 잡아주는 입문 코칭입니다.",
+    reviews: [
+      ["서폿처음", "미드 로밍 타이밍을 처음 알았습니다."],
+      ["봄", "시야 점수가 아니라 의미 있는 시야를 배웠어요."],
+    ],
+  },
+  {
+    id: "lol-8",
+    category: "league",
+    name: "원딜 한타 생존 클리닉",
+    tier: "일반",
+    tagline: "죽는 한타 장면만 골라 포지션 습관을 고치는 저가 상품",
+    purpose: ["value", "adc", "low"],
+    roles: ["저가 입문", "원딜", "한타"],
+    price: "14,900원 / 30분",
+    image: "assets/KakaoTalk_20250810_005153132_11.jpg",
+    imagePosition: "center 8%",
+    badges: ["저가 입문"],
+    rating: 4.6,
+    lessons: 72,
+    bio: "죽지 않고 딜하는 위치, 앞라인 거리 유지, 스펠 체크, 한타 전 대기 위치를 중심으로 봅니다.",
+    reviews: [
+      ["원딜연습", "앞무빙하다 죽는 장면을 정확히 짚어줬습니다."],
+      ["실버탈출", "한타 전에 서는 위치가 바뀌니까 딜량이 올랐어요."],
+    ],
+  },
+  {
+    id: "lol-9",
+    category: "league",
+    name: "챔피언폭 20분 상담",
+    tier: "일반",
+    tagline: "OP.GG와 플레이 성향 기준으로 연습 챔피언 2~3개 추천",
+    purpose: ["value", "aim", "low"],
+    roles: ["저가 입문", "챔피언폭", "솔랭"],
+    price: "7,900원 / 20분",
+    image: "assets/KakaoTalk_20250810_005153132_06.jpg",
+    imagePosition: "center 8%",
+    badges: ["저가 입문"],
+    rating: 4.3,
+    lessons: 39,
+    bio: "현재 티어, 선호 플레이, 라인별 약점을 보고 무리 없이 연습 가능한 챔피언 2~3개를 추천합니다.",
+    reviews: [
+      ["챔프고민", "괜히 어려운 챔프만 잡고 있었다는 걸 알았어요."],
+      ["입문러", "연습 순서가 생겨서 랭크가 덜 무서워졌습니다."],
+    ],
+  },
+  {
+    id: "lol-10",
+    category: "league",
+    name: "Replay Quick Check",
+    tier: "일반",
+    tagline: "짧은 리플레이 진단과 바로 고칠 3가지 과제",
+    purpose: ["value", "low"],
+    roles: ["리플레이", "피드백", "입문"],
+    price: "9,900원 / 30분",
+    image: "assets/KakaoTalk_20250810_005153132_17.jpg",
+    imagePosition: "72% 12%",
+    badges: ["저가 입문"],
+    rating: 4.5,
+    lessons: 84,
+    bio: "한 경기 리플레이를 빠르게 보며 가장 손해가 큰 습관 3개와 다음 판에서 바로 해볼 과제를 남깁니다.",
+    reviews: [
+      ["게스트", "짧게 봤는데도 고칠 게 명확했습니다."],
+      ["랭크전사", "가격 부담 없이 점검받기 좋아요."],
+    ],
+  },
+  {
+    id: "val-1",
+    category: "valorant",
+    name: "Astra Aim Room",
+    tagline: "에임 루틴과 피킹 습관 교정",
+    purpose: ["value", "low"],
+    roles: ["에임", "피킹", "감도"],
+    price: "32,000원 / 1시간",
+    image: "assets/KakaoTalk_20250810_005153132_06.jpg",
+    imagePosition: "center 8%",
+    badges: ["입문 추천", "리뷰 우수"],
+    rating: 4.8,
+    lessons: 88,
+    bio: "데스매치만 많이 하는 방식에서 벗어나, 실제 랭크에서 나오는 교전 각도와 크로스헤어 위치를 고칩니다.",
+    reviews: [
+      ["새벽반", "감도부터 훈련 루틴까지 한 번에 정리돼서 좋았어요."],
+      ["민트", "왜 먼저 쏘고도 지는지 정확히 짚어줬습니다."],
+    ],
+  },
+  {
+    id: "val-2",
+    category: "valorant",
+    name: "Duelist Clinic",
+    tagline: "엔트리 타이밍, 스킬 연계, 사이트 진입",
+    purpose: ["team", "duelist"],
+    roles: ["듀얼리스트", "엔트리", "스크림"],
+    price: "38,000원 / 1시간",
+    image: "assets/KakaoTalk_20250810_005153132_17.jpg",
+    imagePosition: "72% 12%",
+    badges: ["팀 피드백 가능"],
+    rating: 4.6,
+    lessons: 73,
+    bio: "혼자 들어가다 죽는 진입을 팀이 따라올 수 있는 진입으로 바꾸는 데 집중합니다.",
+    reviews: [
+      ["플래찍자", "진입 타이밍이랑 콜을 같이 봐줘서 팀 게임이 쉬워졌어요."],
+      ["쭈", "공격 라운드가 답답했는데 선택지가 생겼습니다."],
+    ],
+  },
+  {
+    id: "academy-1",
+    category: "academy",
+    name: "신규 코치 베이직 4주",
+    tagline: "코칭 진행법, 리플레이 분석, 수강생 관리",
+    purpose: ["entry", "curriculum", "coach-basic"],
+    roles: ["코치 입문", "커리큘럼", "피드백"],
+    price: "300,000원 / 4주",
+    image: "assets/KakaoTalk_20250810_005153132_01.jpg",
+    imagePosition: "center 8%",
+    badges: ["수료 배지", "플랫폼 입점 연계"],
+    rating: 4.9,
+    lessons: 42,
+    bio: "게임을 잘하는 사람을 실제로 돈을 받고 가르칠 수 있는 코치로 만드는 기초 과정입니다.",
+    reviews: [
+      ["수료생 A", "말로 설명하는 법을 배우니까 코칭이 훨씬 안정됐습니다."],
+      ["수료생 B", "피드백 템플릿이 있어서 첫 유료 강의까지 바로 이어졌어요."],
+    ],
+  },
+  {
+    id: "academy-2",
+    category: "academy",
+    name: "우수 코치 전환반",
+    tagline: "후기 관리, 상품화, 장기 수강 설계",
+    purpose: ["branding", "coach-advanced", "operation"],
+    roles: ["고급반", "브랜딩", "운영"],
+    price: "180,000원 / 2주",
+    image: "assets/lollogo.png",
+    imagePosition: "center center",
+    badges: ["수수료 감면 후보"],
+    rating: 4.7,
+    lessons: 26,
+    bio: "강의 단가를 올리고 반복 예약을 만들기 위한 상담 방식과 패키지 구성을 다룹니다.",
+    reviews: [
+      ["코치K", "강의 소개를 바꿨더니 문의가 더 구체적으로 들어왔습니다."],
+      ["코치M", "후기 요청 방식 하나만 바꿔도 차이가 컸어요."],
+    ],
+  },
+];
+
+const bookingSamples = [
+  {
+    status: "신규",
+    student: "리조토#KR1",
+    lesson: "Coach Shineast",
+    time: "8/10 21:00",
+    contact: "discord: risotto",
+    memo: "탑 라인전 복기와 챔프폭 상담",
+  },
+  {
+    status: "상담중",
+    student: "테스트#테스트",
+    lesson: "신규 코치 베이직 4주",
+    time: "8/12 20:00",
+    contact: "discord: testcoach",
+    memo: "코치 등록 전에 커리큘럼을 보고 싶음",
+  },
+];
+
+const imageMigration = {
+  "../assets/champions/Aatrox.png": "assets/KakaoTalk_20250810_005153132_05.jpg",
+  "../assets/champions/Ahri.png": "assets/KakaoTalk_20250810_005153132_04.jpg",
+  "../assets/champions/LeeSin.png": "assets/KakaoTalk_20250810_005153132_11.jpg",
+  "../assets/champions/Caitlyn.png": "assets/KakaoTalk_20250810_005153132_06.jpg",
+  "../assets/champions/Zed.png": "assets/KakaoTalk_20250810_005153132_17.jpg",
+  "../assets/champions/Lux.png": "assets/lollogo.png",
+  "../assets/emojis/misc/lollogo.png": "assets/lollogo.png",
+};
+
+const SAMPLE_VERSION = "league-coaches-v7-split-tabs";
+const tierRank = { "엠버서더": 0, "최우수": 1, "우수": 2, "일반": 3 };
+
+const state = {
+  activeView: "market",
+  category: "league",
+  type: "all",
+  segment: "all",
+  selectedCoachId: null,
+  query: "",
+  coaches: loadCoaches(),
+  bookings: load("lucid-bookings", bookingSamples),
+};
+
+function $(id) {
+  return document.getElementById(id);
+}
+
+function load(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || structuredClone(fallback);
+  } catch {
+    return structuredClone(fallback);
+  }
+}
+
+function migrateCoachImages(coaches) {
+  return coaches.map((coach) => ({
+    ...coach,
+    image: imageMigration[coach.image] || coach.image || "assets/lollogo.png",
+    imagePosition: coach.imagePosition || "center 8%",
+  }));
+}
+
+function loadCoaches() {
+  const savedVersion = localStorage.getItem("lucid-coaches-version");
+  if (savedVersion !== SAMPLE_VERSION) {
+    localStorage.setItem("lucid-coaches-version", SAMPLE_VERSION);
+    localStorage.setItem("lucid-coaches", JSON.stringify(samples));
+    return structuredClone(samples);
+  }
+  return migrateCoachImages(load("lucid-coaches", samples));
+}
+
+function save() {
+  localStorage.setItem("lucid-coaches-version", SAMPLE_VERSION);
+  localStorage.setItem("lucid-coaches", JSON.stringify(state.coaches));
+  localStorage.setItem("lucid-bookings", JSON.stringify(state.bookings));
+}
+
+function boot() {
+  Object.entries(text).forEach(([id, value]) => {
+    const el = $(id);
+    if (!el) return;
+    if (el.tagName === "INPUT") el.placeholder = value;
+    else el.textContent = value;
+  });
+  $("searchInput").placeholder = text.searchPlaceholder;
+  $("coachPurpose").placeholder = "예: value, top, low";
+  $("coachImagePosition").placeholder = "예: center 8%, 72% 12%";
+  render();
+  bindEvents();
+}
+
+function bindEvents() {
+  document.querySelectorAll(".nav-item").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeView = button.dataset.view;
+      render();
+    });
+  });
+
+  $("searchInput").addEventListener("input", (event) => {
+    state.query = event.target.value.trim().toLowerCase();
+    renderMarket();
+  });
+
+  $("coachForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveCoachFromForm();
+  });
+
+  $("newCoachBtn").addEventListener("click", () => fillCoachForm());
+  $("deleteCoachBtn").addEventListener("click", deleteSelectedCoach);
+  $("resetCoachesBtn").addEventListener("click", () => {
+    state.coaches = structuredClone(samples);
+    state.selectedCoachId = null;
+    save();
+    render();
+  });
+  $("clearBookingsBtn").addEventListener("click", () => {
+    state.bookings = structuredClone(bookingSamples);
+    save();
+    render();
+  });
+}
+
+function render() {
+  document.querySelectorAll(".nav-item").forEach((button) => {
+    button.classList.toggle("active", button.dataset.view === state.activeView);
+  });
+  document.querySelectorAll(".view").forEach((view) => view.classList.remove("active"));
+  $(`${state.activeView}View`).classList.add("active");
+  renderMetrics();
+  renderMarket();
+  renderBookings();
+  renderAdmin();
+}
+
+function renderMetrics() {
+  const ratings = state.coaches.map((coach) => coach.rating).filter(Boolean);
+  const average = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+  $("metricCoaches").textContent = state.coaches.length;
+  $("metricBookings").textContent = state.bookings.length;
+  $("metricRating").textContent = average.toFixed(1);
+}
+
+function getVisibleCoaches() {
+  return state.coaches.filter((coach) => {
+    const inCategory = coach.category === state.category;
+    const coachPurposes = getCoachPurposes(coach);
+    const inType = state.type === "all" || coachPurposes.includes(state.type);
+    const inSegment = state.segment === "all" || coachPurposes.includes(state.segment);
+    const purposeLabel = getPurposeLabels(coach.purpose).join(" ");
+    const haystack = [coach.name, coach.tier, coach.tagline, coach.bio, purposeLabel, ...(coach.roles || []), ...(coach.badges || [])]
+      .join(" ")
+      .toLowerCase();
+    return inCategory && inType && inSegment && (!state.query || haystack.includes(state.query));
+  }).sort((a, b) => {
+    const tierDiff = (tierRank[a.tier] ?? 9) - (tierRank[b.tier] ?? 9);
+    if (tierDiff) return tierDiff;
+    return (b.rating || 0) - (a.rating || 0);
+  });
+}
+
+function renderMarket() {
+  const filters = getActiveFilterSet();
+  $("categoryTabs").innerHTML = categories.map((category) => `
+    <button class="tab ${category.id === state.category ? "active" : ""}" data-category="${category.id}">
+      ${category.label}
+    </button>
+  `).join("");
+
+  document.querySelectorAll(".tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      state.category = tab.dataset.category;
+      state.type = "all";
+      state.segment = "all";
+      state.selectedCoachId = null;
+      renderMarket();
+    });
+  });
+
+  $("typeTabs").innerHTML = filters.type.map((filter) => `
+    <button class="purpose-tab ${filter.id === state.type ? "active" : ""}" data-type="${filter.id}">
+      ${filter.label}
+    </button>
+  `).join("");
+
+  $("segmentTabs").innerHTML = filters.segment.map((filter) => `
+    <button class="purpose-tab ${filter.id === state.segment ? "active" : ""}" data-segment="${filter.id}">
+      ${filter.label}
+    </button>
+  `).join("");
+
+  document.querySelectorAll("[data-type]").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      state.type = tab.dataset.type;
+      state.selectedCoachId = null;
+      renderMarket();
+    });
+  });
+
+  document.querySelectorAll("[data-segment]").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      state.segment = tab.dataset.segment;
+      state.selectedCoachId = null;
+      renderMarket();
+    });
+  });
+
+  const visible = getVisibleCoaches();
+  if (state.selectedCoachId && !visible.some((coach) => coach.id === state.selectedCoachId)) {
+    state.selectedCoachId = null;
+  }
+
+  renderFeatured(visible);
+  $("coachList").innerHTML = visible.length ? visible.map(renderCoachCard).join("") : `
+    <div class="empty">검색 결과가 없습니다.</div>
+  `;
+  document.querySelectorAll("[data-coach-id]").forEach((card) => {
+    card.addEventListener("click", () => {
+      state.selectedCoachId = card.dataset.coachId;
+      renderMarket();
+    });
+  });
+  renderDetail();
+}
+
+function getActiveFilterSet() {
+  return filterSets[state.category] || filterSets.league;
+}
+
+function renderFeatured(visible) {
+  const featured = visible
+    .filter((coach) => coach.category === state.category && ["엠버서더", "최우수"].includes(coach.tier))
+    .slice(0, state.category === "league" ? 5 : 3);
+  const section = $("featuredSection");
+  if (!featured.length || state.query) {
+    section.hidden = true;
+    $("featuredList").innerHTML = "";
+    return;
+  }
+  section.hidden = false;
+  $("featuredList").innerHTML = featured.map(renderFeaturedCard).join("");
+}
+
+function renderFeaturedCard(coach) {
+  const originalPrice = getOriginalPrice(coach.price);
+  const imageStyle = getImageStyle(coach);
+  return `
+    <article class="featured-card ${getTierClass(coach)}" data-coach-id="${coach.id}">
+      <div class="featured-image">
+        <img src="${coach.image}" alt="" style="${imageStyle}">
+        <span class="ad-label">추천</span>
+        <span class="tier-ribbon">${coach.tier}</span>
+      </div>
+      <div class="featured-body">
+        <div class="featured-tags">
+          <span>온라인</span>
+          <span>맞춤 피드백</span>
+        </div>
+        <h3>${coach.tagline}</h3>
+        <p>${coach.name}</p>
+        <p class="purpose-label">${getPurposeLabels(coach.purpose).slice(0, 2).join(" · ")}</p>
+        <div class="featured-rating">★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></div>
+        <div class="featured-price">
+          <strong>${coach.price}</strong>
+          ${originalPrice ? `<del>${originalPrice}</del>` : ""}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function getOriginalPrice(price) {
+  const amount = Number(String(price || "").replace(/[^\d]/g, ""));
+  if (!amount) return "";
+  return `${Math.round(amount * 1.7).toLocaleString("ko-KR")}원`;
+}
+
+function renderCoachCard(coach) {
+  const badges = getCoachBadges(coach);
+  const imageStyle = getImageStyle(coach);
+  return `
+    <article class="coach-card ${coach.id === state.selectedCoachId ? "active" : ""} ${getTierClass(coach)}" data-coach-id="${coach.id}">
+      <img class="avatar" src="${coach.image}" alt="" style="${imageStyle}">
+      <div class="coach-main">
+        ${badges.length ? `<div class="rank-badges">${badges.map(renderBadge).join("")}</div>` : ""}
+        <h3>${coach.name}</h3>
+        <p>${coach.tagline}</p>
+        <span class="purpose-label">${getPurposeLabels(coach.purpose).slice(0, 2).join(" · ")}</span>
+        <div class="chips">${(coach.roles || []).map((role) => `<span class="chip">${role}</span>`).join("")}</div>
+      </div>
+      <div class="card-foot">
+        <span>★ ${coach.rating.toFixed(1)} · 후기 ${coach.reviews?.length || 0}</span>
+        <span class="price">${coach.price}</span>
+      </div>
+    </article>
+  `;
+}
+
+function getCoachBadges(coach) {
+  if (coach.tier === "엠버서더") return ["추천", "엠버서더"];
+  if (coach.tier === "최우수") return ["추천", "최우수"];
+  if (coach.tier === "우수") return ["추천", "우수"];
+  return coach.badges || [];
+}
+
+function renderBadge(label) {
+  const className = label === "추천" ? "badge recommend" : ["최우수", "엠버서더"].includes(label) ? "badge best" : "badge good";
+  return `<span class="${className}">${label}</span>`;
+}
+
+function getTierClass(coach) {
+  if (["최우수", "엠버서더"].includes(coach.tier)) return "tier-best";
+  if (coach.tier === "우수") return "tier-good";
+  return "tier-normal";
+}
+
+function getImageStyle(coach) {
+  return `object-position: ${coach.imagePosition || "center 8%"}`;
+}
+
+function getCoachPurposes(coach) {
+  const raw = Array.isArray(coach?.purpose) ? coach.purpose : String(coach?.purpose || "").split(",");
+  return raw.map((item) => String(item).trim()).filter(Boolean);
+}
+
+function getPurposeLabels(value) {
+  const ids = Array.isArray(value) ? value : String(value || "").split(",");
+  const labels = ids
+    .map((id) => purposes.find((purpose) => purpose.id === String(id).trim())?.label || String(id).trim())
+    .filter(Boolean);
+  return labels.length ? labels : ["분류 미지정"];
+}
+
+function renderDetail() {
+  const coach = state.coaches.find((item) => item.id === state.selectedCoachId);
+  if (!coach) {
+    $("coachDetail").innerHTML = `
+      <div class="detail-empty">
+        <strong>상품을 선택하면 상세 정보가 표시됩니다.</strong>
+        <span>왼쪽 카드에서 원하는 코칭 상품을 눌러 가격, 후기, 예약 신청 양식을 확인하세요.</span>
+      </div>
+    `;
+    return;
+  }
+
+  $("coachDetail").innerHTML = `
+    <div class="detail-hero"><img src="${coach.image}" alt="" style="${getImageStyle(coach)}"></div>
+    <div class="detail-body">
+      <div class="rank-badges">${getCoachBadges(coach).map(renderBadge).join("")}</div>
+      <h2>${coach.name}</h2>
+      <p>${coach.bio}</p>
+      <div class="booking-note">
+        <strong>예약 전 확인</strong>
+        <span>진행 방식: 디스코드 화면공유 또는 리플레이 리뷰</span>
+        <span>준비물: Riot ID, 최근 경기 리플레이, 궁금한 장면</span>
+        <span>접수 후 운영진이 희망 시간과 연락처를 확인합니다.</span>
+      </div>
+      <div class="detail-grid">
+        <div class="info-box"><span>가격</span><strong>${coach.price}</strong></div>
+        <div class="info-box"><span>진행 수</span><strong>${coach.lessons || 0}회</strong></div>
+        <div class="info-box"><span>평점</span><strong>★ ${coach.rating.toFixed(1)}</strong></div>
+        <div class="info-box"><span>전문 분야</span><strong>${(coach.roles || []).join(", ")}</strong></div>
+        <div class="info-box"><span>분류</span><strong>${getPurposeLabels(coach.purpose).join(", ")}</strong></div>
+      </div>
+      <h3>후기</h3>
+      ${(coach.reviews || []).map(([name, body]) => `
+        <div class="review"><strong>${name}</strong><p>${body}</p></div>
+      `).join("")}
+      <div id="bookingMount"></div>
+    </div>
+  `;
+
+  const form = $("bookingFormTemplate").content.cloneNode(true);
+  $("bookingMount").appendChild(form);
+  $("bookingStudentLabel").textContent = text.bookingStudentLabel;
+  $("bookingContactLabel").textContent = text.bookingContactLabel;
+  $("bookingTimeLabel").textContent = text.bookingTimeLabel;
+  $("bookingMemoLabel").textContent = text.bookingMemoLabel;
+  $("bookingSubmitBtn").textContent = text.bookingSubmitBtn;
+  $("bookingForm").student.placeholder = "예: 닉네임#KR1";
+  $("bookingForm").contact.placeholder = "예: Discord ID";
+  $("bookingForm").time.placeholder = "예: 8/10 21:00";
+  $("bookingForm").memo.placeholder = "라인, 챔피언, 고민을 적어주세요.";
+  $("bookingForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData(event.target);
+    state.bookings.unshift({
+      status: "신규",
+      student: data.get("student"),
+      lesson: coach.name,
+      time: data.get("time"),
+      contact: data.get("contact"),
+      memo: data.get("memo") || "-",
+    });
+    save();
+    event.target.reset();
+    render();
+  });
+}
+
+function renderBookings() {
+  $("bookingRows").innerHTML = state.bookings.length ? state.bookings.map((booking) => `
+    <tr>
+      <td><span class="status">${booking.status}</span></td>
+      <td>${booking.student}</td>
+      <td>${booking.lesson}</td>
+      <td>${booking.time}</td>
+      <td>${booking.contact}</td>
+      <td>${booking.memo}</td>
+    </tr>
+  `).join("") : `<tr><td colspan="6">예약이 없습니다.</td></tr>`;
+}
+
+function renderAdmin() {
+  $("adminCoachList").innerHTML = state.coaches.map((coach) => `
+    <button class="admin-row" type="button" data-id="${coach.id}">
+      <img src="${coach.image}" alt="">
+      <span>
+        <h4>${coach.name}</h4>
+        <p>${categoryLabel(coach.category)} · ${coach.price}</p>
+      </span>
+      <span class="chip">수정</span>
+    </button>
+  `).join("");
+
+  document.querySelectorAll(".admin-row").forEach((row) => {
+    row.addEventListener("click", () => fillCoachForm(state.coaches.find((coach) => coach.id === row.dataset.id)));
+  });
+}
+
+function fillCoachForm(coach) {
+  $("coachId").value = coach?.id || "";
+  $("coachCategory").value = coach?.category || state.category;
+  $("coachName").value = coach?.name || "";
+  $("coachTagline").value = coach?.tagline || "";
+  $("coachPurpose").value = getCoachPurposes(coach).join(", ");
+  $("coachRoles").value = (coach?.roles || []).join(", ");
+  $("coachPrice").value = coach?.price || "";
+  $("coachImage").value = coach?.image || "assets/lollogo.png";
+  $("coachImagePosition").value = coach?.imagePosition || "center 8%";
+  $("coachBadges").value = (coach?.badges || []).join(", ");
+  $("coachBio").value = coach?.bio || "";
+}
+
+function saveCoachFromForm() {
+  const id = $("coachId").value || `coach-${Date.now()}`;
+  const previous = state.coaches.find((coach) => coach.id === id);
+  const next = {
+    id,
+    category: $("coachCategory").value,
+    name: $("coachName").value.trim(),
+    tier: previous?.tier || "일반",
+    tagline: $("coachTagline").value.trim(),
+    purpose: splitCsv($("coachPurpose").value || "value"),
+    roles: splitCsv($("coachRoles").value),
+    price: $("coachPrice").value.trim() || "가격 상담",
+    image: $("coachImage").value.trim() || "assets/lollogo.png",
+    imagePosition: $("coachImagePosition").value.trim() || "center 8%",
+    badges: splitCsv($("coachBadges").value),
+    rating: previous?.rating || 4.8,
+    lessons: previous?.lessons || 0,
+    bio: $("coachBio").value.trim(),
+    reviews: previous?.reviews || [["첫 후기", "관리자가 입력한 샘플 후기입니다."]],
+  };
+  state.coaches = state.coaches.filter((coach) => coach.id !== id).concat(next);
+  state.category = next.category;
+  state.selectedCoachId = id;
+  save();
+  render();
+  fillCoachForm(next);
+}
+
+function deleteSelectedCoach() {
+  const id = $("coachId").value;
+  if (!id) return;
+  state.coaches = state.coaches.filter((coach) => coach.id !== id);
+  state.selectedCoachId = null;
+  save();
+  fillCoachForm();
+  render();
+}
+
+function splitCsv(value) {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function categoryLabel(id) {
+  return categories.find((category) => category.id === id)?.label || id;
+}
+
+boot();

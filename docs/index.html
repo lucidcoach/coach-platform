@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lucid Coach</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="assets/lollogo.png" alt="">
+        <div>
+          <strong>Lucid Coach</strong>
+          <span>Local MVP</span>
+        </div>
+      </div>
+      <nav class="nav" aria-label="main">
+        <button class="nav-item active" data-view="market" id="navMarket"></button>
+        <button class="nav-item" data-view="bookings" id="navBookings"></button>
+        <button class="nav-item" data-view="admin" id="navAdmin"></button>
+      </nav>
+      <div class="side-panel">
+        <span class="label" id="sideLabel"></span>
+        <p id="sideCopy"></p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow" id="heroEyebrow"></p>
+          <h1 id="heroTitle"></h1>
+        </div>
+        <div class="metrics">
+          <div><strong id="metricCoaches">0</strong><span id="metricCoachesLabel"></span></div>
+          <div><strong id="metricBookings">0</strong><span id="metricBookingsLabel"></span></div>
+          <div><strong id="metricRating">0.0</strong><span id="metricRatingLabel"></span></div>
+        </div>
+      </section>
+
+      <section class="view active" id="marketView">
+        <div class="toolbar">
+          <div class="tabs" id="categoryTabs"></div>
+          <label class="search">
+            <span id="searchLabel"></span>
+            <input id="searchInput" type="search">
+          </label>
+        </div>
+        <div class="filter-block">
+          <div class="filter-row" id="typeTabs"></div>
+          <div class="filter-row" id="segmentTabs"></div>
+        </div>
+        <section class="featured-section" id="featuredSection">
+          <div class="market-head">
+            <h2 id="featuredTitle"></h2>
+            <span id="featuredHint"></span>
+          </div>
+          <div class="featured-grid" id="featuredList"></div>
+        </section>
+        <div class="market-head list-head">
+          <h2 id="expertTitle"></h2>
+          <span id="expertHint"></span>
+        </div>
+        <div class="layout">
+          <section class="coach-list" id="coachList"></section>
+          <section class="detail-panel" id="coachDetail"></section>
+        </div>
+      </section>
+
+      <section class="view" id="bookingsView">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow" id="bookingEyebrow"></p>
+            <h2 id="bookingTitle"></h2>
+          </div>
+          <button class="secondary" id="clearBookingsBtn"></button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th id="thStatus"></th>
+                <th id="thStudent"></th>
+                <th id="thLesson"></th>
+                <th id="thTime"></th>
+                <th id="thContact"></th>
+                <th id="thMemo"></th>
+              </tr>
+            </thead>
+            <tbody id="bookingRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="view" id="adminView">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow" id="adminEyebrow"></p>
+            <h2 id="adminTitle"></h2>
+          </div>
+          <button class="secondary" id="resetCoachesBtn"></button>
+        </div>
+        <form class="admin-form" id="coachForm">
+          <input type="hidden" id="coachId">
+          <label><span id="labelCategory"></span>
+            <select id="coachCategory">
+              <option value="league" id="optLeague"></option>
+              <option value="valorant" id="optValorant"></option>
+              <option value="academy" id="optAcademy"></option>
+            </select>
+          </label>
+          <label><span id="labelName"></span><input id="coachName" required></label>
+          <label><span id="labelTagline"></span><input id="coachTagline" required></label>
+          <label><span id="labelPurpose"></span><input id="coachPurpose"></label>
+          <label><span id="labelRoles"></span><input id="coachRoles"></label>
+          <label><span id="labelPrice"></span><input id="coachPrice"></label>
+          <label><span id="labelImage"></span><input id="coachImage"></label>
+          <label><span id="labelImagePosition"></span><input id="coachImagePosition"></label>
+          <label><span id="labelBadges"></span><input id="coachBadges"></label>
+          <label class="wide"><span id="labelBio"></span><textarea id="coachBio" rows="4"></textarea></label>
+          <div class="form-actions">
+            <button type="submit" class="primary" id="saveCoachBtn"></button>
+            <button type="button" class="secondary" id="newCoachBtn"></button>
+            <button type="button" class="danger" id="deleteCoachBtn"></button>
+          </div>
+        </form>
+        <div class="admin-list" id="adminCoachList"></div>
+      </section>
+    </main>
+  </div>
+
+  <template id="bookingFormTemplate">
+    <form class="booking-form" id="bookingForm">
+      <label><span id="bookingStudentLabel"></span><input name="student" required></label>
+      <label><span id="bookingContactLabel"></span><input name="contact" required></label>
+      <label><span id="bookingTimeLabel"></span><input name="time" required></label>
+      <label><span id="bookingMemoLabel"></span><textarea name="memo" rows="3"></textarea></label>
+      <button type="submit" class="primary" id="bookingSubmitBtn"></button>
+    </form>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
