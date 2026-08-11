@@ -803,6 +803,7 @@ th {
   overflow: hidden;
   border-radius: 8px;
   background: #151515;
+  cursor: crosshair;
 }
 .crop-stage img {
   max-width: 100%;
@@ -813,7 +814,12 @@ th {
   position: absolute;
   border: 2px solid rgba(255,255,255,0.9);
   box-shadow: 0 0 0 999px rgba(0,0,0,0.42);
-  pointer-events: none;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+}
+.crop-box:active {
+  cursor: grabbing;
 }
 .crop-controls {
   display: grid;

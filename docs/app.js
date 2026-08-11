@@ -74,6 +74,8 @@ const priceUnits = {
   game: ["1게임", "2게임", "3게임"],
 };
 
+const badgeOptions = ["엠버서더", "최우수", "우수", "추천", "일반", "저가 입문", "입문 추천", "리뷰 우수", "팀 피드백 가능"];
+
 const text = {
   navMarket: "강의 탐색",
   navBookings: "예약 관리",
@@ -535,6 +537,8 @@ function bindEvents() {
   $("applyCropBtn").addEventListener("click", applyImageCrop);
   $("cropImage").addEventListener("load", updateCropBox);
   ["cropX", "cropY", "cropSize"].forEach((id) => $(id).addEventListener("input", updateCropBox));
+  $("cropBox").addEventListener("pointerdown", startCropDrag);
+  document.querySelector(".crop-stage").addEventListener("pointerdown", moveCropToPointer);
   $("bookingStatusFilter").addEventListener("change", (event) => {
     state.bookingFilterStatus = event.target.value;
     renderBookings();
@@ -635,7 +639,11 @@ function renderMarket() {
   }
 
   renderFeatured(visible);
-  $("coachList").innerHTML = visible.length ? visible.map(renderCoachCard).join("") : `
+  const featuredIds = new Set(
+    state.query ? [] : Array.from(document.querySelectorAll("#featuredList [data-coach-id]")).map((card) => card.dataset.coachId)
+  );
+  const listed = visible.filter((coach) => !featuredIds.has(coach.id));
+  $("coachList").innerHTML = listed.length ? listed.map(renderCoachCard).join("") : `
     <div class="empty">검색 결과가 없습니다.</div>
   `;
   document.querySelectorAll("[data-coach-id]").forEach((card) => {
@@ -1292,17 +1300,16 @@ function fillCoachForm(coach) {
   $("coachCategory").value = coach?.category || state.category;
   $("coachName").value = coach?.name || "";
   $("coachTagline").value = coach?.tagline || "";
-  renderAdminChoiceControls(getCoachPurposes(coach), coach?.roles || []);
+  renderAdminChoiceControls(getCoachPurposes(coach), coach?.roles || [], coach?.badges || []);
   setPriceFields(coach?.price || "");
   $("coachImage").value = coach?.image || "assets/lollogo.png";
   $("coachImagePosition").value = coach?.imagePosition || "center center";
-  $("coachBadges").value = (coach?.badges || []).join(", ");
   $("coachBio").value = coach?.bio || "";
   $("coachImageFile").value = "";
   updateCoachImagePreview();
 }
 
-function renderAdminChoiceControls(selectedPurposes = [], selectedRoles = []) {
+function renderAdminChoiceControls(selectedPurposes = [], selectedRoles = [], selectedBadges = []) {
   const category = $("coachCategory").value || state.category || "league";
   const filters = filterSets[category] || filterSets.league;
   const purposeOptions = [...filters.type, ...filters.segment].filter((item) => item.id !== "all");
@@ -1314,10 +1321,22 @@ function renderAdminChoiceControls(selectedPurposes = [], selectedRoles = []) {
   $("coachRoleChoices").innerHTML = roleOptions.map((role) => `
     <label><input type="checkbox" name="coachRoleChoice" value="${role}" ${selectedRoles.includes(role) ? "checked" : ""}> ${role}</label>
   `).join("");
+
+  $("coachBadgeChoices").innerHTML = badgeOptions.map((badge) => `
+    <label><input type="checkbox" name="coachBadgeChoice" value="${badge}" ${selectedBadges.includes(badge) ? "checked" : ""}> ${badge}</label>
+  `).join("");
 }
 
 function getCheckedValues(name) {
   return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map((input) => input.value);
+}
+
+function getTierFromBadges(badges, fallback = "일반") {
+  if (badges.includes("엠버서더")) return "엠버서더";
+  if (badges.includes("최우수")) return "최우수";
+  if (badges.includes("우수")) return "우수";
+  if (badges.includes("일반")) return "일반";
+  return fallback || "일반";
 }
 
 function renderPriceUnitOptions(type, selected = "") {
@@ -1404,6 +1423,39 @@ function updateCropBox() {
   box.style.top = `${rect.top - parentRect.top}px`;
 }
 
+function setCropCenterFromPointer(event) {
+  const rect = getCropRect();
+  const imageRect = rect.imageRect;
+  const maxX = Math.max(1, imageRect.width - rect.size);
+  const maxY = Math.max(1, imageRect.height - rect.size);
+  const left = Math.max(0, Math.min(maxX, event.clientX - imageRect.left - rect.size / 2));
+  const top = Math.max(0, Math.min(maxY, event.clientY - imageRect.top - rect.size / 2));
+  $("cropX").value = Math.round((left / maxX) * 100);
+  $("cropY").value = Math.round((top / maxY) * 100);
+  updateCropBox();
+}
+
+function moveCropToPointer(event) {
+  if (event.target === $("cropImage")) {
+    setCropCenterFromPointer(event);
+  }
+}
+
+function startCropDrag(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  $("cropBox").setPointerCapture(event.pointerId);
+  const onMove = (moveEvent) => setCropCenterFromPointer(moveEvent);
+  const onEnd = () => {
+    $("cropBox").removeEventListener("pointermove", onMove);
+    $("cropBox").removeEventListener("pointerup", onEnd);
+    $("cropBox").removeEventListener("pointercancel", onEnd);
+  };
+  $("cropBox").addEventListener("pointermove", onMove);
+  $("cropBox").addEventListener("pointerup", onEnd);
+  $("cropBox").addEventListener("pointercancel", onEnd);
+}
+
 function applyImageCrop() {
   const image = $("cropImage");
   if (!image.complete || !image.naturalWidth) return;
@@ -1429,11 +1481,12 @@ async function saveCoachFromForm() {
   const previous = state.coaches.find((coach) => coach.id === id);
   const previousIndex = state.coaches.findIndex((coach) => coach.id === id);
   const selectedPurposes = getCheckedValues("coachPurposeChoice");
+  const selectedBadges = getCheckedValues("coachBadgeChoice");
   const next = {
     id,
     category: $("coachCategory").value,
     name: $("coachName").value.trim(),
-    tier: previous?.tier || "일반",
+    tier: getTierFromBadges(selectedBadges, previous?.tier),
     tagline: $("coachTagline").value.trim(),
     purpose: selectedPurposes.length ? selectedPurposes : ["value"],
     roles: getCheckedValues("coachRoleChoice"),
@@ -1441,7 +1494,7 @@ async function saveCoachFromForm() {
     image: $("coachImage").value.trim() || "assets/lollogo.png",
     imagePosition: $("coachImagePosition").value.trim() || "center center",
     imageScale: 1,
-    badges: splitCsv($("coachBadges").value),
+    badges: selectedBadges,
     rating: previous?.rating || 4.8,
     lessons: previous?.lessons || 0,
     bio: $("coachBio").value.trim(),
@@ -1449,7 +1502,10 @@ async function saveCoachFromForm() {
   };
   try {
     const savedCoach = await runAdminRequest(() => saveCoachToApi(next, previousIndex >= 0 ? previousIndex : state.coaches.length));
-    state.coaches = state.coaches.filter((coach) => coach.id !== id).concat(savedCoach);
+    await loadCoachesFromApi();
+    if (!state.coaches.some((coach) => coach.id === savedCoach.id)) {
+      state.coaches = state.coaches.filter((coach) => coach.id !== id).concat(savedCoach);
+    }
     state.category = savedCoach.category;
     state.selectedCoachId = savedCoach.id;
     render();
