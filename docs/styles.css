@@ -774,8 +774,8 @@ th {
   border-radius: 8px;
   background: var(--panel-2);
 }
-.dual-image-adjust {
-  grid-template-columns: minmax(180px, 260px) minmax(260px, 1fr);
+.triple-image-adjust {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
 }
 .image-preview {
   display: grid;
@@ -798,11 +798,14 @@ th {
 }
 .image-preview-frame.banner {
   width: 100%;
-  max-width: 260px;
+  max-width: 240px;
   height: auto;
   aspect-ratio: 16 / 9;
   background-color: #111827;
   background-position: center center;
+}
+.triple-image-adjust > button {
+  grid-column: 1 / -1;
 }
 .image-preview span {
   color: var(--muted);

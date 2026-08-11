@@ -470,6 +470,8 @@ function migrateCoachImages(coaches) {
   return coaches.map((coach) => ({
     ...coach,
     image: imageMigration[coach.image] || coach.image || "assets/lollogo.png",
+    featuredImage: imageMigration[coach.featuredImage] || coach.featuredImage || "",
+    detailImage: imageMigration[coach.detailImage] || coach.detailImage || "",
     bannerImage: imageMigration[coach.bannerImage] || coach.bannerImage || "",
     imagePosition: coach.imagePosition || "center 8%",
   }));
@@ -546,7 +548,8 @@ function bindEvents() {
   });
   $("coachImage")?.addEventListener("input", () => updateCoachImagePreview());
   $("coachImageFile").addEventListener("change", handleCoachImageFile);
-  $("coachBannerImageFile").addEventListener("change", handleCoachBannerImageFile);
+  $("coachFeaturedImageFile").addEventListener("change", (event) => handleWideCoachImageFile(event, "coachFeaturedImage", "coachFeaturedImagePreview", "상단 추천 이미지"));
+  $("coachDetailImageFile").addEventListener("change", (event) => handleWideCoachImageFile(event, "coachDetailImage", "coachDetailImagePreview", "상세 설명 이미지"));
   $("openCropBtn").addEventListener("click", openCropModal);
   $("cropCloseBtn").addEventListener("click", closeCropModal);
   $("applyCropBtn").addEventListener("click", applyImageCrop);
@@ -708,12 +711,12 @@ function renderFeatured(visible) {
 
 function renderFeaturedCard(coach) {
   const originalPrice = getOriginalPrice(coach.price);
-  const bannerImage = getBannerImage(coach);
+  const featuredImage = getFeaturedImage(coach);
   const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
   return `
     <article class="featured-card ${getTierClass(coach)}" data-coach-id="${coach.id}">
       <div class="featured-image">
-        <img src="${bannerImage}" alt="" style="${getBannerImageStyle(coach)}">
+        <img src="${featuredImage}" alt="" style="${getWideImageStyle(coach, "featuredImagePosition")}">
         <span class="ad-label">추천</span>
         <span class="tier-ribbon">${coach.tier}</span>
       </div>
@@ -781,12 +784,16 @@ function getImageStyle(coach) {
   return `object-position: ${coach.imagePosition || "center center"};`;
 }
 
-function getBannerImage(coach) {
-  return coach.bannerImage || coach.heroImage || coach.image || "assets/lollogo.png";
+function getFeaturedImage(coach) {
+  return coach.featuredImage || coach.bannerImage || coach.heroImage || coach.image || "assets/lollogo.png";
 }
 
-function getBannerImageStyle(coach) {
-  return `object-position: ${coach.bannerImagePosition || "center center"};`;
+function getDetailImage(coach) {
+  return coach.detailImage || coach.bannerImage || coach.heroImage || coach.featuredImage || coach.image || "assets/lollogo.png";
+}
+
+function getWideImageStyle(coach, positionKey) {
+  return `object-position: ${coach[positionKey] || coach.bannerImagePosition || "center center"};`;
 }
 
 function getCoachPurposes(coach) {
@@ -815,7 +822,7 @@ function renderDetail() {
   }
 
   $("coachDetail").innerHTML = `
-    <div class="detail-hero"><img src="${getBannerImage(coach)}" alt="" style="${getBannerImageStyle(coach)}"></div>
+    <div class="detail-hero"><img src="${getDetailImage(coach)}" alt="" style="${getWideImageStyle(coach, "detailImagePosition")}"></div>
     <div class="detail-body">
       <div class="rank-badges">${getCoachBadges(coach).map(renderBadge).join("")}</div>
       <h2>${coach.name}</h2>
@@ -1352,13 +1359,16 @@ function fillCoachForm(coach) {
   renderAdminChoiceControls(getCoachPurposes(coach), coach?.roles || [], coach?.badges || []);
   setPriceFields(coach?.price || "");
   $("coachImage").value = coach?.image || "assets/lollogo.png";
-  $("coachBannerImage").value = coach?.bannerImage || "";
+  $("coachFeaturedImage").value = coach?.featuredImage || coach?.bannerImage || "";
+  $("coachDetailImage").value = coach?.detailImage || coach?.bannerImage || "";
   $("coachImagePosition").value = coach?.imagePosition || "center center";
   $("coachBio").value = coach?.bio || "";
   $("coachImageFile").value = "";
-  $("coachBannerImageFile").value = "";
+  $("coachFeaturedImageFile").value = "";
+  $("coachDetailImageFile").value = "";
   updateCoachImagePreview();
-  updateCoachBannerImagePreview();
+  updateWideImagePreview("coachFeaturedImage", "coachFeaturedImagePreview");
+  updateWideImagePreview("coachDetailImage", "coachDetailImagePreview");
 }
 
 function renderAdminChoiceControls(selectedPurposes = [], selectedRoles = [], selectedBadges = []) {
@@ -1463,11 +1473,11 @@ function updateCoachImagePreview() {
   preview.style.backgroundSize = "cover";
 }
 
-function updateCoachBannerImagePreview() {
-  const preview = $("coachBannerImagePreview");
+function updateWideImagePreview(inputId, previewId) {
+  const preview = $(previewId);
   if (!preview) return;
-  const bannerImage = $("coachBannerImage").value.trim();
-  preview.style.backgroundImage = bannerImage ? `url("${bannerImage}")` : "none";
+  const image = $(inputId).value.trim();
+  preview.style.backgroundImage = image ? `url("${image}")` : "none";
   preview.style.backgroundPosition = "center center";
   preview.style.backgroundSize = "cover";
 }
@@ -1495,7 +1505,7 @@ function handleCoachImageFile(event) {
   reader.readAsDataURL(file);
 }
 
-async function handleCoachBannerImageFile(event) {
+async function handleWideCoachImageFile(event, inputId, previewId, label) {
   const file = event.target.files?.[0];
   if (!file) return;
   if (!file.type.startsWith("image/")) {
@@ -1504,15 +1514,15 @@ async function handleCoachBannerImageFile(event) {
     return;
   }
   if (file.size > 3 * 1024 * 1024) {
-    alert("배너 이미지는 3MB 이하로 올려주세요.");
+    alert(`${label}는 3MB 이하로 올려주세요.`);
     event.target.value = "";
     return;
   }
   try {
-    $("coachBannerImage").value = await resizeImageFileToDataUrl(file, 1200, 675, 0.82);
-    updateCoachBannerImagePreview();
+    $(inputId).value = await resizeImageFileToDataUrl(file, 1200, 675, 0.82);
+    updateWideImagePreview(inputId, previewId);
   } catch (error) {
-    alert(`배너 이미지를 처리하지 못했습니다.\n${error.message || error}`);
+    alert(`${label}를 처리하지 못했습니다.\n${error.message || error}`);
     event.target.value = "";
   }
 }
@@ -1662,8 +1672,10 @@ async function saveCoachFromForm() {
     roles: getCheckedValues("coachRoleChoice"),
     price: (updateCoachPriceValue(), $("coachPrice").value.trim() || "가격 상담"),
     image: $("coachImage").value.trim() || "assets/lollogo.png",
-    bannerImage: $("coachBannerImage").value.trim(),
-    bannerImagePosition: "center center",
+    featuredImage: $("coachFeaturedImage").value.trim(),
+    featuredImagePosition: "center center",
+    detailImage: $("coachDetailImage").value.trim(),
+    detailImagePosition: "center center",
     imagePosition: $("coachImagePosition").value.trim() || "center center",
     imageScale: 1,
     badges: selectedBadges,

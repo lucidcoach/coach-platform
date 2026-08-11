@@ -141,20 +141,26 @@
             <input id="coachPrice" type="hidden">
           </div>
           <input id="coachImage" type="hidden">
-          <input id="coachBannerImage" type="hidden">
-          <label><span>썸네일 이미지 <small>권장 520×520</small></span><input id="coachImageFile" type="file" accept="image/*"></label>
-          <label><span>배너 이미지 <small>권장 1200×675</small></span><input id="coachBannerImageFile" type="file" accept="image/*"></label>
+          <input id="coachFeaturedImage" type="hidden">
+          <input id="coachDetailImage" type="hidden">
+          <label><span>상단 추천 이미지 <small>엠버서더/최우수 노출용 · 권장 1200×675</small></span><input id="coachFeaturedImageFile" type="file" accept="image/*"></label>
+          <label><span>일반 목록 이미지 <small>목록 카드용 · 권장 520×520</small></span><input id="coachImageFile" type="file" accept="image/*"></label>
+          <label><span>상세 설명 이미지 <small>상세 패널용 · 권장 1200×675</small></span><input id="coachDetailImageFile" type="file" accept="image/*"></label>
           <label class="image-position-raw"><span id="labelImagePosition"></span><input id="coachImagePosition" readonly></label>
-          <div class="image-adjust wide dual-image-adjust">
+          <div class="image-adjust wide triple-image-adjust">
+            <div class="image-preview banner-preview">
+              <div class="image-preview-frame banner" id="coachFeaturedImagePreview"></div>
+              <span>상단 추천 이미지</span>
+            </div>
             <div class="image-preview thumbnail-preview">
               <div class="image-preview-frame" id="coachImagePreview"></div>
-              <span>목록 카드용 썸네일</span>
+              <span>일반 목록 이미지</span>
             </div>
             <div class="image-preview banner-preview">
-              <div class="image-preview-frame banner" id="coachBannerImagePreview"></div>
-              <span>추천/상세 상단용 배너</span>
+              <div class="image-preview-frame banner" id="coachDetailImagePreview"></div>
+              <span>상세 설명 이미지</span>
             </div>
-            <button type="button" class="secondary" id="openCropBtn">썸네일 범위 지정</button>
+            <button type="button" class="secondary" id="openCropBtn">일반 목록 이미지 범위 지정</button>
           </div>
           <fieldset class="choice-field">
             <legend id="labelBadges"></legend>
