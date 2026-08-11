@@ -6,6 +6,7 @@ const categories = [
 
 const API_BASE_URL = "https://lucid-chzzk-auth.onrender.com";
 const ADMIN_TOKEN_KEY = "coach-admin-token";
+const RESERVATION_STATUSES = ["신규", "상담중", "예약확정", "완료", "취소"];
 
 const filterSets = {
   league: {
@@ -118,18 +119,18 @@ const samples = [
   {
     id: "lol-1",
     category: "league",
-    name: "Shineast",
+    name: "페르소나 코치",
     tier: "최우수",
-    tagline: "마스터 이상 대상, 라인전 디테일과 운영 설계",
+    tagline: "탑 라인전 주도권, 웨이브 관리, 사이드 운영 설계",
     purpose: ["top", "high"],
     roles: ["탑", "운영", "고티어"],
     price: "70,000원 / 1시간",
-    image: "assets/KakaoTalk_20250810_005153132_05.jpg",
+    image: "assets/personacoach.png",
     imagePosition: "center 8%",
     badges: ["최우수", "추천"],
     rating: 4.9,
     lessons: 248,
-    bio: "리플레이를 기준으로 라인전 첫 6분, 웨이브 설계, 사이드 운영, 오브젝트 전 턴 사용을 세밀하게 잡아주는 1:1 맞춤 코칭입니다.",
+    bio: "탑 라인전의 딜교 타이밍, 웨이브 고정과 푸쉬 선택, 사이드 운영 전환까지 리플레이 기준으로 정리해주는 1:1 코칭입니다.",
     reviews: [
       ["리조토", "라인전에서 왜 계속 손해보는지 처음으로 이해했어요. 다음 판부터 CS가 확 늘었습니다."],
       ["봄", "상대 정글 위치를 근거로 플레이하는 법을 배워서 게임이 덜 흔들렸습니다."],
@@ -158,18 +159,18 @@ const samples = [
   {
     id: "lol-3",
     category: "league",
-    name: "Jungle Tempo",
+    name: "미르 코치",
     tier: "우수",
-    tagline: "첫 동선, 갱 타이밍, 오브젝트 판단 집중 코칭",
+    tagline: "정글 첫 동선, 갱 타이밍, 오브젝트 판단 집중 코칭",
     purpose: ["jungle", "low"],
     roles: ["정글", "동선", "오브젝트"],
     price: "45,000원 / 1시간",
-    image: "assets/KakaoTalk_20250810_005153132_11.jpg",
+    image: "assets/mireucoach.png",
     imagePosition: "center 8%",
     badges: ["우수", "추천"],
     rating: 4.7,
     lessons: 121,
-    bio: "첫 바퀴 이후 할 일이 사라지는 정글러를 위해 목적 있는 동선과 라인 개입 기준을 잡아줍니다.",
+    bio: "첫 바퀴 이후 턴이 사라지는 정글러를 위해 라인 상태, 캠프 리젠, 오브젝트 타이밍을 기준으로 목적 있는 동선을 잡아줍니다.",
     reviews: [
       ["홍보서버", "매번 감으로 하던 걸 기준으로 바꾸니까 게임이 덜 흔들렸습니다."],
       ["게스트", "내전 리플레이로 설명해줘서 이해가 빨랐어요."],
@@ -198,18 +199,18 @@ const samples = [
   {
     id: "lol-5",
     category: "league",
-    name: "Bot Duo Class",
+    name: "메피 코치",
     tier: "우수",
-    tagline: "원딜/서폿 듀오 라인전과 2:2 교전 설계",
+    tagline: "원딜/서폿 바텀 라인전과 2:2 교전 설계",
     purpose: ["adc", "support", "team"],
     roles: ["원딜", "서폿", "듀오"],
     price: "48,000원 / 1시간",
-    image: "assets/KakaoTalk_20250810_005153132_17.jpg",
+    image: "assets/mephicoach.png",
     imagePosition: "72% 12%",
     badges: ["우수", "추천"],
     rating: 4.8,
     lessons: 103,
-    bio: "바텀 조합별 1레벨 운영, 선 2렙 타이밍, 귀환 턴, 용 전 시야 전환을 실제 리플레이로 정리합니다.",
+    bio: "바텀 조합별 1레벨 운영, 라인 주도권 교환, 원딜과 서폿의 교전 각을 실제 리플레이로 정리합니다.",
     reviews: [
       ["새벽반", "둘이 말이 안 맞아서 지던 판이 줄었습니다."],
       ["민트", "서폿 동선이 원딜 성장에 얼마나 큰지 체감했어요."],
@@ -224,7 +225,7 @@ const samples = [
     purpose: ["value", "top", "low"],
     roles: ["저가 입문", "탑", "라인전"],
     price: "9,900원 / 30분",
-    image: "assets/KakaoTalk_20250810_005153132_05.jpg",
+    image: "assets/personacoach.png",
     imagePosition: "center 8%",
     badges: ["저가 입문"],
     rating: 4.5,
@@ -244,7 +245,7 @@ const samples = [
     purpose: ["value", "support", "low"],
     roles: ["저가 입문", "서폿", "시야"],
     price: "12,000원 / 30분",
-    image: "assets/KakaoTalk_20250810_005153132_04.jpg",
+    image: "assets/mephicoach.png",
     imagePosition: "center 8%",
     badges: ["저가 입문"],
     rating: 4.4,
@@ -264,7 +265,7 @@ const samples = [
     purpose: ["value", "adc", "low"],
     roles: ["저가 입문", "원딜", "한타"],
     price: "14,900원 / 30분",
-    image: "assets/KakaoTalk_20250810_005153132_11.jpg",
+    image: "assets/mephicoach.png",
     imagePosition: "center 8%",
     badges: ["저가 입문"],
     rating: 4.6,
@@ -304,7 +305,7 @@ const samples = [
     purpose: ["value", "low"],
     roles: ["리플레이", "피드백", "입문"],
     price: "9,900원 / 30분",
-    image: "assets/KakaoTalk_20250810_005153132_17.jpg",
+    image: "assets/mephicoach.png",
     imagePosition: "72% 12%",
     badges: ["저가 입문"],
     rating: 4.5,
@@ -422,7 +423,7 @@ const imageMigration = {
   "../assets/emojis/misc/lollogo.png": "assets/lollogo.png",
 };
 
-const SAMPLE_VERSION = "league-coaches-v7-split-tabs";
+const SAMPLE_VERSION = "league-coaches-v8-new-coaches";
 const tierRank = { "엠버서더": 0, "최우수": 1, "우수": 2, "일반": 3 };
 
 const state = {
@@ -436,6 +437,9 @@ const state = {
   bookings: [],
   bookingLoadState: "idle",
   bookingLoadError: "",
+  bookingFilterStatus: "all",
+  bookingQuery: "",
+  selectedBookingId: null,
 };
 
 function $(id) {
@@ -518,6 +522,14 @@ function bindEvents() {
   });
   $("clearBookingsBtn").addEventListener("click", () => {
     loadReservations();
+  });
+  $("bookingStatusFilter").addEventListener("change", (event) => {
+    state.bookingFilterStatus = event.target.value;
+    renderBookings();
+  });
+  $("bookingSearchInput").addEventListener("input", (event) => {
+    state.bookingQuery = event.target.value.trim().toLowerCase();
+    renderBookings();
   });
 }
 
@@ -896,7 +908,14 @@ async function loadReservations(options = {}) {
 
 function mapReservationFromApi(reservation) {
   return {
+    id: reservation.id || "",
     status: reservation.status || "신규",
+    createdAt: reservation.created_at || "",
+    createdAtText: formatDateTime(reservation.created_at),
+    coachName: reservation.coach_name || "-",
+    coachPrice: reservation.coach_price || "-",
+    studentName: reservation.student_name || "-",
+    preferredTime: reservation.preferred_time || "-",
     student: reservation.student_name || "-",
     lesson: reservation.coach_name || "-",
     time: reservation.preferred_time || "-",
@@ -905,25 +924,165 @@ function mapReservationFromApi(reservation) {
   };
 }
 
+function getAdminHeaders(includeJson = false) {
+  const adminToken = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+  return {
+    ...(includeJson ? { "Content-Type": "application/json" } : {}),
+    ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+  };
+}
+
+async function updateReservationStatus(id, status) {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/reservations/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: getAdminHeaders(true),
+    credentials: "include",
+    body: JSON.stringify({ status }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return mapReservationFromApi(result.reservation || {});
+}
+
+async function changeReservationStatus(id, status) {
+  const previousBookings = structuredClone(state.bookings);
+  state.bookings = state.bookings.map((booking) => booking.id === id ? { ...booking, status } : booking);
+  renderBookings();
+
+  try {
+    const updated = await updateReservationStatus(id, status);
+    state.bookings = state.bookings.map((booking) => booking.id === id ? updated : booking);
+    renderBookings();
+  } catch (error) {
+    state.bookings = previousBookings;
+    renderBookings();
+    if (error.status === 401) {
+      const loggedIn = await loginForReservations();
+      if (loggedIn) return changeReservationStatus(id, status);
+    }
+    alert(`예약 상태를 변경하지 못했습니다.\n${error.message}`);
+  }
+}
+
+function getFilteredBookings() {
+  return state.bookings.filter((booking) => {
+    const statusMatches = state.bookingFilterStatus === "all" || booking.status === state.bookingFilterStatus;
+    const haystack = [booking.studentName, booking.coachName, booking.contact, booking.memo].join(" ").toLowerCase();
+    return statusMatches && (!state.bookingQuery || haystack.includes(state.bookingQuery));
+  });
+}
+
+function renderStatusOptions(selectedStatus) {
+  return RESERVATION_STATUSES.map((status) => `
+    <option value="${status}" ${status === selectedStatus ? "selected" : ""}>${status}</option>
+  `).join("");
+}
+
+function renderBookingDetail() {
+  const panel = $("bookingDetail");
+  const booking = state.bookings.find((item) => item.id === state.selectedBookingId);
+  if (!booking) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    return;
+  }
+  panel.hidden = false;
+  panel.innerHTML = `
+    <h3>예약 상세</h3>
+    <div class="booking-detail-grid">
+      ${renderDetailItem("예약 ID", booking.id)}
+      ${renderDetailItem("신청 시간", booking.createdAtText)}
+      ${renderDetailItem("코치명", booking.coachName)}
+      ${renderDetailItem("상품 가격", booking.coachPrice)}
+      ${renderDetailItem("수강생 Riot ID", booking.studentName)}
+      ${renderDetailItem("연락처", booking.contact)}
+      ${renderDetailItem("희망 시간", booking.preferredTime)}
+      ${renderDetailItem("현재 상태", booking.status)}
+      ${renderDetailItem("요청사항", booking.memo, true)}
+    </div>
+  `;
+}
+
+function renderDetailItem(label, value, wide = false) {
+  return `
+    <div class="booking-detail-item ${wide ? "wide" : ""}">
+      <span>${label}</span>
+      <strong>${escapeHtml(value || "-")}</strong>
+    </div>
+  `;
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" });
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function renderBookings() {
+  $("bookingStatusFilter").innerHTML = `
+    <option value="all">전체 상태</option>
+    ${renderStatusOptions(state.bookingFilterStatus)}
+  `;
+  $("bookingStatusFilter").value = state.bookingFilterStatus;
+  $("bookingSearchInput").value = state.bookingQuery;
+
   if (state.bookingLoadState === "loading") {
     $("bookingRows").innerHTML = `<tr><td colspan="6">예약 목록을 불러오는 중입니다.</td></tr>`;
+    renderBookingDetail();
     return;
   }
   if (state.bookingLoadState === "error") {
     $("bookingRows").innerHTML = `<tr><td colspan="6">${state.bookingLoadError || "예약 목록을 불러오지 못했습니다."}</td></tr>`;
+    renderBookingDetail();
     return;
   }
-  $("bookingRows").innerHTML = state.bookings.length ? state.bookings.map((booking) => `
-    <tr>
-      <td><span class="status">${booking.status}</span></td>
-      <td>${booking.student}</td>
-      <td>${booking.lesson}</td>
-      <td>${booking.time}</td>
-      <td>${booking.contact}</td>
-      <td>${booking.memo}</td>
+  const visibleBookings = getFilteredBookings();
+  if (state.selectedBookingId && !state.bookings.some((booking) => booking.id === state.selectedBookingId)) {
+    state.selectedBookingId = null;
+  }
+
+  $("bookingRows").innerHTML = visibleBookings.length ? visibleBookings.map((booking) => `
+    <tr class="booking-row" data-booking-id="${escapeHtml(booking.id)}">
+      <td>
+        <select class="status-select" data-booking-status="${escapeHtml(booking.id)}">
+          ${renderStatusOptions(booking.status)}
+        </select>
+      </td>
+      <td>${escapeHtml(booking.student)}</td>
+      <td>${escapeHtml(booking.lesson)}</td>
+      <td>${escapeHtml(booking.time)}</td>
+      <td>${escapeHtml(booking.contact)}</td>
+      <td>${escapeHtml(booking.memo)}</td>
     </tr>
   `).join("") : `<tr><td colspan="6">예약이 없습니다.</td></tr>`;
+
+  document.querySelectorAll("[data-booking-id]").forEach((row) => {
+    row.addEventListener("click", () => {
+      state.selectedBookingId = row.dataset.bookingId;
+      renderBookingDetail();
+    });
+  });
+  document.querySelectorAll("[data-booking-status]").forEach((select) => {
+    select.addEventListener("click", (event) => event.stopPropagation());
+    select.addEventListener("change", (event) => {
+      changeReservationStatus(select.dataset.bookingStatus, event.target.value);
+    });
+  });
+  renderBookingDetail();
 }
 
 function renderAdmin() {

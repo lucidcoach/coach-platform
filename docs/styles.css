@@ -546,6 +546,12 @@ textarea { resize: vertical; }
   margin-bottom: 16px;
 }
 .section-head h2 { margin: 5px 0 0; }
+.booking-tools {
+  display: grid;
+  grid-template-columns: 180px minmax(220px, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
 .table-wrap, .admin-form, .admin-list {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -576,6 +582,51 @@ th {
   color: #ad6800;
   font-size: 12px;
   font-weight: 800;
+}
+.status-select {
+  min-width: 106px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.booking-row {
+  cursor: pointer;
+}
+.booking-row:hover {
+  background: var(--panel-2);
+}
+.booking-detail-panel {
+  margin-top: 14px;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.booking-detail-panel h3 {
+  margin: 0 0 12px;
+}
+.booking-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.booking-detail-item {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+.booking-detail-item span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.booking-detail-item strong {
+  display: block;
+  word-break: break-word;
+}
+.booking-detail-item.wide {
+  grid-column: 1 / -1;
 }
 .admin-form {
   padding: 16px;
@@ -628,6 +679,8 @@ th {
   .metrics { grid-template-columns: repeat(3, 1fr); }
   .layout { grid-template-columns: 1fr; }
   .detail-panel { position: static; }
+  .booking-tools { grid-template-columns: 1fr; }
+  .booking-detail-grid { grid-template-columns: 1fr; }
   .search { min-width: 0; }
   .coach-card { grid-template-columns: 82px minmax(0, 1fr); }
   .avatar { min-height: 138px; }

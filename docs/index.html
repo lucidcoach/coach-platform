@@ -77,6 +77,10 @@
           </div>
           <button class="secondary" id="clearBookingsBtn"></button>
         </div>
+        <div class="booking-tools">
+          <select id="bookingStatusFilter"></select>
+          <input id="bookingSearchInput" type="search" placeholder="수강생 또는 코치명 검색">
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -92,6 +96,7 @@
             <tbody id="bookingRows"></tbody>
           </table>
         </div>
+        <section class="booking-detail-panel" id="bookingDetail" hidden></section>
       </section>
 
       <section class="view" id="adminView">
