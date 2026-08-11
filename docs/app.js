@@ -459,6 +459,7 @@ const state = {
   bookingFilterStatus: "all",
   bookingQuery: "",
   selectedBookingId: null,
+  cropSourceImage: "",
 };
 
 function $(id) {
@@ -1387,6 +1388,13 @@ function getTierFromBadges(badges, fallback = "일반") {
   return fallback || "일반";
 }
 
+function setCoachSaveStatus(message = "", type = "") {
+  const status = $("coachSaveStatus");
+  if (!status) return;
+  status.textContent = message;
+  status.className = `save-status ${type}`.trim();
+}
+
 function renderPriceUnitOptions(type, selected = "") {
   const units = priceUnits[type] || priceUnits.time;
   $("coachPriceUnit").innerHTML = units.map((unit) => `<option value="${unit}" ${unit === selected ? "selected" : ""}>${unit}</option>`).join("");
@@ -1431,7 +1439,8 @@ function handleCoachImageFile(event) {
   }
   const reader = new FileReader();
   reader.addEventListener("load", () => {
-    $("coachImage").value = String(reader.result || "");
+    state.cropSourceImage = String(reader.result || "");
+    $("coachImage").value = state.cropSourceImage;
     updateCoachImagePreview();
     openCropModal();
   });
@@ -1439,10 +1448,13 @@ function handleCoachImageFile(event) {
 }
 
 function openCropModal() {
-  const image = $("coachImage").value.trim();
+  const image = state.cropSourceImage || $("coachImage").value.trim();
   if (!image) return;
   $("cropImage").src = image;
   $("cropModal").hidden = false;
+  $("cropX").value = 50;
+  $("cropY").value = 50;
+  $("cropSize").value = 72;
   setTimeout(updateCropBox, 0);
 }
 
@@ -1521,10 +1533,14 @@ function applyImageCrop() {
   $("coachImage").value = canvas.toDataURL("image/jpeg", 0.78);
   $("coachImagePosition").value = "center center";
   updateCoachImagePreview();
+  state.cropSourceImage = "";
   closeCropModal();
 }
 
 async function saveCoachFromForm() {
+  const saveButton = $("saveCoachBtn");
+  saveButton.disabled = true;
+  setCoachSaveStatus("저장 중...", "loading");
   const id = $("coachId").value || `coach-${Date.now()}`;
   const previous = state.coaches.find((coach) => coach.id === id);
   const previousIndex = state.coaches.findIndex((coach) => coach.id === id);
@@ -1560,8 +1576,15 @@ async function saveCoachFromForm() {
     state.selectedCoachId = savedCoach.id;
     render();
     fillCoachForm(savedCoach);
+    setCoachSaveStatus("저장 완료", "success");
+    setTimeout(() => {
+      if ($("coachSaveStatus")?.textContent === "저장 완료") setCoachSaveStatus();
+    }, 2200);
   } catch (error) {
+    setCoachSaveStatus("저장 실패", "error");
     alert(`코치 정보를 저장하지 못했습니다.\n${error.message}`);
+  } finally {
+    saveButton.disabled = false;
   }
 }
 
