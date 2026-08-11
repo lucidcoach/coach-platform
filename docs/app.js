@@ -896,6 +896,7 @@ function mapReservationFromApi(reservation) {
     createdAtText: formatDateTime(reservation.created_at),
     coachName: reservation.coach_name || "-",
     coachPrice: reservation.coach_price || "-",
+    source: reservation.source || "-",
     studentName: reservation.student_name || "-",
     preferredTime: reservation.preferred_time || "-",
     student: reservation.student_name || "-",
@@ -1070,6 +1071,7 @@ function renderBookingDetail() {
       ${renderDetailItem("신청 시간", booking.createdAtText)}
       ${renderDetailItem("코치명", booking.coachName)}
       ${renderDetailItem("상품 가격", booking.coachPrice)}
+      ${renderDetailItem("접수 경로", booking.source)}
       ${renderDetailItem("수강생 Riot ID", booking.studentName)}
       ${renderDetailItem("연락처", booking.contact)}
       ${renderDetailItem("희망 시간", booking.preferredTime)}
