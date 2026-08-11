@@ -617,8 +617,15 @@ legend {
 }
 .price-builder {
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) 120px 140px;
-  gap: 10px;
+  grid-template-columns: 160px 96px 108px;
+  gap: 8px;
+  align-items: end;
+  justify-content: start;
+}
+.price-builder input,
+.price-builder select {
+  min-height: 38px;
+  padding: 8px 10px;
 }
 input, select, textarea {
   border: 1px solid var(--line);

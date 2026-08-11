@@ -1514,11 +1514,11 @@ function applyImageCrop() {
   const sourceY = Math.max(0, (rect.top - rect.imageRect.top) * scaleY);
   const sourceSize = Math.min(rect.size * scaleX, rect.size * scaleY);
   const canvas = document.createElement("canvas");
-  canvas.width = 900;
-  canvas.height = 900;
+  canvas.width = 520;
+  canvas.height = 520;
   const context = canvas.getContext("2d");
   context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, canvas.width, canvas.height);
-  $("coachImage").value = canvas.toDataURL("image/jpeg", 0.88);
+  $("coachImage").value = canvas.toDataURL("image/jpeg", 0.78);
   $("coachImagePosition").value = "center center";
   updateCoachImagePreview();
   closeCropModal();
