@@ -4,6 +4,8 @@ const categories = [
   { id: "academy", label: "테스트" },
 ];
 
+const API_BASE_URL = "https://lucid-chzzk-auth.onrender.com";
+
 const filterSets = {
   league: {
     type: [
@@ -776,21 +778,62 @@ function renderDetail() {
   $("bookingForm").contact.placeholder = "예: Discord ID";
   $("bookingForm").time.placeholder = "예: 8/10 21:00";
   $("bookingForm").memo.placeholder = "라인, 챔피언, 고민을 적어주세요.";
-  $("bookingForm").addEventListener("submit", (event) => {
+  $("bookingForm").addEventListener("submit", async (event) => {
     event.preventDefault();
+    const submitButton = $("bookingSubmitBtn");
+    const originalText = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.textContent = "예약 전송 중";
     const data = new FormData(event.target);
-    state.bookings.unshift({
-      status: "신규",
+    const reservation = {
+      coachId: coach.id,
+      coachName: coach.name,
+      coachCategory: coach.category,
+      coachPrice: coach.price,
       student: data.get("student"),
-      lesson: coach.name,
-      time: data.get("time"),
       contact: data.get("contact"),
-      memo: data.get("memo") || "-",
-    });
-    save();
-    event.target.reset();
-    render();
+      time: data.get("time"),
+      memo: data.get("memo") || "",
+    };
+
+    try {
+      const savedReservation = await submitReservation(reservation);
+      state.bookings.unshift({
+        status: savedReservation.status || "신규",
+        student: savedReservation.student_name || reservation.student,
+        lesson: savedReservation.coach_name || reservation.coachName,
+        time: savedReservation.preferred_time || reservation.time,
+        contact: savedReservation.contact || reservation.contact,
+        memo: savedReservation.memo || reservation.memo || "-",
+      });
+      save();
+      event.target.reset();
+      alert("예약 신청이 접수됐습니다. 운영진이 연락드릴게요.");
+      render();
+    } catch (error) {
+      alert(`예약 신청을 저장하지 못했습니다.\n${error.message}`);
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = originalText;
+    }
   });
+}
+
+async function submitReservation(reservation) {
+  if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) {
+    throw new Error("예약 API 주소가 아직 설정되지 않았습니다.");
+  }
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/reservations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(reservation),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const detail = result.error ? `오류: ${result.error}` : `HTTP ${response.status}`;
+    throw new Error(detail);
+  }
+  return result.reservation || {};
 }
 
 function renderBookings() {
