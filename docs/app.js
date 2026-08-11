@@ -1454,7 +1454,7 @@ function openCropModal() {
   $("cropModal").hidden = false;
   $("cropX").value = 50;
   $("cropY").value = 50;
-  $("cropSize").value = 72;
+  $("cropSize").value = 60;
   setTimeout(updateCropBox, 0);
 }
 
