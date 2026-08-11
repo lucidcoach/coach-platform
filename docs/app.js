@@ -609,33 +609,37 @@ function renderMetrics() {
   $("metricRating").textContent = average.toFixed(1);
 }
 
-function getCoachNameSummary(category = state.category) {
-  const grouped = new Map();
-  state.coaches
-    .filter((coach) => coach.category === category)
-    .forEach((coach) => {
-      const name = String(coach.name || "이름 없음").trim();
-      grouped.set(name, (grouped.get(name) || 0) + 1);
-    });
-  return [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0], "ko-KR"));
-}
-
 function renderSidebarCoaches() {
   const target = $("sideCoachList");
   if (!target) return;
-  const coaches = getCoachNameSummary();
-  target.innerHTML = coaches.length ? coaches.map(([name, count]) => `
-    <button class="side-coach ${state.query === name.toLowerCase() ? "active" : ""}" type="button" data-coach-name="${escapeHtml(name)}">
-      <span>${name}</span>
-      <em>${count}강의</em>
-    </button>
-  `).join("") : `<p class="side-empty">등록된 코치가 없습니다.</p>`;
+  const coaches = state.coaches
+    .filter((coach) => coach.category === state.category)
+    .sort((a, b) => {
+      const tierOrder = { "엠버서더": 0, "최우수": 1, "우수": 2 };
+      return (tierOrder[a.tier] ?? 9) - (tierOrder[b.tier] ?? 9) || String(a.name).localeCompare(String(b.name), "ko-KR");
+    });
 
-  target.querySelectorAll("[data-coach-name]").forEach((button) => {
+  target.innerHTML = coaches.length ? coaches.map((coach) => {
+    const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
+    const roleText = (coach.roles || []).slice(0, 3).join(" · ");
+    return `
+    <button class="side-coach-card ${coach.id === state.selectedCoachId ? "active" : ""}" type="button" data-coach-id="${coach.id}">
+      <img src="${coach.image}" alt="">
+      <span class="side-coach-info">
+        <strong>${escapeHtml(coach.name)}</strong>
+        <small>${escapeHtml(coach.tagline || purposeText || "코칭 상품")}</small>
+        <em>${escapeHtml(roleText || purposeText || categoryLabel(coach.category))}</em>
+      </span>
+      <span class="side-coach-price">${escapeHtml(coach.price || "가격 상담")}</span>
+    </button>
+  `;
+  }).join("") : `<p class="side-empty">등록된 코치가 없습니다.</p>`;
+
+  target.querySelectorAll("[data-coach-id]").forEach((button) => {
     button.addEventListener("click", () => {
-      state.query = button.dataset.coachName.trim().toLowerCase();
-      if ($("searchInput")) $("searchInput").value = button.dataset.coachName;
-      state.selectedCoachId = null;
+      state.query = "";
+      if ($("searchInput")) $("searchInput").value = "";
+      state.selectedCoachId = button.dataset.coachId;
       renderMarket();
       renderSidebarCoaches();
     });
