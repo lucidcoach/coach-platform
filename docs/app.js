@@ -5,6 +5,7 @@ const categories = [
 ];
 
 const API_BASE_URL = "https://lucid-chzzk-auth.onrender.com";
+const ADMIN_TOKEN_KEY = "coach-admin-token";
 
 const filterSets = {
   league: {
@@ -76,7 +77,7 @@ const text = {
   searchPlaceholder: "코치명, 라인, 챔피언, 강의명",
   bookingEyebrow: "관리자 화면",
   bookingTitle: "예약 신청 목록",
-  clearBookingsBtn: "예약 샘플 초기화",
+  clearBookingsBtn: "예약 새로고침",
   thStatus: "상태",
   thStudent: "수강생",
   thLesson: "강의",
@@ -432,7 +433,9 @@ const state = {
   selectedCoachId: null,
   query: "",
   coaches: loadCoaches(),
-  bookings: load("lucid-bookings", bookingSamples),
+  bookings: [],
+  bookingLoadState: "idle",
+  bookingLoadError: "",
 };
 
 function $(id) {
@@ -468,7 +471,6 @@ function loadCoaches() {
 function save() {
   localStorage.setItem("lucid-coaches-version", SAMPLE_VERSION);
   localStorage.setItem("lucid-coaches", JSON.stringify(state.coaches));
-  localStorage.setItem("lucid-bookings", JSON.stringify(state.bookings));
 }
 
 function boot() {
@@ -490,6 +492,9 @@ function bindEvents() {
     button.addEventListener("click", () => {
       state.activeView = button.dataset.view;
       render();
+      if (state.activeView === "bookings") {
+        loadReservations();
+      }
     });
   });
 
@@ -512,9 +517,7 @@ function bindEvents() {
     render();
   });
   $("clearBookingsBtn").addEventListener("click", () => {
-    state.bookings = structuredClone(bookingSamples);
-    save();
-    render();
+    loadReservations();
   });
 }
 
@@ -797,16 +800,8 @@ function renderDetail() {
     };
 
     try {
-      const savedReservation = await submitReservation(reservation);
-      state.bookings.unshift({
-        status: savedReservation.status || "신규",
-        student: savedReservation.student_name || reservation.student,
-        lesson: savedReservation.coach_name || reservation.coachName,
-        time: savedReservation.preferred_time || reservation.time,
-        contact: savedReservation.contact || reservation.contact,
-        memo: savedReservation.memo || reservation.memo || "-",
-      });
-      save();
+      await submitReservation(reservation);
+      await loadReservations({ promptForLogin: false, silent: true });
       event.target.reset();
       alert("예약 신청이 접수됐습니다. 운영진이 연락드릴게요.");
       render();
@@ -836,7 +831,89 @@ async function submitReservation(reservation) {
   return result.reservation || {};
 }
 
+async function loginForReservations() {
+  const password = window.prompt("예약 관리 비밀번호를 입력하세요.");
+  if (!password) return false;
+
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/admin/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ password }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (response.ok && result.ok && result.adminToken) {
+    sessionStorage.setItem(ADMIN_TOKEN_KEY, result.adminToken);
+  }
+  return response.ok && result.ok;
+}
+
+async function fetchReservations() {
+  const adminToken = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/reservations`, {
+    method: "GET",
+    credentials: "include",
+    headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {},
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return (result.reservations || []).map(mapReservationFromApi);
+}
+
+async function loadReservations(options = {}) {
+  const { promptForLogin = true, silent = false } = options;
+  if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) return;
+  if (!silent) {
+    state.bookingLoadState = "loading";
+    state.bookingLoadError = "";
+    renderBookings();
+  }
+
+  try {
+    state.bookings = await fetchReservations();
+    state.bookingLoadState = "loaded";
+    state.bookingLoadError = "";
+    renderMetrics();
+    renderBookings();
+  } catch (error) {
+    if (error.status === 401 && promptForLogin) {
+      const loggedIn = await loginForReservations();
+      if (loggedIn) {
+        return loadReservations({ promptForLogin: false, silent });
+      }
+    }
+    if (!silent) {
+      state.bookingLoadState = "error";
+      state.bookingLoadError = "예약 목록을 불러오지 못했습니다.";
+      renderBookings();
+    }
+  }
+}
+
+function mapReservationFromApi(reservation) {
+  return {
+    status: reservation.status || "신규",
+    student: reservation.student_name || "-",
+    lesson: reservation.coach_name || "-",
+    time: reservation.preferred_time || "-",
+    contact: reservation.contact || "-",
+    memo: reservation.memo || "-",
+  };
+}
+
 function renderBookings() {
+  if (state.bookingLoadState === "loading") {
+    $("bookingRows").innerHTML = `<tr><td colspan="6">예약 목록을 불러오는 중입니다.</td></tr>`;
+    return;
+  }
+  if (state.bookingLoadState === "error") {
+    $("bookingRows").innerHTML = `<tr><td colspan="6">${state.bookingLoadError || "예약 목록을 불러오지 못했습니다."}</td></tr>`;
+    return;
+  }
   $("bookingRows").innerHTML = state.bookings.length ? state.bookings.map((booking) => `
     <tr>
       <td><span class="status">${booking.status}</span></td>
