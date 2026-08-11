@@ -7,6 +7,7 @@ const categories = [
 const API_BASE_URL = "https://lucid-chzzk-auth.onrender.com";
 const ADMIN_TOKEN_KEY = "coach-admin-token";
 const RESERVATION_STATUSES = ["신규", "상담중", "예약확정", "완료", "취소"];
+const COACH_API_TIMEOUT_MS = 6500;
 
 const filterSets = {
   league: {
@@ -490,6 +491,8 @@ function boot() {
   });
   $("searchInput").placeholder = text.searchPlaceholder;
   $("coachImagePosition").placeholder = "예: center 8%, 72% 12%";
+  state.coaches = migrateCoachImages(structuredClone(samples));
+  state.coachLoadState = "loaded";
   render();
   bindEvents();
   loadCoachesFromApi();
@@ -1207,14 +1210,22 @@ async function runAdminRequest(callback) {
 
 async function loadCoachesFromApi() {
   if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) {
-    state.coaches = structuredClone(samples);
+    state.coaches = migrateCoachImages(structuredClone(samples));
     state.coachLoadState = "loaded";
     render();
     return;
   }
-  state.coachLoadState = "loading";
+  const hasFallbackCoaches = state.coaches.length > 0;
+  if (!hasFallbackCoaches) {
+    state.coachLoadState = "loading";
+    render();
+  }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), COACH_API_TIMEOUT_MS);
   try {
-    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches`);
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches`, {
+      signal: controller.signal,
+    });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
     if (Array.isArray(result.coaches) && result.coaches.length) {
@@ -1225,13 +1236,15 @@ async function loadCoachesFromApi() {
       state.coachLoadState = "loaded";
       render();
     } else {
-      state.coachLoadState = "empty";
+      state.coachLoadState = hasFallbackCoaches ? "loaded" : "empty";
       render();
     }
   } catch (error) {
-    state.coachLoadState = "error";
+    state.coachLoadState = hasFallbackCoaches ? "loaded" : "error";
     console.warn("코치 목록을 불러오지 못했습니다.", error);
     render();
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
