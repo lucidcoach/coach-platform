@@ -9,13 +9,13 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand">
+      <button class="brand" id="homeLogo" type="button" aria-label="홈으로 이동">
         <img src="assets/lollogo.png" alt="">
         <div>
           <strong>Lucid Coach</strong>
           <span>Local MVP</span>
         </div>
-      </div>
+      </button>
       <nav class="nav" aria-label="main">
         <button class="nav-item active" data-view="market" id="navMarket"></button>
         <button class="nav-item" data-view="bookings" id="navBookings"></button>
@@ -91,6 +91,7 @@
                 <th id="thTime"></th>
                 <th id="thContact"></th>
                 <th id="thMemo"></th>
+                <th>처리</th>
               </tr>
             </thead>
             <tbody id="bookingRows"></tbody>
@@ -118,9 +119,27 @@
           </label>
           <label><span id="labelName"></span><input id="coachName" required></label>
           <label><span id="labelTagline"></span><input id="coachTagline" required></label>
-          <label><span id="labelPurpose"></span><input id="coachPurpose"></label>
-          <label><span id="labelRoles"></span><input id="coachRoles"></label>
-          <label><span id="labelPrice"></span><input id="coachPrice"></label>
+          <fieldset class="choice-field">
+            <legend id="labelPurpose"></legend>
+            <div class="choice-grid" id="coachPurposeChoices"></div>
+          </fieldset>
+          <fieldset class="choice-field">
+            <legend id="labelRoles"></legend>
+            <div class="choice-grid" id="coachRoleChoices"></div>
+          </fieldset>
+          <div class="price-builder">
+            <label><span>가격</span><input id="coachPriceAmount" inputmode="numeric" placeholder="예: 70000"></label>
+            <label><span>기준</span>
+              <select id="coachPriceUnitType">
+                <option value="time">시간</option>
+                <option value="game">게임</option>
+              </select>
+            </label>
+            <label><span>단위</span>
+              <select id="coachPriceUnit"></select>
+            </label>
+            <input id="coachPrice" type="hidden">
+          </div>
           <label><span id="labelImage"></span><input id="coachImage"></label>
           <label><span>이미지 파일</span><input id="coachImageFile" type="file" accept="image/*"></label>
           <label class="image-position-raw"><span id="labelImagePosition"></span><input id="coachImagePosition" readonly></label>
@@ -129,9 +148,7 @@
               <div class="image-preview-frame" id="coachImagePreview"></div>
               <span>선택한 이미지 미리보기</span>
             </div>
-            <label><span>가로 위치</span><input id="coachImageX" type="range" min="0" max="100" value="50"></label>
-            <label><span>세로 위치</span><input id="coachImageY" type="range" min="0" max="100" value="8"></label>
-            <label><span>줌</span><input id="coachImageZoom" type="range" min="100" max="180" value="100"></label>
+            <button type="button" class="secondary" id="openCropBtn">썸네일 범위 지정</button>
           </div>
           <label><span id="labelBadges"></span><input id="coachBadges"></label>
           <label class="wide"><span id="labelBio"></span><textarea id="coachBio" rows="4"></textarea></label>
@@ -155,6 +172,22 @@
       <button type="submit" class="primary" id="bookingSubmitBtn"></button>
     </form>
   </template>
+  <div class="crop-modal" id="cropModal" hidden>
+    <div class="crop-dialog">
+      <button class="crop-close" id="cropCloseBtn" type="button" aria-label="닫기">×</button>
+      <h3>썸네일 범위 지정</h3>
+      <div class="crop-stage">
+        <img id="cropImage" alt="">
+        <div class="crop-box" id="cropBox"></div>
+      </div>
+      <div class="crop-controls">
+        <label><span>가로</span><input id="cropX" type="range" min="0" max="100" value="50"></label>
+        <label><span>세로</span><input id="cropY" type="range" min="0" max="100" value="50"></label>
+        <label><span>범위</span><input id="cropSize" type="range" min="35" max="100" value="70"></label>
+      </div>
+      <button type="button" class="primary" id="applyCropBtn">적용하기</button>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

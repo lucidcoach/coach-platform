@@ -63,6 +63,17 @@ const purposes = Object.values(filterSets).flatMap((set) => [...set.type, ...set
   (item, index, array) => item.id !== "all" && array.findIndex((candidate) => candidate.id === item.id) === index
 );
 
+const adminRoleOptions = {
+  league: ["탑", "미드", "정글", "원딜", "서폿", "운영", "라인전", "한타", "오브젝트", "시야", "고티어"],
+  valorant: ["타격대", "척후대", "감시자", "전략가", "에임", "피킹", "엔트리", "스크림"],
+  academy: ["코치 입문", "커리큘럼", "피드백", "브랜딩", "운영", "수강생 관리"],
+};
+
+const priceUnits = {
+  time: ["30분", "1시간", "1.5시간", "2시간"],
+  game: ["1게임", "2게임", "3게임"],
+};
+
 const text = {
   navMarket: "강의 탐색",
   navBookings: "예약 관리",
@@ -462,7 +473,6 @@ function boot() {
     else el.textContent = value;
   });
   $("searchInput").placeholder = text.searchPlaceholder;
-  $("coachPurpose").placeholder = "예: value, top, low";
   $("coachImagePosition").placeholder = "예: center 8%, 72% 12%";
   render();
   bindEvents();
@@ -470,6 +480,17 @@ function boot() {
 }
 
 function bindEvents() {
+  $("homeLogo").addEventListener("click", () => {
+    state.activeView = "market";
+    state.category = "league";
+    state.type = "all";
+    state.segment = "all";
+    state.selectedCoachId = null;
+    state.query = "";
+    $("searchInput").value = "";
+    render();
+  });
+
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.addEventListener("click", () => {
       state.activeView = button.dataset.view;
@@ -492,6 +513,15 @@ function bindEvents() {
 
   $("newCoachBtn").addEventListener("click", () => fillCoachForm());
   $("deleteCoachBtn").addEventListener("click", deleteSelectedCoach);
+  $("coachCategory").addEventListener("change", () => {
+    renderAdminChoiceControls([], []);
+  });
+  $("coachPriceUnitType").addEventListener("change", () => {
+    renderPriceUnitOptions($("coachPriceUnitType").value);
+    updateCoachPriceValue();
+  });
+  $("coachPriceAmount").addEventListener("input", updateCoachPriceValue);
+  $("coachPriceUnit").addEventListener("change", updateCoachPriceValue);
   $("resetCoachesBtn").addEventListener("click", async () => {
     await resetCoachesToSamples();
   });
@@ -499,11 +529,12 @@ function bindEvents() {
     loadReservations();
   });
   $("coachImage").addEventListener("input", () => updateCoachImagePreview());
-  $("coachImagePosition").addEventListener("input", () => updateCoachImagePreview());
-  $("coachImageX").addEventListener("input", updateCoachImagePositionFromControls);
-  $("coachImageY").addEventListener("input", updateCoachImagePositionFromControls);
-  $("coachImageZoom").addEventListener("input", updateCoachImagePreview);
   $("coachImageFile").addEventListener("change", handleCoachImageFile);
+  $("openCropBtn").addEventListener("click", openCropModal);
+  $("cropCloseBtn").addEventListener("click", closeCropModal);
+  $("applyCropBtn").addEventListener("click", applyImageCrop);
+  $("cropImage").addEventListener("load", updateCropBox);
+  ["cropX", "cropY", "cropSize"].forEach((id) => $(id).addEventListener("input", updateCropBox));
   $("bookingStatusFilter").addEventListener("change", (event) => {
     state.bookingFilterStatus = event.target.value;
     renderBookings();
@@ -706,10 +737,7 @@ function getTierClass(coach) {
 }
 
 function getImageStyle(coach) {
-  const position = coach.imagePosition || "center 8%";
-  const scale = Number(coach.imageScale || 1);
-  const zoom = Number.isFinite(scale) && scale > 1 ? scale : 1;
-  return `object-position: ${position}; transform: scale(${zoom}); transform-origin: ${position};`;
+  return `object-position: ${coach.imagePosition || "center center"};`;
 }
 
 function getCoachPurposes(coach) {
@@ -1024,6 +1052,20 @@ async function updateReservationStatus(id, status) {
   return mapReservationFromApi(result.reservation || {});
 }
 
+async function deleteReservation(id) {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/reservations/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: getAdminHeaders(),
+    credentials: "include",
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+}
+
 async function changeReservationStatus(id, status) {
   const previousBookings = structuredClone(state.bookings);
   state.bookings = state.bookings.map((booking) => booking.id === id ? { ...booking, status } : booking);
@@ -1041,6 +1083,26 @@ async function changeReservationStatus(id, status) {
       if (loggedIn) return changeReservationStatus(id, status);
     }
     alert(`예약 상태를 변경하지 못했습니다.\n${error.message}`);
+  }
+}
+
+async function completeReservation(id) {
+  await changeReservationStatus(id, "완료");
+  if (state.bookingFilterStatus !== "all" && state.bookingFilterStatus !== "완료") {
+    renderBookings();
+  }
+}
+
+async function removeReservation(id) {
+  if (!window.confirm("이 예약을 완전히 삭제할까요? 삭제하면 목록에서 사라집니다.")) return;
+  try {
+    await runAdminRequest(() => deleteReservation(id));
+    state.bookings = state.bookings.filter((booking) => booking.id !== id);
+    if (state.selectedBookingId === id) state.selectedBookingId = null;
+    renderMetrics();
+    renderBookings();
+  } catch (error) {
+    alert(`예약을 삭제하지 못했습니다.\n${error.message}`);
   }
 }
 
@@ -1146,12 +1208,12 @@ function renderBookings() {
   $("bookingSearchInput").value = state.bookingQuery;
 
   if (state.bookingLoadState === "loading") {
-    $("bookingRows").innerHTML = `<tr><td colspan="6">예약 목록을 불러오는 중입니다.</td></tr>`;
+    $("bookingRows").innerHTML = `<tr><td colspan="7">예약 목록을 불러오는 중입니다.</td></tr>`;
     renderBookingDetail();
     return;
   }
   if (state.bookingLoadState === "error") {
-    $("bookingRows").innerHTML = `<tr><td colspan="6">${state.bookingLoadError || "예약 목록을 불러오지 못했습니다."}</td></tr>`;
+    $("bookingRows").innerHTML = `<tr><td colspan="7">${state.bookingLoadError || "예약 목록을 불러오지 못했습니다."}</td></tr>`;
     renderBookingDetail();
     return;
   }
@@ -1172,8 +1234,14 @@ function renderBookings() {
       <td>${escapeHtml(booking.time)}</td>
       <td>${escapeHtml(booking.contact)}</td>
       <td>${escapeHtml(booking.memo)}</td>
+      <td>
+        <div class="booking-actions">
+          <button type="button" class="mini primary-mini" data-booking-complete="${escapeHtml(booking.id)}">완료</button>
+          <button type="button" class="mini danger-mini" data-booking-delete="${escapeHtml(booking.id)}">삭제</button>
+        </div>
+      </td>
     </tr>
-  `).join("") : `<tr><td colspan="6">예약이 없습니다.</td></tr>`;
+  `).join("") : `<tr><td colspan="7">예약이 없습니다.</td></tr>`;
 
   document.querySelectorAll("[data-booking-id]").forEach((row) => {
     row.addEventListener("click", () => {
@@ -1185,6 +1253,18 @@ function renderBookings() {
     select.addEventListener("click", (event) => event.stopPropagation());
     select.addEventListener("change", (event) => {
       changeReservationStatus(select.dataset.bookingStatus, event.target.value);
+    });
+  });
+  document.querySelectorAll("[data-booking-complete]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      completeReservation(button.dataset.bookingComplete);
+    });
+  });
+  document.querySelectorAll("[data-booking-delete]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      removeReservation(button.dataset.bookingDelete);
     });
   });
   renderBookingDetail();
@@ -1212,36 +1292,61 @@ function fillCoachForm(coach) {
   $("coachCategory").value = coach?.category || state.category;
   $("coachName").value = coach?.name || "";
   $("coachTagline").value = coach?.tagline || "";
-  $("coachPurpose").value = getCoachPurposes(coach).join(", ");
-  $("coachRoles").value = (coach?.roles || []).join(", ");
-  $("coachPrice").value = coach?.price || "";
+  renderAdminChoiceControls(getCoachPurposes(coach), coach?.roles || []);
+  setPriceFields(coach?.price || "");
   $("coachImage").value = coach?.image || "assets/lollogo.png";
-  $("coachImagePosition").value = coach?.imagePosition || "center 8%";
-  setImageControlsFromPosition(coach?.imagePosition || "center 8%");
-  $("coachImageZoom").value = Math.round(Number(coach?.imageScale || 1) * 100);
+  $("coachImagePosition").value = coach?.imagePosition || "center center";
   $("coachBadges").value = (coach?.badges || []).join(", ");
   $("coachBio").value = coach?.bio || "";
   $("coachImageFile").value = "";
   updateCoachImagePreview();
 }
 
+function renderAdminChoiceControls(selectedPurposes = [], selectedRoles = []) {
+  const category = $("coachCategory").value || state.category || "league";
+  const filters = filterSets[category] || filterSets.league;
+  const purposeOptions = [...filters.type, ...filters.segment].filter((item) => item.id !== "all");
+  $("coachPurposeChoices").innerHTML = purposeOptions.map((item) => `
+    <label><input type="checkbox" name="coachPurposeChoice" value="${item.id}" ${selectedPurposes.includes(item.id) ? "checked" : ""}> ${item.label}</label>
+  `).join("");
+
+  const roleOptions = adminRoleOptions[category] || adminRoleOptions.league;
+  $("coachRoleChoices").innerHTML = roleOptions.map((role) => `
+    <label><input type="checkbox" name="coachRoleChoice" value="${role}" ${selectedRoles.includes(role) ? "checked" : ""}> ${role}</label>
+  `).join("");
+}
+
+function getCheckedValues(name) {
+  return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map((input) => input.value);
+}
+
+function renderPriceUnitOptions(type, selected = "") {
+  const units = priceUnits[type] || priceUnits.time;
+  $("coachPriceUnit").innerHTML = units.map((unit) => `<option value="${unit}" ${unit === selected ? "selected" : ""}>${unit}</option>`).join("");
+}
+
+function setPriceFields(price) {
+  const textPrice = String(price || "");
+  const amount = textPrice.match(/[\d,]+/)?.[0]?.replace(/[^\d]/g, "") || "";
+  const unit = textPrice.includes("게임") ? "game" : "time";
+  const unitText = textPrice.split("/")[1]?.trim() || (unit === "game" ? "1게임" : "1시간");
+  $("coachPriceAmount").value = amount;
+  $("coachPriceUnitType").value = unit;
+  renderPriceUnitOptions(unit, unitText);
+  updateCoachPriceValue();
+}
+
+function updateCoachPriceValue() {
+  const amount = Number(String($("coachPriceAmount").value || "").replace(/[^\d]/g, ""));
+  const amountText = amount ? `${amount.toLocaleString("ko-KR")}원` : "가격 상담";
+  $("coachPrice").value = `${amountText} / ${$("coachPriceUnit").value}`;
+}
+
 function updateCoachImagePreview() {
   const preview = $("coachImagePreview");
-  const zoom = Number($("coachImageZoom").value || 100);
   preview.style.backgroundImage = `url("${$("coachImage").value.trim() || "assets/lollogo.png"}")`;
-  preview.style.backgroundPosition = $("coachImagePosition").value.trim() || "center 8%";
-  preview.style.backgroundSize = `${Math.max(100, Math.min(180, zoom))}%`;
-}
-
-function updateCoachImagePositionFromControls() {
-  $("coachImagePosition").value = `${$("coachImageX").value}% ${$("coachImageY").value}%`;
-  updateCoachImagePreview();
-}
-
-function setImageControlsFromPosition(position) {
-  const parts = String(position || "50% 8%").match(/(-?\d+(?:\.\d+)?)%?\s+(-?\d+(?:\.\d+)?)%?/);
-  $("coachImageX").value = parts ? Math.max(0, Math.min(100, Number(parts[1]))) : 50;
-  $("coachImageY").value = parts ? Math.max(0, Math.min(100, Number(parts[2]))) : 8;
+  preview.style.backgroundPosition = "center center";
+  preview.style.backgroundSize = "cover";
 }
 
 function handleCoachImageFile(event) {
@@ -1261,26 +1366,81 @@ function handleCoachImageFile(event) {
   reader.addEventListener("load", () => {
     $("coachImage").value = String(reader.result || "");
     updateCoachImagePreview();
+    openCropModal();
   });
   reader.readAsDataURL(file);
+}
+
+function openCropModal() {
+  const image = $("coachImage").value.trim();
+  if (!image) return;
+  $("cropImage").src = image;
+  $("cropModal").hidden = false;
+  setTimeout(updateCropBox, 0);
+}
+
+function closeCropModal() {
+  $("cropModal").hidden = true;
+}
+
+function getCropRect() {
+  const image = $("cropImage");
+  const stage = image.getBoundingClientRect();
+  const size = Math.min(stage.width, stage.height) * (Number($("cropSize").value) / 100);
+  const maxX = Math.max(0, stage.width - size);
+  const maxY = Math.max(0, stage.height - size);
+  const left = stage.left + maxX * (Number($("cropX").value) / 100);
+  const top = stage.top + maxY * (Number($("cropY").value) / 100);
+  return { left, top, size, imageRect: stage };
+}
+
+function updateCropBox() {
+  const rect = getCropRect();
+  const parentRect = document.querySelector(".crop-stage").getBoundingClientRect();
+  const box = $("cropBox");
+  box.style.width = `${rect.size}px`;
+  box.style.height = `${rect.size}px`;
+  box.style.left = `${rect.left - parentRect.left}px`;
+  box.style.top = `${rect.top - parentRect.top}px`;
+}
+
+function applyImageCrop() {
+  const image = $("cropImage");
+  if (!image.complete || !image.naturalWidth) return;
+  const rect = getCropRect();
+  const scaleX = image.naturalWidth / rect.imageRect.width;
+  const scaleY = image.naturalHeight / rect.imageRect.height;
+  const sourceX = Math.max(0, (rect.left - rect.imageRect.left) * scaleX);
+  const sourceY = Math.max(0, (rect.top - rect.imageRect.top) * scaleY);
+  const sourceSize = Math.min(rect.size * scaleX, rect.size * scaleY);
+  const canvas = document.createElement("canvas");
+  canvas.width = 900;
+  canvas.height = 900;
+  const context = canvas.getContext("2d");
+  context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, canvas.width, canvas.height);
+  $("coachImage").value = canvas.toDataURL("image/jpeg", 0.88);
+  $("coachImagePosition").value = "center center";
+  updateCoachImagePreview();
+  closeCropModal();
 }
 
 async function saveCoachFromForm() {
   const id = $("coachId").value || `coach-${Date.now()}`;
   const previous = state.coaches.find((coach) => coach.id === id);
   const previousIndex = state.coaches.findIndex((coach) => coach.id === id);
+  const selectedPurposes = getCheckedValues("coachPurposeChoice");
   const next = {
     id,
     category: $("coachCategory").value,
     name: $("coachName").value.trim(),
     tier: previous?.tier || "일반",
     tagline: $("coachTagline").value.trim(),
-    purpose: splitCsv($("coachPurpose").value || "value"),
-    roles: splitCsv($("coachRoles").value),
-    price: $("coachPrice").value.trim() || "가격 상담",
+    purpose: selectedPurposes.length ? selectedPurposes : ["value"],
+    roles: getCheckedValues("coachRoleChoice"),
+    price: (updateCoachPriceValue(), $("coachPrice").value.trim() || "가격 상담"),
     image: $("coachImage").value.trim() || "assets/lollogo.png",
-    imagePosition: $("coachImagePosition").value.trim() || "center 8%",
-    imageScale: Number($("coachImageZoom").value || 100) / 100,
+    imagePosition: $("coachImagePosition").value.trim() || "center center",
+    imageScale: 1,
     badges: splitCsv($("coachBadges").value),
     rating: previous?.rating || 4.8,
     lessons: previous?.lessons || 0,
