@@ -148,12 +148,55 @@ button {
 .selected-side-coach:hover {
   background: #1f2937;
 }
+.selected-side-coach.active {
+  border-color: rgba(157, 224, 187, 0.58);
+}
 .selected-side-coach img {
   width: 38px;
   height: 38px;
   border-radius: 8px;
   object-fit: cover;
   background: #111827;
+}
+.recent-side-coaches {
+  display: grid;
+  gap: 6px;
+  padding-top: 4px;
+}
+.recent-side-coaches > span {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 800;
+}
+.recent-side-coach {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 8px;
+  background: transparent;
+  color: #cbd5e1;
+  text-align: left;
+}
+.recent-side-coach:hover,
+.recent-side-coach.active {
+  background: rgba(31, 41, 55, 0.9);
+  color: #ffffff;
+}
+.recent-side-coach img {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  object-fit: cover;
+}
+.recent-side-coach strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
 }
 .side-empty {
   margin: 0;
@@ -323,6 +366,13 @@ button {
   line-height: 1.25;
   min-height: 0;
 }
+.coach-owner {
+  display: block;
+  margin: -2px 0 7px;
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-weight: 900;
+}
 .featured-summary {
   margin: 0 0 8px;
   color: #b7bfd4;
@@ -478,6 +528,9 @@ button {
   font-size: 18px;
   font-weight: 900;
 }
+.coach-main .coach-owner {
+  margin: -2px 0 6px;
+}
 .rank-badges {
   display: flex;
   flex-wrap: wrap;
@@ -586,6 +639,11 @@ button {
   padding: 18px;
 }
 .detail-body h2 { margin: 0 0 6px; }
+.detail-body .detail-owner {
+  margin: -2px 0 10px;
+  color: var(--brand-dark);
+  font-weight: 900;
+}
 .detail-body p { color: var(--muted); line-height: 1.55; }
 .detail-grid {
   display: grid;

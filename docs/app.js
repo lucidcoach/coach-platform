@@ -445,12 +445,128 @@ const imageMigration = {
 
 const tierRank = { "엠버서더": 0, "최우수": 1, "우수": 2, "일반": 3 };
 
+const leagueCoachProfiles = {
+  shineast: {
+    name: "샤이니스트 코치",
+    tier: "최우수",
+    tagline: "프로팀 출신 · 전 라인 피드백 · 팀게임 운영까지 가능",
+    roles: ["전 라인", "팀게임", "운영", "프로팀 경험"],
+    image: "assets/KakaoTalk_20250810_005153132_04.jpg",
+    imagePosition: "center 8%",
+  },
+  mireu: {
+    name: "정미르 코치",
+    tier: "우수",
+    tagline: "학교 강의 경험 · 저티어/일반인 친화 · 가성비 팀게임 피드백",
+    roles: ["정글", "저티어", "팀게임", "입문"],
+    image: "assets/mireucoach.png",
+    imagePosition: "center 8%",
+  },
+  persona: {
+    name: "페르소나 코치",
+    tier: "우수",
+    tagline: "탑 라이너 출신 · 탄탄한 이론 · 고티어 라인전/운영",
+    roles: ["탑", "이론", "고티어", "라인전"],
+    image: "assets/personacoach.png",
+    imagePosition: "center 8%",
+  },
+  mephi: {
+    name: "메피 코치",
+    tier: "엠버서더",
+    tagline: "전프로 바텀 라이너 · 시즌5부터 챌린저 유지 · 팀게임 피드백",
+    roles: ["바텀", "전 라인", "팀게임", "전프로"],
+    image: "assets/mephicoach.png",
+    imagePosition: "72% 12%",
+  },
+};
+
+const leagueLessonOverrides = {
+  "lol-1": {
+    coachKey: "persona",
+    name: "탑 라인전 이론 코칭",
+    purpose: ["top", "high"],
+    roles: ["탑", "라인전", "고티어"],
+    price: "45,000원 / 1시간",
+    tagline: "탑 라인전 주도권, 웨이브 관리, 사이드 운영 설계",
+  },
+  "lol-2": {
+    coachKey: "shineast",
+    name: "프로팀식 팀게임 운영 피드백",
+    purpose: ["team", "high"],
+    roles: ["전 라인", "팀게임", "오더", "운영"],
+    price: "100,000원 / 1시간",
+    tagline: "프로팀 출신 관점으로 보는 중후반 운영, 오더, 시야 컨트롤",
+  },
+  "lol-3": {
+    coachKey: "mireu",
+    name: "정글 저티어 탈출 코칭",
+    purpose: ["jungle", "low"],
+    roles: ["정글", "저티어", "동선", "오브젝트"],
+    price: "35,000원 / 1시간",
+    tagline: "정글 첫 동선, 갱 타이밍, 오브젝트 판단 집중 코칭",
+  },
+  "lol-4": {
+    coachKey: "shineast",
+    name: "전 라인 솔랭 리플레이 분석",
+    purpose: ["high"],
+    roles: ["탑", "정글", "미드", "원딜", "서폿"],
+    price: "90,000원 / 1시간",
+    tagline: "라인 상관없이 승리 플랜과 실수 패턴을 잡아주는 고급 피드백",
+  },
+  "lol-5": {
+    coachKey: "mephi",
+    name: "바텀 라인전 2:2 코칭",
+    purpose: ["adc", "support", "team"],
+    roles: ["원딜", "서폿", "바텀", "듀오"],
+    price: "70,000원 / 1시간",
+    tagline: "원딜/서폿 바텀 라인전과 2:2 교전 설계",
+  },
+  "lol-6": {
+    coachKey: "persona",
+    name: "탑 라인전 30분 진단",
+    purpose: ["value", "top", "low"],
+    roles: ["탑", "라인전", "입문"],
+    price: "14,900원 / 30분",
+  },
+  "lol-7": {
+    coachKey: "mephi",
+    name: "서폿 시야 입문 체크",
+    purpose: ["value", "support", "low"],
+    roles: ["서폿", "시야", "입문"],
+    price: "20,000원 / 30분",
+  },
+  "lol-8": {
+    coachKey: "mephi",
+    name: "원딜 한타 생존 클리닉",
+    purpose: ["value", "adc", "low"],
+    roles: ["원딜", "한타", "포지션"],
+    price: "25,000원 / 30분",
+  },
+  "lol-9": {
+    coachKey: "mireu",
+    name: "챔피언폭 20분 상담",
+    purpose: ["value", "low"],
+    roles: ["저티어", "챔피언폭", "솔랭"],
+    price: "9,900원 / 20분",
+  },
+  "lol-10": {
+    coachKey: "mireu",
+    name: "가성비 팀게임 피드백",
+    purpose: ["value", "team", "low"],
+    roles: ["팀게임", "정글", "저티어", "오더"],
+    price: "30,000원 / 1시간",
+    tagline: "팀 단위 내전/스크림을 저렴하게 점검하는 운영 피드백",
+  },
+};
+
 const state = {
   activeView: "market",
   category: "league",
   type: "all",
   segment: "all",
   selectedCoachId: null,
+  selectedCoachKey: null,
+  recentCoachKeys: [],
   query: "",
   coachExplorerQuery: "",
   coachExplorerRole: "all",
@@ -472,14 +588,52 @@ function $(id) {
 }
 
 function migrateCoachImages(coaches) {
-  return coaches.map((coach) => ({
+  return normalizeCoachProfiles(coaches.map((coach) => ({
     ...coach,
     image: imageMigration[coach.image] || coach.image || "assets/lollogo.png",
     featuredImage: imageMigration[coach.featuredImage] || coach.featuredImage || "",
     detailImage: imageMigration[coach.detailImage] || coach.detailImage || "",
     bannerImage: imageMigration[coach.bannerImage] || coach.bannerImage || "",
     imagePosition: coach.imagePosition || "center 8%",
-  }));
+  })));
+}
+
+function inferLeagueCoachKey(coach) {
+  if (coach.coachKey && leagueCoachProfiles[coach.coachKey]) return coach.coachKey;
+  const id = String(coach.id || "");
+  if (leagueLessonOverrides[id]?.coachKey) return leagueLessonOverrides[id].coachKey;
+  const haystack = [coach.name, coach.tagline, coach.bio, ...(coach.roles || [])].join(" ").toLowerCase();
+  if (haystack.includes("메피") || haystack.includes("바텀") || haystack.includes("원딜") || haystack.includes("서폿")) return "mephi";
+  if (haystack.includes("미르") || haystack.includes("정글") || haystack.includes("저티어")) return "mireu";
+  if (haystack.includes("페르소나") || haystack.includes("탑")) return "persona";
+  return "shineast";
+}
+
+function normalizeCoachProfiles(coaches) {
+  return coaches.map((coach) => {
+    if (coach.category !== "league") {
+      return {
+        ...coach,
+        coachKey: coach.coachKey || coach.id,
+        coachProfileName: coach.coachProfileName || coach.name,
+      };
+    }
+    const override = leagueLessonOverrides[coach.id] || {};
+    const coachKey = override.coachKey || inferLeagueCoachKey(coach);
+    const profile = leagueCoachProfiles[coachKey] || leagueCoachProfiles.shineast;
+    return {
+      ...coach,
+      ...override,
+      coachKey,
+      coachProfileName: profile.name,
+      coachTier: profile.tier,
+      coachSummary: profile.tagline,
+      tier: profile.tier,
+      image: coach.image && !override.coachKey ? coach.image : profile.image,
+      imagePosition: profile.imagePosition,
+      badges: [profile.tier, ...(coach.badges || []).filter((badge) => badge !== profile.tier)].slice(0, 3),
+    };
+  });
 }
 
 function boot() {
@@ -505,6 +659,7 @@ function bindEvents() {
     state.type = "all";
     state.segment = "all";
     state.selectedCoachId = null;
+    state.selectedCoachKey = null;
     state.query = "";
     $("searchInput").value = "";
     render();
@@ -623,41 +778,98 @@ function renderMetrics() {
   $("metricRating").textContent = average.toFixed(1);
 }
 
+function getCoachKey(coach) {
+  return String(coach?.coachKey || coach?.id || "");
+}
+
+function getCoachIdentityFromGroup(coachKey, coaches) {
+  const first = coaches[0] || {};
+  const profile = first.category === "league" ? leagueCoachProfiles[coachKey] : null;
+  return {
+    key: coachKey,
+    name: profile?.name || first.coachProfileName || first.name || "코치",
+    tier: profile?.tier || first.coachTier || first.tier || "일반",
+    tagline: profile?.tagline || first.coachSummary || first.tagline || "코칭 상품",
+    roles: profile?.roles || first.roles || [],
+    image: profile?.image || first.image || "assets/lollogo.png",
+    imagePosition: profile?.imagePosition || first.imagePosition || "center 8%",
+    lessons: coaches.length,
+    rating: coaches.reduce((sum, coach) => sum + Number(coach.rating || 0), 0) / Math.max(coaches.length, 1),
+    products: coaches,
+  };
+}
+
+function getCoachIdentities(category = state.category) {
+  const grouped = new Map();
+  state.coaches
+    .filter((coach) => coach.category === category)
+    .forEach((coach) => {
+      const key = getCoachKey(coach);
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key).push(coach);
+    });
+  return Array.from(grouped.entries())
+    .map(([key, coaches]) => getCoachIdentityFromGroup(key, coaches))
+    .sort((a, b) => (tierRank[a.tier] ?? 9) - (tierRank[b.tier] ?? 9) || a.name.localeCompare(b.name, "ko-KR"));
+}
+
+function selectCoachIdentity(coachKey) {
+  state.selectedCoachKey = coachKey;
+  state.selectedCoachId = null;
+  state.query = "";
+  state.type = "all";
+  state.segment = "all";
+  state.recentCoachKeys = [coachKey, ...state.recentCoachKeys.filter((key) => key !== coachKey)].slice(0, 3);
+  if ($("searchInput")) $("searchInput").value = "";
+}
+
 function renderSidebarCoaches() {
   const target = $("sideCoachList");
   if (!target) return;
-  const coaches = state.coaches
-    .filter((coach) => coach.category === state.category)
-    .sort((a, b) => {
-      const tierOrder = { "엠버서더": 0, "최우수": 1, "우수": 2 };
-      return (tierOrder[a.tier] ?? 9) - (tierOrder[b.tier] ?? 9) || String(a.name).localeCompare(String(b.name), "ko-KR");
-    });
-  const selected = state.coaches.find((coach) => coach.id === state.selectedCoachId);
-  const selectedMeta = selected ? (selected.roles || getPurposeLabels(selected.purpose)).slice(0, 2).join(" · ") : "";
+  const identities = getCoachIdentities();
+  const selected = identities.find((coach) => coach.key === state.selectedCoachKey);
+  const recent = state.recentCoachKeys
+    .map((key) => identities.find((coach) => coach.key === key))
+    .filter(Boolean)
+    .slice(0, 3);
 
   target.innerHTML = `
     <button class="coach-explorer-open" id="openCoachExplorerBtn" type="button">
       <span>
         <strong>코치 목록 열기</strong>
-        <small>${escapeHtml(categoryLabel(state.category))} ${coaches.length}개 상품</small>
+        <small>${escapeHtml(categoryLabel(state.category))} ${identities.length}명 · ${state.coaches.filter((coach) => coach.category === state.category).length}개 강의</small>
       </span>
       <em>선택</em>
     </button>
     ${selected ? `
-      <button class="selected-side-coach" type="button" data-selected-coach-id="${escapeHtml(selected.id)}">
+      <button class="selected-side-coach active" type="button" data-side-coach-key="${escapeHtml(selected.key)}">
         <img src="${selected.image}" alt="">
         <span>
           <strong>${escapeHtml(selected.name)}</strong>
-          <small>${escapeHtml(selectedMeta || selected.price || "선택된 코치")}</small>
+          <small>${escapeHtml(selected.lessons)}개 강의 · ${escapeHtml(selected.tier)}</small>
         </span>
       </button>
     ` : `<p class="side-empty">아직 선택한 코치가 없습니다.</p>`}
+    ${recent.length ? `
+      <div class="recent-side-coaches">
+        <span>최근 선택</span>
+        ${recent.map((coach) => `
+          <button class="recent-side-coach ${coach.key === state.selectedCoachKey ? "active" : ""}" type="button" data-side-coach-key="${escapeHtml(coach.key)}">
+            <img src="${coach.image}" alt="">
+            <strong>${escapeHtml(coach.name)}</strong>
+          </button>
+        `).join("")}
+      </div>
+    ` : ""}
   `;
 
   $("openCoachExplorerBtn")?.addEventListener("click", openCoachExplorer);
-  target.querySelector("[data-selected-coach-id]")?.addEventListener("click", () => {
-    state.activeView = "market";
-    render();
+  target.querySelectorAll("[data-side-coach-key]").forEach((button) => {
+    button.addEventListener("click", () => {
+      selectCoachIdentity(button.dataset.sideCoachKey);
+      state.activeView = "market";
+      render();
+    });
   });
 }
 
@@ -679,26 +891,22 @@ function getCoachExplorerFilters() {
   const activeSet = getActiveFilterSet();
   const roleFilters = activeSet.segment.filter((item) => item.id !== "all");
   const tierFilters = ["엠버서더", "최우수", "우수", "일반"]
-    .filter((tier) => state.coaches.some((coach) => coach.category === state.category && coach.tier === tier))
+    .filter((tier) => getCoachIdentities().some((coach) => coach.tier === tier))
     .map((tier) => ({ id: tier, label: tier }));
   return { roleFilters, tierFilters };
 }
 
 function getVisibleExplorerCoaches() {
-  return state.coaches.filter((coach) => {
-    const inCategory = coach.category === state.category;
-    const coachPurposes = getCoachPurposes(coach);
-    const inRole = state.coachExplorerRole === "all" || coachPurposes.includes(state.coachExplorerRole);
+  return getCoachIdentities().filter((coach) => {
+    const products = coach.products || [];
+    const inRole = state.coachExplorerRole === "all" || products.some((product) => getCoachPurposes(product).includes(state.coachExplorerRole));
     const inTier = state.coachExplorerTier === "all" || coach.tier === state.coachExplorerTier;
-    const purposeLabel = getPurposeLabels(coach.purpose).join(" ");
-    const haystack = [coach.name, coach.tier, coach.tagline, coach.bio, purposeLabel, ...(coach.roles || []), ...(coach.badges || [])]
-      .join(" ")
-      .toLowerCase();
-    return inCategory && inRole && inTier && (!state.coachExplorerQuery || haystack.includes(state.coachExplorerQuery));
-  }).sort((a, b) => {
-    const tierDiff = (tierRank[a.tier] ?? 9) - (tierRank[b.tier] ?? 9);
-    if (tierDiff) return tierDiff;
-    return (b.rating || 0) - (a.rating || 0);
+    const productText = products.map((product) => {
+      const purposeLabel = getPurposeLabels(product.purpose).join(" ");
+      return [product.name, product.tagline, product.bio, purposeLabel, ...(product.roles || []), ...(product.badges || [])].join(" ");
+    }).join(" ");
+    const haystack = [coach.name, coach.tier, coach.tagline, ...(coach.roles || []), productText].join(" ").toLowerCase();
+    return inRole && inTier && (!state.coachExplorerQuery || haystack.includes(state.coachExplorerQuery));
   });
 }
 
@@ -713,7 +921,7 @@ function renderCoachExplorer() {
     state.coachExplorerTier = "all";
   }
   $("coachExplorerTitle").textContent = `${categoryLabel(state.category)} 코치 목록`;
-  $("coachExplorerMeta").textContent = `${state.coaches.filter((coach) => coach.category === state.category).length}개 상품`;
+  $("coachExplorerMeta").textContent = `${getCoachIdentities().length}명 · ${state.coaches.filter((coach) => coach.category === state.category).length}개 강의`;
   $("coachExplorerRoleFilters").innerHTML = [{ id: "all", label: "전체" }, ...roleFilters].map((filter) => `
     <button class="explorer-filter ${state.coachExplorerRole === filter.id ? "active" : ""}" type="button" data-explorer-role="${escapeHtml(filter.id)}">
       ${escapeHtml(filter.label)}
@@ -741,13 +949,9 @@ function renderCoachExplorer() {
       renderCoachExplorer();
     });
   });
-  document.querySelectorAll("[data-explorer-coach-id]").forEach((button) => {
+  document.querySelectorAll("[data-explorer-coach-key]").forEach((button) => {
     button.addEventListener("click", () => {
-      state.selectedCoachId = button.dataset.explorerCoachId;
-      state.query = "";
-      state.type = "all";
-      state.segment = "all";
-      if ($("searchInput")) $("searchInput").value = "";
+      selectCoachIdentity(button.dataset.explorerCoachKey);
       closeCoachExplorer();
       state.activeView = "market";
       render();
@@ -757,22 +961,22 @@ function renderCoachExplorer() {
 }
 
 function renderCoachExplorerCard(coach) {
-  const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
-  const roleText = (coach.roles || []).slice(0, 3).join(" · ");
-  const badges = getCoachBadges(coach).slice(0, 2).map((badge) => `<span>${escapeHtml(badge)}</span>`).join("");
+  const productCount = coach.lessons || 0;
+  const roleText = (coach.roles || []).slice(0, 4).join(" · ");
+  const badges = ["추천", coach.tier].slice(0, 2).map((badge) => `<span>${escapeHtml(badge)}</span>`).join("");
   return `
-    <button class="explorer-coach-card ${coach.id === state.selectedCoachId ? "active" : ""}" type="button" data-explorer-coach-id="${escapeHtml(coach.id)}">
-      <img src="${coach.image}" alt="" style="${getImageStyle(coach)}">
+    <button class="explorer-coach-card ${coach.key === state.selectedCoachKey ? "active" : ""}" type="button" data-explorer-coach-key="${escapeHtml(coach.key)}">
+      <img src="${coach.image}" alt="" style="object-position: ${coach.imagePosition};">
       <span class="explorer-coach-body">
         <span class="explorer-card-head">
           <strong>${escapeHtml(coach.name)}</strong>
-          <em>${escapeHtml(coach.tier || "일반")}</em>
+          <em>${escapeHtml(coach.tier)}</em>
         </span>
-        <small>${escapeHtml(coach.tagline || purposeText || "코칭 상품")}</small>
-        <span class="explorer-card-meta">${escapeHtml(roleText || purposeText || categoryLabel(coach.category))}</span>
+        <small>${escapeHtml(coach.tagline || "코칭 상품")}</small>
+        <span class="explorer-card-meta">${escapeHtml(roleText || "강의")}</span>
         <span class="explorer-card-foot">
           <span>${badges}</span>
-          <b>${escapeHtml(coach.price || "가격 상담")}</b>
+          <b>${productCount}개 강의</b>
         </span>
       </span>
     </button>
@@ -782,14 +986,15 @@ function renderCoachExplorerCard(coach) {
 function getVisibleCoaches() {
   return state.coaches.filter((coach) => {
     const inCategory = coach.category === state.category;
+    const inSelectedCoach = !state.selectedCoachKey || getCoachKey(coach) === state.selectedCoachKey;
     const coachPurposes = getCoachPurposes(coach);
     const inType = state.type === "all" || coachPurposes.includes(state.type);
     const inSegment = state.segment === "all" || coachPurposes.includes(state.segment);
     const purposeLabel = getPurposeLabels(coach.purpose).join(" ");
-    const haystack = [coach.name, coach.tier, coach.tagline, coach.bio, purposeLabel, ...(coach.roles || []), ...(coach.badges || [])]
+    const haystack = [coach.name, coach.coachProfileName, coach.tier, coach.tagline, coach.bio, purposeLabel, ...(coach.roles || []), ...(coach.badges || [])]
       .join(" ")
       .toLowerCase();
-    return inCategory && inType && inSegment && (!state.query || haystack.includes(state.query));
+    return inCategory && inSelectedCoach && inType && inSegment && (!state.query || haystack.includes(state.query));
   }).sort((a, b) => {
     const tierDiff = (tierRank[a.tier] ?? 9) - (tierRank[b.tier] ?? 9);
     if (tierDiff) return tierDiff;
@@ -811,6 +1016,7 @@ function renderMarket() {
       state.type = "all";
       state.segment = "all";
       state.selectedCoachId = null;
+      state.selectedCoachKey = null;
       renderMarket();
       renderSidebarCoaches();
     });
@@ -832,6 +1038,7 @@ function renderMarket() {
     tab.addEventListener("click", () => {
       state.type = tab.dataset.type;
       state.selectedCoachId = null;
+      state.selectedCoachKey = null;
       renderMarket();
     });
   });
@@ -840,6 +1047,7 @@ function renderMarket() {
     tab.addEventListener("click", () => {
       state.segment = tab.dataset.segment;
       state.selectedCoachId = null;
+      state.selectedCoachKey = null;
       renderMarket();
     });
   });
@@ -866,6 +1074,9 @@ function renderMarket() {
   if (state.selectedCoachId && !visible.some((coach) => coach.id === state.selectedCoachId)) {
     state.selectedCoachId = null;
     renderSidebarCoaches();
+  }
+  if (state.selectedCoachKey && !state.selectedCoachId && visible.length) {
+    state.selectedCoachId = visible[0].id;
   }
 
   renderFeatured(visible);
@@ -916,6 +1127,7 @@ function renderFeaturedCard(coach) {
       </div>
       <div class="featured-body">
         <h3>${coach.name}</h3>
+        <p class="coach-owner">${escapeHtml(coach.coachProfileName || coach.name)}</p>
         <p class="purpose-label">${purposeText}</p>
         <p class="featured-summary">${coach.tagline}</p>
         <div class="featured-rating">★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></div>
@@ -944,6 +1156,7 @@ function renderCoachCard(coach) {
       <div class="coach-main">
         ${badges.length ? `<div class="rank-badges">${badges.map(renderBadge).join("")}</div>` : ""}
         <h3>${coach.name}</h3>
+        <span class="coach-owner">${escapeHtml(coach.coachProfileName || coach.name)}</span>
         <span class="purpose-label">${purposeText}</span>
         <p>${coach.tagline}</p>
         <div class="chips">${(coach.roles || []).map((role) => `<span class="chip">${role}</span>`).join("")}</div>
@@ -1020,6 +1233,7 @@ function renderDetail() {
     <div class="detail-body">
       <div class="rank-badges">${getCoachBadges(coach).map(renderBadge).join("")}</div>
       <h2>${coach.name}</h2>
+      <p class="detail-owner">${escapeHtml(coach.coachProfileName || coach.name)} · ${escapeHtml(coach.coachSummary || coach.tier || "코치")}</p>
       <p>${coach.bio}</p>
       <div class="booking-note">
         <strong>예약 전 확인</strong>
