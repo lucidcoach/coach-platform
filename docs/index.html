@@ -143,24 +143,32 @@
           <input id="coachImage" type="hidden">
           <input id="coachFeaturedImage" type="hidden">
           <input id="coachDetailImage" type="hidden">
-          <label><span>상단 추천 이미지 <small>엠버서더/최우수 노출용 · 권장 1200×675</small></span><input id="coachFeaturedImageFile" type="file" accept="image/*"></label>
-          <label><span>일반 목록 이미지 <small>목록 카드용 · 권장 520×520</small></span><input id="coachImageFile" type="file" accept="image/*"></label>
-          <label><span>상세 설명 이미지 <small>상세 패널용 · 권장 1200×675</small></span><input id="coachDetailImageFile" type="file" accept="image/*"></label>
           <label class="image-position-raw"><span id="labelImagePosition"></span><input id="coachImagePosition" readonly></label>
-          <div class="image-adjust wide triple-image-adjust">
-            <div class="image-preview banner-preview">
-              <div class="image-preview-frame banner" id="coachFeaturedImagePreview"></div>
-              <span>상단 추천 이미지</span>
+          <div class="image-upload-grid wide">
+            <div class="image-upload-card">
+              <label><span>상단 추천 이미지 <small>엠버서더/최우수 노출용 · 권장 1200×675</small></span><input id="coachFeaturedImageFile" type="file" accept="image/*"></label>
+              <div class="image-preview banner-preview">
+                <div class="image-preview-frame banner" id="coachFeaturedImagePreview"></div>
+                <span>추천 상단 카드에 표시</span>
+              </div>
+              <button type="button" class="secondary image-crop-button" id="openFeaturedCropBtn">상단 추천 이미지 범위 지정</button>
             </div>
-            <div class="image-preview thumbnail-preview">
-              <div class="image-preview-frame" id="coachImagePreview"></div>
-              <span>일반 목록 이미지</span>
+            <div class="image-upload-card">
+              <label><span>일반 목록 이미지 <small>목록 카드용 · 권장 520×520</small></span><input id="coachImageFile" type="file" accept="image/*"></label>
+              <div class="image-preview thumbnail-preview">
+                <div class="image-preview-frame" id="coachImagePreview"></div>
+                <span>상품 목록 카드에 표시</span>
+              </div>
+              <button type="button" class="secondary image-crop-button" id="openCropBtn">일반 목록 이미지 범위 지정</button>
             </div>
-            <div class="image-preview banner-preview">
-              <div class="image-preview-frame banner" id="coachDetailImagePreview"></div>
-              <span>상세 설명 이미지</span>
+            <div class="image-upload-card">
+              <label><span>상세 설명 이미지 <small>상세 패널용 · 권장 1200×675</small></span><input id="coachDetailImageFile" type="file" accept="image/*"></label>
+              <div class="image-preview banner-preview">
+                <div class="image-preview-frame banner" id="coachDetailImagePreview"></div>
+                <span>오른쪽 상세 화면에 표시</span>
+              </div>
+              <button type="button" class="secondary image-crop-button" id="openDetailCropBtn">상세 설명 이미지 범위 지정</button>
             </div>
-            <button type="button" class="secondary" id="openCropBtn">일반 목록 이미지 범위 지정</button>
           </div>
           <fieldset class="choice-field">
             <legend id="labelBadges"></legend>
@@ -195,7 +203,7 @@
   <div class="crop-modal" id="cropModal" hidden>
     <div class="crop-dialog">
       <button class="crop-close" id="cropCloseBtn" type="button" aria-label="닫기">×</button>
-      <h3>썸네일 범위 지정</h3>
+      <h3 id="cropTitle">이미지 범위 지정</h3>
       <div class="crop-stage">
         <img id="cropImage" alt="">
         <div class="crop-box" id="cropBox"></div>

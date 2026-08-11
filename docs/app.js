@@ -460,6 +460,7 @@ const state = {
   bookingQuery: "",
   selectedBookingId: null,
   cropSourceImage: "",
+  cropTarget: null,
 };
 
 function $(id) {
@@ -550,7 +551,27 @@ function bindEvents() {
   $("coachImageFile").addEventListener("change", handleCoachImageFile);
   $("coachFeaturedImageFile").addEventListener("change", (event) => handleWideCoachImageFile(event, "coachFeaturedImage", "coachFeaturedImagePreview", "상단 추천 이미지"));
   $("coachDetailImageFile").addEventListener("change", (event) => handleWideCoachImageFile(event, "coachDetailImage", "coachDetailImagePreview", "상세 설명 이미지"));
-  $("openCropBtn").addEventListener("click", openCropModal);
+  $("openFeaturedCropBtn").addEventListener("click", () => openCropModal({
+    inputId: "coachFeaturedImage",
+    previewId: "coachFeaturedImagePreview",
+    width: 1200,
+    height: 675,
+    label: "상단 추천 이미지",
+  }));
+  $("openCropBtn").addEventListener("click", () => openCropModal({
+    inputId: "coachImage",
+    previewId: "coachImagePreview",
+    width: 520,
+    height: 520,
+    label: "일반 목록 이미지",
+  }));
+  $("openDetailCropBtn").addEventListener("click", () => openCropModal({
+    inputId: "coachDetailImage",
+    previewId: "coachDetailImagePreview",
+    width: 1200,
+    height: 675,
+    label: "상세 설명 이미지",
+  }));
   $("cropCloseBtn").addEventListener("click", closeCropModal);
   $("applyCropBtn").addEventListener("click", applyImageCrop);
   $("cropImage").addEventListener("load", updateCropBox);
@@ -1500,12 +1521,18 @@ function handleCoachImageFile(event) {
     state.cropSourceImage = String(reader.result || "");
     $("coachImage").value = state.cropSourceImage;
     updateCoachImagePreview();
-    openCropModal();
+    openCropModal({
+      inputId: "coachImage",
+      previewId: "coachImagePreview",
+      width: 520,
+      height: 520,
+      label: "일반 목록 이미지",
+    });
   });
   reader.readAsDataURL(file);
 }
 
-async function handleWideCoachImageFile(event, inputId, previewId, label) {
+function handleWideCoachImageFile(event, inputId, previewId, label) {
   const file = event.target.files?.[0];
   if (!file) return;
   if (!file.type.startsWith("image/")) {
@@ -1518,53 +1545,28 @@ async function handleWideCoachImageFile(event, inputId, previewId, label) {
     event.target.value = "";
     return;
   }
-  try {
-    $(inputId).value = await resizeImageFileToDataUrl(file, 1200, 675, 0.82);
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    state.cropSourceImage = String(reader.result || "");
+    $(inputId).value = state.cropSourceImage;
     updateWideImagePreview(inputId, previewId);
-  } catch (error) {
-    alert(`${label}를 처리하지 못했습니다.\n${error.message || error}`);
-    event.target.value = "";
-  }
-}
-
-function resizeImageFileToDataUrl(file, targetWidth, targetHeight, quality = 0.82) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    const reader = new FileReader();
-    reader.addEventListener("error", () => reject(new Error("이미지 파일을 읽지 못했습니다.")));
-    reader.addEventListener("load", () => {
-      image.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
-        const context = canvas.getContext("2d");
-        const sourceRatio = image.naturalWidth / image.naturalHeight;
-        const targetRatio = targetWidth / targetHeight;
-        let sourceWidth = image.naturalWidth;
-        let sourceHeight = image.naturalHeight;
-        let sourceX = 0;
-        let sourceY = 0;
-        if (sourceRatio > targetRatio) {
-          sourceWidth = image.naturalHeight * targetRatio;
-          sourceX = (image.naturalWidth - sourceWidth) / 2;
-        } else {
-          sourceHeight = image.naturalWidth / targetRatio;
-          sourceY = (image.naturalHeight - sourceHeight) / 2;
-        }
-        context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, targetWidth, targetHeight);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      image.onerror = () => reject(new Error("이미지를 불러오지 못했습니다."));
-      image.src = String(reader.result || "");
-    });
-    reader.readAsDataURL(file);
+    openCropModal({ inputId, previewId, width: 1200, height: 675, label });
   });
+  reader.readAsDataURL(file);
 }
 
-function openCropModal() {
-  const image = state.cropSourceImage || $("coachImage").value.trim();
+function openCropModal(target = null) {
+  state.cropTarget = target || {
+    inputId: "coachImage",
+    previewId: "coachImagePreview",
+    width: 520,
+    height: 520,
+    label: "일반 목록 이미지",
+  };
+  const image = state.cropSourceImage || $(state.cropTarget.inputId).value.trim();
   if (!image) return;
   $("cropImage").src = image;
+  $("cropTitle").textContent = `${state.cropTarget.label} 범위 지정`;
   $("cropModal").hidden = false;
   $("cropX").value = 50;
   $("cropY").value = 50;
@@ -1579,20 +1581,30 @@ function closeCropModal() {
 function getCropRect() {
   const image = $("cropImage");
   const stage = image.getBoundingClientRect();
-  const size = Math.min(stage.width, stage.height) * (Number($("cropSize").value) / 100);
-  const maxX = Math.max(0, stage.width - size);
-  const maxY = Math.max(0, stage.height - size);
+  const target = state.cropTarget || { width: 520, height: 520 };
+  const ratio = target.width / target.height;
+  const scale = Number($("cropSize").value) / 100;
+  let maxWidth = stage.width;
+  let maxHeight = maxWidth / ratio;
+  if (maxHeight > stage.height) {
+    maxHeight = stage.height;
+    maxWidth = maxHeight * ratio;
+  }
+  const width = maxWidth * scale;
+  const height = maxHeight * scale;
+  const maxX = Math.max(0, stage.width - width);
+  const maxY = Math.max(0, stage.height - height);
   const left = stage.left + maxX * (Number($("cropX").value) / 100);
   const top = stage.top + maxY * (Number($("cropY").value) / 100);
-  return { left, top, size, imageRect: stage };
+  return { left, top, width, height, imageRect: stage };
 }
 
 function updateCropBox() {
   const rect = getCropRect();
   const parentRect = document.querySelector(".crop-stage").getBoundingClientRect();
   const box = $("cropBox");
-  box.style.width = `${rect.size}px`;
-  box.style.height = `${rect.size}px`;
+  box.style.width = `${rect.width}px`;
+  box.style.height = `${rect.height}px`;
   box.style.left = `${rect.left - parentRect.left}px`;
   box.style.top = `${rect.top - parentRect.top}px`;
 }
@@ -1600,10 +1612,10 @@ function updateCropBox() {
 function setCropCenterFromPointer(event) {
   const rect = getCropRect();
   const imageRect = rect.imageRect;
-  const maxX = Math.max(1, imageRect.width - rect.size);
-  const maxY = Math.max(1, imageRect.height - rect.size);
-  const left = Math.max(0, Math.min(maxX, event.clientX - imageRect.left - rect.size / 2));
-  const top = Math.max(0, Math.min(maxY, event.clientY - imageRect.top - rect.size / 2));
+  const maxX = Math.max(1, imageRect.width - rect.width);
+  const maxY = Math.max(1, imageRect.height - rect.height);
+  const left = Math.max(0, Math.min(maxX, event.clientX - imageRect.left - rect.width / 2));
+  const top = Math.max(0, Math.min(maxY, event.clientY - imageRect.top - rect.height / 2));
   $("cropX").value = Math.round((left / maxX) * 100);
   $("cropY").value = Math.round((top / maxY) * 100);
   updateCropBox();
@@ -1638,16 +1650,28 @@ function applyImageCrop() {
   const scaleY = image.naturalHeight / rect.imageRect.height;
   const sourceX = Math.max(0, (rect.left - rect.imageRect.left) * scaleX);
   const sourceY = Math.max(0, (rect.top - rect.imageRect.top) * scaleY);
-  const sourceSize = Math.min(rect.size * scaleX, rect.size * scaleY);
+  const sourceWidth = rect.width * scaleX;
+  const sourceHeight = rect.height * scaleY;
+  const target = state.cropTarget || {
+    inputId: "coachImage",
+    previewId: "coachImagePreview",
+    width: 520,
+    height: 520,
+  };
   const canvas = document.createElement("canvas");
-  canvas.width = 520;
-  canvas.height = 520;
+  canvas.width = target.width;
+  canvas.height = target.height;
   const context = canvas.getContext("2d");
-  context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, canvas.width, canvas.height);
-  $("coachImage").value = canvas.toDataURL("image/jpeg", 0.78);
-  $("coachImagePosition").value = "center center";
-  updateCoachImagePreview();
+  context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+  $(target.inputId).value = canvas.toDataURL("image/jpeg", 0.78);
+  if (target.inputId === "coachImage") {
+    $("coachImagePosition").value = "center center";
+    updateCoachImagePreview();
+  } else {
+    updateWideImagePreview(target.inputId, target.previewId);
+  }
   state.cropSourceImage = "";
+  state.cropTarget = null;
   closeCropModal();
 }
 
