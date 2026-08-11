@@ -377,7 +377,8 @@ button {
 }
 .avatar-frame {
   width: 100%;
-  height: 132px;
+  height: 96px;
+  aspect-ratio: 1 / 1;
   border-radius: 8px;
   overflow: hidden;
   background: #e5e7eb;
@@ -769,19 +770,19 @@ th {
 }
 .image-preview {
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: 96px 1fr;
   align-items: center;
   gap: 12px;
   grid-row: span 3;
 }
 .image-preview-frame {
-  width: 120px;
+  width: 96px;
   height: 96px;
   border-radius: 8px;
   background: #d8dee8;
   background-position: center 8%;
   background-repeat: no-repeat;
-  background-size: 100%;
+  background-size: cover;
   overflow: hidden;
 }
 .image-preview span {
@@ -936,5 +937,5 @@ th {
   .price-builder { grid-template-columns: 1fr; }
   .search { min-width: 0; }
   .coach-card { grid-template-columns: 82px minmax(0, 1fr); }
-  .avatar-frame { height: 124px; }
+  .avatar-frame { height: 82px; }
 }

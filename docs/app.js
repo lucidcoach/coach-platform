@@ -451,7 +451,7 @@ const state = {
   segment: "all",
   selectedCoachId: null,
   query: "",
-  coaches: structuredClone(samples),
+  coaches: [],
   coachLoadState: "idle",
   bookings: [],
   bookingLoadState: "idle",
@@ -543,7 +543,7 @@ function bindEvents() {
   $("clearBookingsBtn").addEventListener("click", () => {
     loadReservations();
   });
-  $("coachImage").addEventListener("input", () => updateCoachImagePreview());
+  $("coachImage")?.addEventListener("input", () => updateCoachImagePreview());
   $("coachImageFile").addEventListener("change", handleCoachImageFile);
   $("openCropBtn").addEventListener("click", openCropModal);
   $("cropCloseBtn").addEventListener("click", closeCropModal);
@@ -645,6 +645,24 @@ function renderMarket() {
       renderMarket();
     });
   });
+
+  if (state.coachLoadState === "idle" || state.coachLoadState === "loading") {
+    $("featuredSection").hidden = true;
+    $("featuredList").innerHTML = "";
+    $("coachList").innerHTML = `<div class="empty">코치 목록을 불러오는 중입니다.</div>`;
+    state.selectedCoachId = null;
+    renderDetail();
+    return;
+  }
+
+  if (state.coachLoadState === "error") {
+    $("featuredSection").hidden = true;
+    $("featuredList").innerHTML = "";
+    $("coachList").innerHTML = `<div class="empty">코치 목록을 불러오지 못했습니다.</div>`;
+    state.selectedCoachId = null;
+    renderDetail();
+    return;
+  }
 
   const visible = getVisibleCoaches();
   if (state.selectedCoachId && !visible.some((coach) => coach.id === state.selectedCoachId)) {
@@ -980,7 +998,13 @@ async function runAdminRequest(callback) {
 }
 
 async function loadCoachesFromApi() {
-  if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) return;
+  if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) {
+    state.coaches = structuredClone(samples);
+    state.coachLoadState = "loaded";
+    render();
+    return;
+  }
+  state.coachLoadState = "loading";
   try {
     const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches`);
     const result = await response.json().catch(() => ({}));
@@ -994,10 +1018,12 @@ async function loadCoachesFromApi() {
       render();
     } else {
       state.coachLoadState = "empty";
+      render();
     }
   } catch (error) {
     state.coachLoadState = "error";
     console.warn("코치 목록을 불러오지 못했습니다.", error);
+    render();
   }
 }
 
