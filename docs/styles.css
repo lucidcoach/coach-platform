@@ -638,6 +638,28 @@ th {
 .admin-form .wide, .form-actions {
   grid-column: 1 / -1;
 }
+.image-preview {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+.image-preview img {
+  width: 86px;
+  height: 86px;
+  object-fit: cover;
+  object-position: center 8%;
+  border-radius: 8px;
+  background: #d8dee8;
+}
+.image-preview span {
+  color: var(--muted);
+  font-size: 13px;
+}
 .form-actions {
   display: flex;
   gap: 8px;

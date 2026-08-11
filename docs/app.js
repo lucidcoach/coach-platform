@@ -423,7 +423,6 @@ const imageMigration = {
   "../assets/emojis/misc/lollogo.png": "assets/lollogo.png",
 };
 
-const SAMPLE_VERSION = "league-coaches-v8-new-coaches";
 const tierRank = { "엠버서더": 0, "최우수": 1, "우수": 2, "일반": 3 };
 
 const state = {
@@ -433,7 +432,8 @@ const state = {
   segment: "all",
   selectedCoachId: null,
   query: "",
-  coaches: loadCoaches(),
+  coaches: structuredClone(samples),
+  coachLoadState: "idle",
   bookings: [],
   bookingLoadState: "idle",
   bookingLoadError: "",
@@ -446,35 +446,12 @@ function $(id) {
   return document.getElementById(id);
 }
 
-function load(key, fallback) {
-  try {
-    return JSON.parse(localStorage.getItem(key)) || structuredClone(fallback);
-  } catch {
-    return structuredClone(fallback);
-  }
-}
-
 function migrateCoachImages(coaches) {
   return coaches.map((coach) => ({
     ...coach,
     image: imageMigration[coach.image] || coach.image || "assets/lollogo.png",
     imagePosition: coach.imagePosition || "center 8%",
   }));
-}
-
-function loadCoaches() {
-  const savedVersion = localStorage.getItem("lucid-coaches-version");
-  if (savedVersion !== SAMPLE_VERSION) {
-    localStorage.setItem("lucid-coaches-version", SAMPLE_VERSION);
-    localStorage.setItem("lucid-coaches", JSON.stringify(samples));
-    return structuredClone(samples);
-  }
-  return migrateCoachImages(load("lucid-coaches", samples));
-}
-
-function save() {
-  localStorage.setItem("lucid-coaches-version", SAMPLE_VERSION);
-  localStorage.setItem("lucid-coaches", JSON.stringify(state.coaches));
 }
 
 function boot() {
@@ -489,6 +466,7 @@ function boot() {
   $("coachImagePosition").placeholder = "예: center 8%, 72% 12%";
   render();
   bindEvents();
+  loadCoachesFromApi();
 }
 
 function bindEvents() {
@@ -507,22 +485,22 @@ function bindEvents() {
     renderMarket();
   });
 
-  $("coachForm").addEventListener("submit", (event) => {
+  $("coachForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    saveCoachFromForm();
+    await saveCoachFromForm();
   });
 
   $("newCoachBtn").addEventListener("click", () => fillCoachForm());
   $("deleteCoachBtn").addEventListener("click", deleteSelectedCoach);
-  $("resetCoachesBtn").addEventListener("click", () => {
-    state.coaches = structuredClone(samples);
-    state.selectedCoachId = null;
-    save();
-    render();
+  $("resetCoachesBtn").addEventListener("click", async () => {
+    await resetCoachesToSamples();
   });
   $("clearBookingsBtn").addEventListener("click", () => {
     loadReservations();
   });
+  $("coachImage").addEventListener("input", () => updateCoachImagePreview());
+  $("coachImagePosition").addEventListener("input", () => updateCoachImagePreview());
+  $("coachImageFile").addEventListener("change", handleCoachImageFile);
   $("bookingStatusFilter").addEventListener("change", (event) => {
     state.bookingFilterStatus = event.target.value;
     renderBookings();
@@ -932,6 +910,96 @@ function getAdminHeaders(includeJson = false) {
   };
 }
 
+async function runAdminRequest(callback) {
+  try {
+    return await callback();
+  } catch (error) {
+    if (error.status === 401) {
+      const loggedIn = await loginForReservations();
+      if (loggedIn) return callback();
+    }
+    throw error;
+  }
+}
+
+async function loadCoachesFromApi() {
+  if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) return;
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches`);
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    if (Array.isArray(result.coaches) && result.coaches.length) {
+      state.coaches = migrateCoachImages(result.coaches);
+      if (state.selectedCoachId && !state.coaches.some((coach) => coach.id === state.selectedCoachId)) {
+        state.selectedCoachId = null;
+      }
+      state.coachLoadState = "loaded";
+      render();
+    } else {
+      state.coachLoadState = "empty";
+    }
+  } catch (error) {
+    state.coachLoadState = "error";
+    console.warn("코치 목록을 불러오지 못했습니다.", error);
+  }
+}
+
+async function saveCoachToApi(coach, sortOrder) {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches/${encodeURIComponent(coach.id)}`, {
+    method: "PATCH",
+    headers: getAdminHeaders(true),
+    credentials: "include",
+    body: JSON.stringify({ ...coach, sortOrder }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return result.coach || coach;
+}
+
+async function deleteCoachFromApi(id) {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: getAdminHeaders(),
+    credentials: "include",
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+}
+
+async function resetCoachesToSamples() {
+  const nextCoaches = structuredClone(samples);
+  try {
+    const response = await runAdminRequest(async () => {
+      const request = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches/reset`, {
+        method: "POST",
+        headers: getAdminHeaders(true),
+        credentials: "include",
+        body: JSON.stringify({ coaches: nextCoaches }),
+      });
+      const result = await request.json().catch(() => ({}));
+      if (!request.ok || !result.ok) {
+        const error = new Error(result.error || `HTTP ${request.status}`);
+        error.status = request.status;
+        throw error;
+      }
+      return result;
+    });
+    state.coaches = migrateCoachImages(response.coaches || nextCoaches);
+    state.selectedCoachId = null;
+    render();
+  } catch (error) {
+    alert(`코치 샘플을 DB에 저장하지 못했습니다.\n${error.message}`);
+  }
+}
+
 async function updateReservationStatus(id, status) {
   const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/reservations/${encodeURIComponent(id)}`, {
     method: "PATCH",
@@ -1114,11 +1182,41 @@ function fillCoachForm(coach) {
   $("coachImagePosition").value = coach?.imagePosition || "center 8%";
   $("coachBadges").value = (coach?.badges || []).join(", ");
   $("coachBio").value = coach?.bio || "";
+  $("coachImageFile").value = "";
+  updateCoachImagePreview();
 }
 
-function saveCoachFromForm() {
+function updateCoachImagePreview() {
+  const preview = $("coachImagePreview");
+  preview.src = $("coachImage").value.trim() || "assets/lollogo.png";
+  preview.style.objectPosition = $("coachImagePosition").value.trim() || "center 8%";
+}
+
+function handleCoachImageFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    alert("이미지 파일만 선택할 수 있습니다.");
+    event.target.value = "";
+    return;
+  }
+  if (file.size > 1024 * 1024) {
+    alert("이미지는 1MB 이하로 올려주세요. 큰 이미지는 홈페이지 저장 공간을 금방 채웁니다.");
+    event.target.value = "";
+    return;
+  }
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    $("coachImage").value = String(reader.result || "");
+    updateCoachImagePreview();
+  });
+  reader.readAsDataURL(file);
+}
+
+async function saveCoachFromForm() {
   const id = $("coachId").value || `coach-${Date.now()}`;
   const previous = state.coaches.find((coach) => coach.id === id);
+  const previousIndex = state.coaches.findIndex((coach) => coach.id === id);
   const next = {
     id,
     category: $("coachCategory").value,
@@ -1136,22 +1234,30 @@ function saveCoachFromForm() {
     bio: $("coachBio").value.trim(),
     reviews: previous?.reviews || [["첫 후기", "관리자가 입력한 샘플 후기입니다."]],
   };
-  state.coaches = state.coaches.filter((coach) => coach.id !== id).concat(next);
-  state.category = next.category;
-  state.selectedCoachId = id;
-  save();
-  render();
-  fillCoachForm(next);
+  try {
+    const savedCoach = await runAdminRequest(() => saveCoachToApi(next, previousIndex >= 0 ? previousIndex : state.coaches.length));
+    state.coaches = state.coaches.filter((coach) => coach.id !== id).concat(savedCoach);
+    state.category = savedCoach.category;
+    state.selectedCoachId = savedCoach.id;
+    render();
+    fillCoachForm(savedCoach);
+  } catch (error) {
+    alert(`코치 정보를 저장하지 못했습니다.\n${error.message}`);
+  }
 }
 
-function deleteSelectedCoach() {
+async function deleteSelectedCoach() {
   const id = $("coachId").value;
   if (!id) return;
-  state.coaches = state.coaches.filter((coach) => coach.id !== id);
-  state.selectedCoachId = null;
-  save();
-  fillCoachForm();
-  render();
+  try {
+    await runAdminRequest(() => deleteCoachFromApi(id));
+    state.coaches = state.coaches.filter((coach) => coach.id !== id);
+    state.selectedCoachId = null;
+    fillCoachForm();
+    render();
+  } catch (error) {
+    alert(`코치 정보를 삭제하지 못했습니다.\n${error.message}`);
+  }
 }
 
 function splitCsv(value) {
