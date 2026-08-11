@@ -87,10 +87,10 @@ const text = {
   navBookings: "예약 관리",
   navAdmin: "코치 관리",
   sideLabel: "예약 안내",
-  sideCopy: "원하는 강의를 고르고 Riot ID와 디스코드 연락처를 남기면 운영진이 시간 조율을 도와드립니다.",
+  sideCopy: "같은 코치가 여러 강의를 운영할 수 있습니다. 코치명으로 먼저 고르고, 원하는 강의 상품을 선택해 예약해 주세요.",
   heroEyebrow: "LoL 리플레이 분석 · 라인전 교정 · 팀 피드백",
   heroTitle: "LoL 코칭 플랫폼",
-  metricCoachesLabel: "코치",
+  metricCoachesLabel: "강의",
   metricBookingsLabel: "예약",
   metricRatingLabel: "평점",
   searchLabel: "검색",
@@ -105,10 +105,10 @@ const text = {
   thContact: "연락처",
   thMemo: "메모",
   adminEyebrow: "로컬 편집",
-  adminTitle: "코치 목록 수정",
-  resetCoachesBtn: "코치 샘플 초기화",
+  adminTitle: "코치/강의 관리",
+  resetCoachesBtn: "강의 샘플 초기화",
   labelCategory: "카테고리",
-  labelName: "코치/상품명",
+  labelName: "코치명",
   labelTagline: "한 줄 소개",
   labelPurpose: "분류",
   labelRoles: "전문 분야",
@@ -121,7 +121,7 @@ const text = {
   optValorant: "발로란트",
   optAcademy: "테스트",
   saveCoachBtn: "저장",
-  newCoachBtn: "새 코치",
+  newCoachBtn: "새 강의",
   deleteCoachBtn: "삭제",
   bookingStudentLabel: "수강생 이름",
   bookingContactLabel: "Riot ID / Discord",
@@ -595,6 +595,7 @@ function render() {
   document.querySelectorAll(".view").forEach((view) => view.classList.remove("active"));
   $(`${state.activeView}View`).classList.add("active");
   renderMetrics();
+  renderSidebarCoaches();
   renderMarket();
   renderBookings();
   renderAdmin();
@@ -606,6 +607,39 @@ function renderMetrics() {
   $("metricCoaches").textContent = state.coaches.length;
   $("metricBookings").textContent = state.bookings.length;
   $("metricRating").textContent = average.toFixed(1);
+}
+
+function getCoachNameSummary(category = state.category) {
+  const grouped = new Map();
+  state.coaches
+    .filter((coach) => coach.category === category)
+    .forEach((coach) => {
+      const name = String(coach.name || "이름 없음").trim();
+      grouped.set(name, (grouped.get(name) || 0) + 1);
+    });
+  return [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0], "ko-KR"));
+}
+
+function renderSidebarCoaches() {
+  const target = $("sideCoachList");
+  if (!target) return;
+  const coaches = getCoachNameSummary();
+  target.innerHTML = coaches.length ? coaches.map(([name, count]) => `
+    <button class="side-coach ${state.query === name.toLowerCase() ? "active" : ""}" type="button" data-coach-name="${escapeHtml(name)}">
+      <span>${name}</span>
+      <em>${count}강의</em>
+    </button>
+  `).join("") : `<p class="side-empty">등록된 코치가 없습니다.</p>`;
+
+  target.querySelectorAll("[data-coach-name]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.query = button.dataset.coachName.trim().toLowerCase();
+      if ($("searchInput")) $("searchInput").value = button.dataset.coachName;
+      state.selectedCoachId = null;
+      renderMarket();
+      renderSidebarCoaches();
+    });
+  });
 }
 
 function getVisibleCoaches() {
@@ -1356,16 +1390,31 @@ function renderBookings() {
 }
 
 function renderAdmin() {
-  $("adminCoachList").innerHTML = state.coaches.map((coach) => `
-    <button class="admin-row" type="button" data-id="${coach.id}">
-      <img src="${coach.image}" alt="">
-      <span>
-        <h4>${coach.name}</h4>
-        <p>${categoryLabel(coach.category)} · ${coach.price}</p>
-      </span>
-      <span class="chip">수정</span>
-    </button>
-  `).join("");
+  const groups = new Map();
+  state.coaches.forEach((coach) => {
+    const name = String(coach.name || "이름 없음").trim();
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(coach);
+  });
+
+  $("adminCoachList").innerHTML = groups.size ? [...groups.entries()].map(([name, coaches]) => `
+    <section class="admin-coach-group">
+      <div class="admin-coach-head">
+        <strong>${name}</strong>
+        <span>${coaches.length}개 강의</span>
+      </div>
+      ${coaches.map((coach) => `
+        <button class="admin-row" type="button" data-id="${coach.id}">
+          <img src="${coach.image}" alt="">
+          <span>
+            <h4>${coach.tagline || coach.name}</h4>
+            <p>${categoryLabel(coach.category)} · ${coach.price}</p>
+          </span>
+          <span class="chip">수정</span>
+        </button>
+      `).join("")}
+    </section>
+  `).join("") : `<div class="empty">등록된 강의가 없습니다.</div>`;
 
   document.querySelectorAll(".admin-row").forEach((row) => {
     row.addEventListener("click", () => fillCoachForm(state.coaches.find((coach) => coach.id === row.dataset.id)));
