@@ -657,6 +657,7 @@ function boot() {
     if (el.tagName === "INPUT") el.placeholder = value;
     else el.textContent = value;
   });
+  $("navStudent").textContent = "수강생 홈";
   $("searchInput").placeholder = text.searchPlaceholder;
   $("coachImagePosition").placeholder = "예: center 8%, 72% 12%";
   state.coaches = migrateCoachImages(structuredClone(samples));
@@ -705,6 +706,10 @@ function bindEvents() {
   $("coachExplorerSearch")?.addEventListener("input", (event) => {
     state.coachExplorerQuery = event.target.value.trim().toLowerCase();
     renderCoachExplorer();
+  });
+  $("lessonDetailCloseBtn")?.addEventListener("click", closeLessonDetail);
+  $("lessonDetailModal")?.addEventListener("click", (event) => {
+    if (event.target.id === "lessonDetailModal") closeLessonDetail();
   });
 
   $("coachForm").addEventListener("submit", async (event) => {
@@ -785,6 +790,7 @@ function render() {
   renderMetrics();
   renderSidebarCoaches();
   renderMarket();
+  renderStudentHome();
   renderBookings();
   renderAdmin();
   renderCoachSelf();
@@ -796,6 +802,120 @@ function renderMetrics() {
   $("metricCoaches").textContent = state.coaches.length;
   $("metricBookings").textContent = state.bookings.length;
   $("metricRating").textContent = average.toFixed(1);
+}
+
+function renderStudentHome() {
+  const container = $("studentViewContent");
+  if (!container) return;
+  const leagueLessons = state.coaches.filter((coach) => coach.category === "league");
+  const recommended = leagueLessons.slice(0, 3);
+  const nextLesson = state.bookings[0];
+  const historyRows = recommended.map((coach, index) => ({
+    lesson: coach.name,
+    coach: coach.coachProfileName || coach.name,
+    price: coach.price,
+    status: index === 0 ? "예약 전" : index === 1 ? "수강 완료" : "찜한 강의",
+  }));
+  const reviewTarget = recommended.find((coach) => coach.reviews?.length);
+
+  container.innerHTML = `
+    <section class="student-guide">
+      <div>
+        <span>1</span>
+        <strong>충전 / 결제</strong>
+        <p>포인트 충전이나 결제수단 관리는 여기서 시작합니다.</p>
+      </div>
+      <div>
+        <span>2</span>
+        <strong>강의 예약</strong>
+        <p>강의 상세보기에서 신청하면 내 강의 목록에 쌓입니다.</p>
+      </div>
+      <div>
+        <span>3</span>
+        <strong>수강 / 후기</strong>
+        <p>완료된 강의는 후기 작성 버튼이 열리는 구조입니다.</p>
+      </div>
+    </section>
+
+    <section class="student-grid">
+      <article class="student-panel student-wallet">
+        <div class="student-panel-head">
+          <span>결제</span>
+          <strong>충전과 결제 위치</strong>
+        </div>
+        <div class="student-actions">
+          <button class="primary" type="button" disabled>포인트 충전</button>
+          <button class="secondary" type="button" disabled>결제수단 관리</button>
+          <button class="secondary" type="button" disabled>쿠폰함</button>
+        </div>
+        <p>아직 결제 기능은 연결 전이라 버튼만 자리 잡아둔 상태입니다.</p>
+      </article>
+
+      <article class="student-panel">
+        <div class="student-panel-head">
+          <span>예정</span>
+          <strong>다가오는 강의</strong>
+        </div>
+        ${nextLesson ? `
+          <div class="student-next">
+            <strong>${escapeHtml(nextLesson.lesson || "예약 강의")}</strong>
+            <span>${escapeHtml(nextLesson.time || "시간 확인 중")}</span>
+            <em>${escapeHtml(nextLesson.status || "접수")}</em>
+          </div>
+        ` : `
+          <div class="student-empty">
+            <strong>예약된 강의가 없습니다.</strong>
+            <span>강의 목록에서 원하는 코칭을 고르면 예약 신청으로 이어집니다.</span>
+          </div>
+        `}
+      </article>
+    </section>
+
+    <section class="student-grid lower">
+      <article class="student-panel">
+        <div class="student-panel-head">
+          <span>내역</span>
+          <strong>강의 구매 / 신청 내역</strong>
+        </div>
+        <div class="student-history">
+          ${historyRows.map((row) => `
+            <div class="student-row">
+              <span>
+                <strong>${escapeHtml(row.lesson)}</strong>
+                <small>${escapeHtml(row.coach)} · ${escapeHtml(row.price)}</small>
+              </span>
+              <em>${escapeHtml(row.status)}</em>
+            </div>
+          `).join("") || `
+            <div class="student-empty">
+              <strong>내역이 없습니다.</strong>
+              <span>구매나 예약이 생기면 이 목록에서 확인합니다.</span>
+            </div>
+          `}
+        </div>
+      </article>
+
+      <article class="student-panel">
+        <div class="student-panel-head">
+          <span>후기</span>
+          <strong>후기 작성</strong>
+        </div>
+        ${reviewTarget ? `
+          <div class="student-review-card">
+            <strong>${escapeHtml(reviewTarget.name)}</strong>
+            <span>${escapeHtml(reviewTarget.coachProfileName || reviewTarget.name)}</span>
+            <p>수강 완료 후 별점과 후기를 남기는 영역입니다.</p>
+            <button class="primary" type="button" disabled>후기 작성</button>
+          </div>
+        ` : `
+          <div class="student-empty">
+            <strong>작성 가능한 후기가 없습니다.</strong>
+            <span>강의가 완료되면 후기 작성 버튼이 표시됩니다.</span>
+          </div>
+        `}
+      </article>
+    </section>
+  `;
 }
 
 function getCoachKey(coach) {
@@ -1108,9 +1228,16 @@ function renderMarket() {
     <div class="empty">검색 결과가 없습니다.</div>
   `;
   document.querySelectorAll("[data-coach-id]").forEach((card) => {
-    card.addEventListener("click", () => {
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("[data-detail-id]")) return;
       state.selectedCoachId = card.dataset.coachId;
       renderMarket();
+    });
+  });
+  document.querySelectorAll("[data-detail-id]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openLessonDetail(button.dataset.detailId);
     });
   });
   renderDetail();
@@ -1179,6 +1306,7 @@ function renderFeaturedCard(coach) {
           <strong>${coach.price}</strong>
           ${originalPrice ? `<del>${originalPrice}</del>` : ""}
         </div>
+        <button class="detail-link" type="button" data-detail-id="${escapeHtml(coach.id)}">상세보기</button>
       </div>
     </article>
   `;
@@ -1209,6 +1337,7 @@ function renderCoachCard(coach) {
         <span>★ ${coach.rating.toFixed(1)} · 후기 ${coach.reviews?.length || 0}</span>
         <span class="price">${coach.price}</span>
       </div>
+      <button class="detail-link card-detail-link" type="button" data-detail-id="${escapeHtml(coach.id)}">상세보기</button>
     </article>
   `;
 }
@@ -1265,15 +1394,14 @@ function renderDetail() {
   if (!coach) {
     $("coachDetail").innerHTML = `
       <div class="detail-empty">
-        <strong>상품을 선택하면 상세 정보가 표시됩니다.</strong>
-        <span>왼쪽 카드에서 원하는 코칭 상품을 눌러 가격, 후기, 예약 신청 양식을 확인하세요.</span>
+        <strong>상품을 선택하면 미리보기가 표시됩니다.</strong>
+        <span>상세보기에서 설명, 후기, 예약 신청을 한 번에 확인할 수 있습니다.</span>
       </div>
     `;
     return;
   }
 
   const reviews = coach.reviews || [];
-  const firstReview = reviews[0];
   $("coachDetail").innerHTML = `
     <div class="detail-hero"><img src="${getDetailImage(coach)}" alt="" style="${getWideImageStyle(coach, "detailImagePosition")}"></div>
     <div class="detail-body">
@@ -1284,18 +1412,56 @@ function renderDetail() {
         <strong>★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></strong>
         <em>${reviews.length}개 후기</em>
       </div>
-      <p>${coach.bio}</p>
+      <p>${coach.tagline || coach.bio}</p>
       <div class="detail-summary">
         <div><span>가격</span><strong>${coach.price}</strong></div>
         <div><span>전문 분야</span><strong>${(coach.roles || []).slice(0, 4).join(", ")}</strong></div>
       </div>
-      ${firstReview ? `
-        <section class="review-preview">
+      <button class="primary detail-panel-button" type="button" data-detail-id="${escapeHtml(coach.id)}">상세보기</button>
+    </div>
+  `;
+  $("coachDetail").querySelector("[data-detail-id]")?.addEventListener("click", () => openLessonDetail(coach.id));
+}
+
+function openLessonDetail(coachId) {
+  const coach = state.coaches.find((item) => item.id === coachId);
+  const modal = $("lessonDetailModal");
+  if (!coach || !modal) return;
+  state.selectedCoachId = coach.id;
+  $("lessonDetailBody").innerHTML = renderLessonDetailMarkup(coach);
+  mountBookingForm("lessonBookingMount", coach);
+  modal.hidden = false;
+}
+
+function closeLessonDetail() {
+  const modal = $("lessonDetailModal");
+  if (modal) modal.hidden = true;
+}
+
+function renderLessonDetailMarkup(coach) {
+  const reviews = coach.reviews || [];
+  return `
+    <div class="lesson-detail-hero"><img src="${getDetailImage(coach)}" alt="" style="${getWideImageStyle(coach, "detailImagePosition")}"></div>
+    <div class="lesson-detail-body">
+      <div class="rank-badges">${getCoachBadges(coach).map(renderBadge).join("")}</div>
+      <h2 id="lessonDetailTitle">${escapeHtml(coach.name)}</h2>
+      <p class="detail-owner">${escapeHtml(coach.coachProfileName || coach.name)} · ${escapeHtml(coach.coachSummary || coach.tier || "코치")}</p>
+      <div class="detail-trust">
+        <strong>★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></strong>
+        <em>${reviews.length}개 후기</em>
+      </div>
+      <p>${escapeHtml(coach.bio || coach.tagline || "")}</p>
+      <div class="detail-summary">
+        <div><span>가격</span><strong>${escapeHtml(coach.price)}</strong></div>
+        <div><span>전문 분야</span><strong>${escapeHtml((coach.roles || []).slice(0, 5).join(", "))}</strong></div>
+      </div>
+      ${reviews.length ? `
+        <section class="review-preview full">
           <div>
             <strong>후기</strong>
             <span>${reviews.length}개</span>
           </div>
-          <p><b>${escapeHtml(firstReview[0])}</b> ${escapeHtml(firstReview[1])}</p>
+          ${reviews.slice(0, 3).map(([name, body]) => `<p><b>${escapeHtml(name)}</b> ${escapeHtml(body)}</p>`).join("")}
         </section>
       ` : ""}
       <section class="booking-panel">
@@ -1304,18 +1470,22 @@ function renderDetail() {
             <strong>예약 신청</strong>
             <span>Riot ID와 희망 시간을 남기면 운영진이 확인합니다.</span>
           </div>
-          <em>${coach.price}</em>
+          <em>${escapeHtml(coach.price)}</em>
         </div>
         <div class="booking-note">
           디스코드 화면공유 또는 리플레이 리뷰로 진행됩니다.
         </div>
-        <div id="bookingMount"></div>
+        <div id="lessonBookingMount"></div>
       </section>
     </div>
   `;
+}
 
+function mountBookingForm(mountId, coach) {
+  const mount = $(mountId);
+  if (!mount) return;
   const form = $("bookingFormTemplate").content.cloneNode(true);
-  $("bookingMount").appendChild(form);
+  mount.appendChild(form);
   $("bookingStudentLabel").textContent = text.bookingStudentLabel;
   $("bookingContactLabel").textContent = text.bookingContactLabel;
   $("bookingTimeLabel").textContent = text.bookingTimeLabel;

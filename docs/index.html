@@ -18,6 +18,7 @@
       </button>
       <nav class="nav" aria-label="main">
         <button class="nav-item active" data-view="market" id="navMarket"></button>
+        <button class="nav-item" data-view="student" id="navStudent"></button>
         <button class="nav-item" data-view="bookings" id="navBookings"></button>
         <button class="nav-item" data-view="admin" id="navAdmin"></button>
         <button class="nav-item" data-view="coachSelf" id="navCoachSelf"></button>
@@ -72,6 +73,20 @@
           <section class="coach-list" id="coachList"></section>
           <section class="detail-panel" id="coachDetail"></section>
         </div>
+      </section>
+
+      <section class="view" id="studentView">
+        <div class="section-head student-head">
+          <div>
+            <p class="eyebrow">수강생 화면</p>
+            <h2>내 강의 홈</h2>
+          </div>
+          <div class="student-balance">
+            <span>사용 가능 포인트</span>
+            <strong>0원</strong>
+          </div>
+        </div>
+        <div class="student-dashboard" id="studentViewContent"></div>
       </section>
 
       <section class="view" id="bookingsView">
@@ -248,6 +263,12 @@
         <div id="coachExplorerTierFilters"></div>
       </div>
       <div class="coach-explorer-grid" id="coachExplorerGrid"></div>
+    </div>
+  </div>
+  <div class="lesson-detail-modal" id="lessonDetailModal" hidden>
+    <div class="lesson-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="lessonDetailTitle">
+      <button class="crop-close" id="lessonDetailCloseBtn" type="button" aria-label="닫기">×</button>
+      <div id="lessonDetailBody"></div>
     </div>
   </div>
   <div class="crop-modal" id="cropModal" hidden>
