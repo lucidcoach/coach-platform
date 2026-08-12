@@ -138,44 +138,38 @@ const text = {
 };
 
 const samples = [
-  { id: "lol-1", category: "league", name: "바텀 라인전 2:2 코칭", coachKey: "mephi", coachProfileName: "메피 코치", tier: "엠버서더", coachTier: "엠버서더", coachSummary: "전프로 바텀 라이너 출신, 전 라인 피드백 가능", tagline: "원딜/서폿 바텀 라인전과 2:2 교전 설계", bio: "바텀 듀오의 라인전 구도, 웨이브, 교전 타이밍을 리플레이로 짚습니다.", purpose: ["adc", "support", "team"], roles: ["원딜", "서폿", "바텀", "팀게임"], price: "70,000원 / 1시간", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.8, lessons: 103, reviews: [["리조또", "라인전 전에 계속 뭘 봐야 하는지 처음으로 이해됐어요."], ["봄", "상대 정글 위치를 근거로 플레이하는 법을 배웠습니다."]], badges: ["엠버서더", "추천"], featuredAd: true },
-  { id: "lol-2", category: "league", name: "프로팀식 팀게임 운영 피드백", coachKey: "shineast", coachProfileName: "샤이니스트 코치", tier: "최우수", coachTier: "최우수", coachSummary: "프로팀 출신, 전 라인과 팀게임 운영 가능", tagline: "프로팀 관점으로 보는 중후반 운영, 오더, 시야 컨트롤", bio: "챔피언 숙련보다 먼저 잡아야 할 미니맵 시선, 턴 사용, 귀환 타이밍을 중심으로 피드백합니다.", purpose: ["team", "high"], roles: ["탑", "정글", "미드", "원딜", "서폿"], price: "100,000원 / 1시간", image: "assets/shineast.png", imagePosition: "center 12%", featuredImagePosition: "center 16%", detailImagePosition: "center 16%", rating: 5.0, lessons: 212, reviews: [["사이니스트", "복기하면서 제가 맵을 거의 안 보고 있었다는 걸 깨달았어요."], ["미드연습중", "라인을 밀어야 할 때와 받아야 할 때가 구분됐어요."]], badges: ["최우수", "추천"], featuredAd: true },
-  { id: "lol-3", category: "league", name: "정글 저티어 탈출 코칭", coachKey: "mireu", coachProfileName: "정미르 코치", tier: "우수", coachTier: "우수", coachSummary: "우수 수강생, 학교강의 경험, 저티어 친화", tagline: "정글 첫 동선, 갱각, 오브젝트 판단 집중 코칭", bio: "저티어에서 바로 적용하기 쉬운 동선과 판단 기준을 쉽게 정리합니다.", purpose: ["jungle", "low", "value"], roles: ["정글", "저티어", "동선", "오브젝트"], price: "35,000원 / 1시간", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.6, lessons: 72, reviews: [["게스트", "이전 리플레이로 설명해주셔서 이해가 빨랐어요."]], badges: ["우수", "입문 추천"] },
-  { id: "lol-4", category: "league", name: "전 라인 솔랭 리플레이 분석", coachKey: "shineast", coachProfileName: "샤이니스트 코치", tier: "최우수", coachTier: "최우수", coachSummary: "프로팀 출신, 모든 라인 피드백 가능", tagline: "라인 상관없이 승리 플랜과 실수 패턴을 잡아주는 고급 피드백", bio: "한 경기 전체 흐름에서 반복되는 선택 실수와 승리 조건을 정리합니다.", purpose: ["high"], roles: ["탑", "정글", "미드", "원딜", "서폿"], price: "90,000원 / 1시간", image: "assets/shineast.png", imagePosition: "center 12%", featuredImagePosition: "center 16%", detailImagePosition: "center 16%", rating: 4.8, lessons: 136, reviews: [["테스트", "친절한데 핵심은 정확해서 만족했습니다."], ["미드연습중", "라인을 밀어야 할 때와 받아야 할 때가 구분됐어요."]], badges: ["최우수", "추천"] },
-  { id: "lol-5", category: "league", name: "탑 라인전 이론 코칭", coachKey: "persona", coachProfileName: "페르소나 코치", tier: "우수", coachTier: "우수", coachSummary: "탑 라이너 출신, 이론 중심 피드백", tagline: "매치업, 웨이브, 텔 타이밍을 정리하는 탑 전문 코칭", bio: "탑 라인에서 손해를 보는 구간을 이론과 리플레이로 같이 봅니다.", purpose: ["top", "high"], roles: ["탑", "라인전", "고티어", "이론"], price: "45,000원 / 1시간", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.5, lessons: 41, reviews: [["게스트", "지게 보는 각도 고칠 게 명확했습니다."]], badges: ["우수"] },
-  { id: "lol-6", category: "league", name: "탑 라인전 30분 진단", coachKey: "persona", coachProfileName: "페르소나 코치", tier: "우수", coachTier: "우수", coachSummary: "탑 라이너 출신, 이론 중심 피드백", tagline: "한 경기로 보는 라인전 손해 구간 빠른 진단", bio: "짧은 시간에 라인전 습관과 매치업 이해도를 점검합니다.", purpose: ["value", "top", "low"], roles: ["탑", "라인전", "입문"], price: "14,900원 / 30분", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.4, lessons: 54, reviews: [["초보탑", "뭘 몰라서 지는지 알게 됐어요."]], badges: ["우수", "가성비 리플레이"] },
-  { id: "lol-7", category: "league", name: "서폿 시야 입문 체크", coachKey: "mephi", coachProfileName: "메피 코치", tier: "엠버서더", coachTier: "엠버서더", coachSummary: "전프로 바텀 라이너 출신", tagline: "와드 위치보다 먼저 잡아야 할 시야 타이밍 빠른 점검", bio: "서포터의 시야 목적과 턴을 기준으로 입문자가 바로 고칠 수 있게 봅니다.", purpose: ["value", "support", "low"], roles: ["서폿", "시야", "입문"], price: "20,000원 / 30분", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.4, lessons: 54, reviews: [["봄", "시야 점수가 아니라 왜 박는지 배웠어요."]], badges: ["엠버서더", "가성비 리플레이"] },
-  { id: "lol-8", category: "league", name: "원딜 한타 생존 클리닉", coachKey: "mephi", coachProfileName: "메피 코치", tier: "엠버서더", coachTier: "엠버서더", coachSummary: "전프로 바텀 라이너 출신", tagline: "죽는 한타 장면만 골라 포지션 습관을 고치는 저가 상품", bio: "원딜이 한타에서 먼저 죽는 이유를 포지션과 스킬 거리 기준으로 정리합니다.", purpose: ["value", "adc", "low"], roles: ["원딜", "한타", "생존"], price: "25,000원 / 30분", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.6, lessons: 72, reviews: [["원딜러", "죽는 위치가 거의 같은 걸 알았습니다."]], badges: ["엠버서더", "가성비 리플레이"] },
-  { id: "lol-9", category: "league", name: "챔피언폭 20분 상담", coachKey: "mireu", coachProfileName: "정미르 코치", tier: "우수", coachTier: "우수", coachSummary: "저티어 친화, 일반 수강생 코칭", tagline: "지금 티어에서 올리기 쉬운 챔피언폭 정리", bio: "현재 플레이 스타일을 기준으로 현실적인 챔피언폭을 추천합니다.", purpose: ["value", "low"], roles: ["저티어", "챔피언폭", "상담"], price: "9,900원 / 20분", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.3, lessons: 28, reviews: [["입문자", "연습 순서가 생겨서 좋았습니다."]], badges: ["우수", "입문 추천"] },
-  { id: "lol-10", category: "league", name: "가성비 팀게임 피드백", coachKey: "mireu", coachProfileName: "정미르 코치", tier: "우수", coachTier: "우수", coachSummary: "학교강의 경험, 팀게임 저가 피드백 가능", tagline: "팀 단위 내전/스크림을 편하게 점검하는 운영 피드백", bio: "팀게임에서 반복되는 콜, 오브젝트, 합류 실수를 저렴하게 점검합니다.", purpose: ["value", "team", "low"], roles: ["팀게임", "정글", "저티어", "오더"], price: "30,000원 / 1시간", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.5, lessons: 46, reviews: [["팀장", "팀원들이 이해하기 쉽게 정리됐습니다."]], badges: ["우수", "팀 피드백 가능"] },
-  { id: "val-1", category: "valorant", name: "엔트리 피킹 교정", coachKey: "val-entry", coachProfileName: "Valor Coach", tier: "일반", tagline: "초반 교전 각과 피킹 습관 리플레이 교정", bio: "타격대의 진입 타이밍과 교전 각을 봅니다.", purpose: ["duelist", "value"], roles: ["타격대", "에임", "피킹"], price: "30,000원 / 1시간", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.2, lessons: 18, reviews: [["초보", "피킹 전에 생각할 게 생겼어요."]], badges: ["일반"] },
-  { id: "val-2", category: "valorant", name: "스크림 팀 피드백", coachKey: "val-team", coachProfileName: "Valor Coach", tier: "일반", tagline: "팀 단위 콜과 사이트 운영 리뷰", bio: "공격/수비 라운드별 선택지를 정리합니다.", purpose: ["team"], roles: ["스크림", "팀 피드백", "운영"], price: "50,000원 / 1시간", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.1, lessons: 11, reviews: [["팀원", "콜이 정리됐습니다."]], badges: ["일반"] },
-  { id: "academy-1", category: "academy", name: "신규 코치 베이직 4주", coachKey: "academy-basic", coachProfileName: "아카데미", tier: "일반", tagline: "코칭 진행법, 리플레이 분석, 수강생 관리", bio: "코치 입문자를 위한 운영 기본 과정입니다.", purpose: ["entry", "coach-basic"], roles: ["코치 입문", "커리큘럼", "피드백"], price: "300,000원 / 4주", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.7, lessons: 21, reviews: [["신규코치", "진행 순서를 잡을 수 있었습니다."]], badges: ["일반"] },
-  { id: "academy-2", category: "academy", name: "우수 코치 전환반", coachKey: "academy-advanced", coachProfileName: "아카데미", tier: "일반", tagline: "상품 구성과 후기 관리까지 보는 심화 과정", bio: "코치 상품을 판매 가능한 형태로 다듬는 과정입니다.", purpose: ["curriculum", "coach-advanced"], roles: ["브랜딩", "운영", "수강생 관리"], price: "180,000원 / 2주", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.8, lessons: 16, reviews: [["코치", "상품 설명이 훨씬 명확해졌어요."]], badges: ["일반"] },
+  { id: "coach-shineast", category: "league", name: "샤이니스트 코치", coachKey: "shineast", coachProfileName: "샤이니스트 코치", tier: "최우수", coachTier: "최우수", coachSummary: "프로팀 출신 · 모든 라인 피드백 · 팀게임 운영까지 가능", tagline: "프로팀식 운영, 라인전 교정, 팀게임 피드백까지 보는 고급 코칭", bio: "모든 라인과 팀게임을 프로팀 관점으로 점검합니다. 미니맵 시선, 턴 사용, 귀환 타이밍, 오더와 시야 컨트롤처럼 승패를 가르는 선택을 리플레이로 정리합니다.", purpose: ["team", "high"], roles: ["탑", "정글", "미드", "원딜", "서폿", "팀게임"], price: "100,000원 / 1시간", image: "assets/shineast.png", featuredImage: "assets/shineast2.png", detailImage: "assets/shineast2.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 5.0, lessons: 212, reviews: [["사이니스트", "복기하면서 제가 맵을 거의 안 보고 있었다는 걸 깨달았어요."], ["미드연습중", "라인을 밀어야 할 때와 받아야 할 때가 구분됐어요."]], badges: ["최우수", "추천"], featuredAd: true },
+  { id: "coach-mireu", category: "league", name: "정미르 코치", coachKey: "mireu", coachProfileName: "정미르 코치", tier: "우수", coachTier: "우수", coachSummary: "우수 수강생 · 저티어 친화 · 정글/팀게임 피드백", tagline: "저티어와 일반 수강생에게 쉬운 정글 동선, 갱각, 오브젝트 판단 코칭", bio: "학교 강의 경험을 바탕으로 입문자와 저티어가 바로 적용할 수 있는 판단 기준을 쉽게 정리합니다. 정글 첫 동선, 갱각, 오브젝트 판단과 팀게임 피드백을 부담 없는 가격대로 진행합니다.", purpose: ["jungle", "low", "team", "value"], roles: ["정글", "저티어", "팀게임", "입문"], price: "35,000원 / 1시간", image: "assets/mireu.png", featuredImage: "assets/mireu2.png", detailImage: "assets/mireu2.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 4.6, lessons: 72, reviews: [["게스트", "이전 리플레이로 설명해주셔서 이해가 빨랐어요."], ["입문자", "연습 순서가 생겨서 좋았습니다."]], badges: ["우수", "입문 추천"] },
+  { id: "coach-persona", category: "league", name: "페르소나 코치", coachKey: "persona", coachProfileName: "페르소나 코치", tier: "우수", coachTier: "우수", coachSummary: "탑 라이너 출신 · 이론 중심 · 고티어까지 가능", tagline: "탑 라인 매치업, 웨이브, 텔 타이밍을 이론 중심으로 정리하는 코칭", bio: "탑 라인에서 손해를 보는 구간을 매치업과 웨이브 기준으로 분석합니다. 라인전 이론, 텔레포트 타이밍, 사이드 운영처럼 탑 라이너에게 중요한 판단을 리플레이로 점검합니다.", purpose: ["top", "high", "value"], roles: ["탑", "라인전", "고티어", "이론"], price: "45,000원 / 1시간", image: "assets/persona2.png", featuredImage: "assets/persona.png", detailImage: "assets/persona.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 4.5, lessons: 41, reviews: [["게스트", "지게 보는 각도 고칠 게 명확했습니다."], ["초보탑", "뭘 몰라서 지는지 알게 됐어요."]], badges: ["우수"] },
+  { id: "coach-mephi", category: "league", name: "메피 코치", coachKey: "mephi", coachProfileName: "메피 코치", tier: "엠버서더", coachTier: "엠버서더", coachSummary: "전프로 바텀 라이너 · 전 라인 피드백 · 팀게임 리뷰 가능", tagline: "바텀 라인전과 전 라인 리플레이를 전프로 관점으로 보는 코칭", bio: "시즌 5부터 현재까지 챌린저를 유지한 바텀 라이너 관점으로 라인전, 교전, 한타 포지션을 점검합니다. 전 라인 피드백과 팀게임 리뷰까지 가능하며, 운영과 시야 컨트롤도 함께 봅니다.", purpose: ["adc", "support", "team", "high"], roles: ["원딜", "서폿", "전 라인", "팀게임"], price: "70,000원 / 1시간", image: "assets/mephi.png", featuredImage: "assets/mephi2.png", detailImage: "assets/mephi2.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 4.8, lessons: 103, reviews: [["리조또", "라인전 전에 계속 뭘 봐야 하는지 처음으로 이해됐어요."], ["봄", "상대 정글 위치를 근거로 플레이하는 법을 배웠습니다."]], badges: ["엠버서더", "추천"], featuredAd: true },
 ];
 
-const initialBookings = [
-  { id: "booking-1", status: "상담중", student: "테스트 수강생", lesson: "신규 코치 베이직 4주", coach: "아카데미", time: "8/12 20:00", contact: "Discord ID", memo: "샘플 예약입니다." },
-];
+const initialBookings = [];
 
 const imageMigration = {
   "assets/logo.png": "assets/lollogo.png",
   "assets/lol-logo.png": "assets/lollogo.png",
-  "assets/shineast.png": "assets/NSshineast.jpg",
+  "assets/NSshineast.jpg": "assets/shineast.png",
+  "assets/mephicoach.png": "assets/mephi.png",
+  "assets/mireucoach.png": "assets/mireu.png",
+  "assets/personacoach.png": "assets/persona2.png",
 };
 const tierRank = { "엠버서더": 0, "최우수": 1, "우수": 2, "일반": 3 };
 
 const leagueCoachProfiles = {
-  shineast: { name: "샤이니스트 코치", tier: "최우수", tagline: "프로팀 출신 · 모든 라인 피드백 · 팀게임 운영까지 가능", roles: ["탑", "정글", "미드", "원딜", "서폿", "팀게임"], image: "assets/NSshineast.jpg", imagePosition: "center 58%", featuredImagePosition: "center 58%" },
-  mireu: { name: "정미르 코치", tier: "우수", tagline: "저티어와 일반 수강생에게 쉬운 정글/팀게임 피드백", roles: ["정글", "저티어", "팀게임", "입문"], image: "assets/mireucoach.png", imagePosition: "center 54%" },
-  persona: { name: "페르소나 코치", tier: "우수", tagline: "탑 라인 중심의 이론과 매치업 이해도 피드백", roles: ["탑", "이론", "고티어", "라인전"], image: "assets/personacoach.png", imagePosition: "center 48%" },
-  mephi: { name: "메피 코치", tier: "엠버서더", tagline: "전프로 바텀 라이너 · 전 라인 피드백 · 팀게임 리뷰 가능", roles: ["바텀", "전 라인", "팀게임", "전프로"], image: "assets/mephicoach.png", imagePosition: "center 45%" },
+  shineast: { name: "샤이니스트 코치", tier: "최우수", tagline: "프로팀 출신 · 모든 라인 피드백 · 팀게임 운영까지 가능", roles: ["탑", "정글", "미드", "원딜", "서폿", "팀게임"], image: "assets/shineast.png", imagePosition: "center center", featuredImagePosition: "center center" },
+  mireu: { name: "정미르 코치", tier: "우수", tagline: "저티어와 일반 수강생에게 쉬운 정글/팀게임 피드백", roles: ["정글", "저티어", "팀게임", "입문"], image: "assets/mireu.png", imagePosition: "center center", featuredImagePosition: "center center" },
+  persona: { name: "페르소나 코치", tier: "우수", tagline: "탑 라인 중심의 이론과 매치업 이해도 피드백", roles: ["탑", "이론", "고티어", "라인전"], image: "assets/persona2.png", imagePosition: "center center", featuredImagePosition: "center center" },
+  mephi: { name: "메피 코치", tier: "엠버서더", tagline: "전프로 바텀 라이너 · 전 라인 피드백 · 팀게임 리뷰 가능", roles: ["바텀", "전 라인", "팀게임", "전프로"], image: "assets/mephi.png", imagePosition: "center center", featuredImagePosition: "center center" },
 };
 
 const leagueLessonOverrides = {
-  "lol-1": { coachKey: "mephi" }, "lol-2": { coachKey: "shineast" }, "lol-3": { coachKey: "mireu" }, "lol-4": { coachKey: "shineast" }, "lol-5": { coachKey: "persona" },
-  "lol-6": { coachKey: "persona" }, "lol-7": { coachKey: "mephi" }, "lol-8": { coachKey: "mephi" }, "lol-9": { coachKey: "mireu" }, "lol-10": { coachKey: "mireu" },
+  "coach-shineast": { coachKey: "shineast" },
+  "coach-mireu": { coachKey: "mireu" },
+  "coach-persona": { coachKey: "persona" },
+  "coach-mephi": { coachKey: "mephi" },
 };
+const publicCoachIds = new Set(samples.map((coach) => coach.id));
 const state = {
   activeView: "market",
   category: "league",
@@ -215,6 +209,11 @@ function migrateCoachImages(coaches) {
     bannerImage: imageMigration[coach.bannerImage] || coach.bannerImage || "",
     imagePosition: coach.imagePosition || "center 8%",
   })));
+}
+
+function getPublicCatalogCoaches(coaches) {
+  const next = migrateCoachImages(coaches).filter((coach) => publicCoachIds.has(coach.id));
+  return next.length ? next : migrateCoachImages(structuredClone(samples));
 }
 
 function inferLeagueCoachKey(coach) {
@@ -276,7 +275,7 @@ function boot() {
   $("navCoachSearch").textContent = "맞춤 강의 검색";
   $("searchInput").placeholder = text.searchPlaceholder;
   $("coachImagePosition").placeholder = "예: center 8%, 72% 12%";
-  state.coaches = migrateCoachImages(structuredClone(samples));
+  state.coaches = getPublicCatalogCoaches(structuredClone(samples));
   state.coachLoadState = "loaded";
   render();
   bindEvents();
@@ -1411,7 +1410,7 @@ async function runAdminRequest(callback) {
 
 async function loadCoachesFromApi() {
   if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) {
-    state.coaches = migrateCoachImages(structuredClone(samples));
+    state.coaches = getPublicCatalogCoaches(structuredClone(samples));
     state.coachLoadState = "loaded";
     render();
     return;
@@ -1430,7 +1429,7 @@ async function loadCoachesFromApi() {
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
     if (Array.isArray(result.coaches) && result.coaches.length) {
-      state.coaches = migrateCoachImages(result.coaches);
+      state.coaches = getPublicCatalogCoaches(result.coaches);
       if (state.selectedCoachId && !state.coaches.some((coach) => coach.id === state.selectedCoachId)) {
         state.selectedCoachId = null;
       }
@@ -1742,7 +1741,7 @@ function renderBookings() {
 function renderAdmin() {
   const groups = new Map();
   state.coaches.forEach((coach) => {
-    const name = String(coach.coachProfileName || coach.name || "?대쫫 ?놁쓬").trim();
+    const name = String(coach.coachProfileName || coach.name || "이름 없음").trim();
     if (!groups.has(name)) groups.set(name, []);
     groups.get(name).push(coach);
   });
