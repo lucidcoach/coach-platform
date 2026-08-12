@@ -1469,6 +1469,32 @@ th {
   display: grid;
   gap: 16px;
 }
+.coach-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.coach-summary-card {
+  display: grid; gap: 8px; min-height: 128px; padding: 18px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel); box-shadow: var(--shadow);
+}
+.coach-summary-card span, .coach-summary-card small, .coach-dashboard-note,
+.coach-history-row small, .coach-dashboard-state span { color: var(--muted); }
+.coach-summary-card span { font-size: 13px; font-weight: 900; }
+.coach-summary-card strong { font-size: 28px; }
+.coach-summary-card small { align-self: end; font-size: 12px; }
+.coach-dashboard-state { display: grid; gap: 8px; }
+.coach-dashboard-state.error { border-color: var(--danger); }
+.coach-dashboard-note { margin: 0 0 14px; font-size: 13px; }
+.coach-history-list { display: grid; gap: 10px; }
+.coach-history-row {
+  display: grid; grid-template-columns: 80px minmax(240px, 1fr) minmax(220px, auto);
+  align-items: center; gap: 12px; padding: 14px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);
+}
+.coach-history-row > span { display: grid; gap: 4px; min-width: 0; }
+.coach-history-row em {
+  justify-self: start; padding: 5px 8px; border-radius: 999px;
+  background: #e9f8f0; color: var(--brand-dark);
+  font-size: 12px; font-style: normal; font-weight: 900;
+}
 .student-guide,
 .student-flow {
   display: grid;
@@ -2442,7 +2468,9 @@ body[data-theme="dark"] .explorer-coach-body small {
   .student-hero,
   .student-main-grid,
   .student-grid,
-  .student-grid.lower { grid-template-columns: 1fr; }
+  .student-grid.lower,
+  .coach-summary-grid,
+  .coach-history-row { grid-template-columns: 1fr; }
   .student-head { align-items: stretch; }
   .student-balance { text-align: left; }
   .coach-self-layout { grid-template-columns: 1fr; }

@@ -197,6 +197,8 @@ const state = {
   bookings: [],
   bookingLoadState: "idle",
   bookingLoadError: "",
+  coachDashboardLoadState: "idle",
+  coachDashboardLoadError: "",
   bookingFilterStatus: "all",
   bookingQuery: "",
   selectedBookingId: null,
@@ -351,10 +353,6 @@ function bindEvents() {
       }
       let nextView = button.dataset.view;
       if (!nextView) return;
-      if (nextView === "student" && hasCoachLikeAccount()) {
-        state.coachSelfKey = getFallbackCoachKey();
-        nextView = "coachSelf";
-      }
       if (["bookings", "admin"].includes(nextView)) {
         const allowed = await ensureAdminAccess();
         if (!allowed) return;
@@ -476,8 +474,7 @@ function bindEvents() {
 
 function render() {
   document.querySelectorAll(".nav-item").forEach((button) => {
-    button.classList.toggle("active", button.dataset.view === state.activeView
-      || (button.dataset.view === "student" && state.activeView === "coachSelf" && hasCoachLikeAccount()));
+    button.classList.toggle("active", button.dataset.view === state.activeView);
   });
   document.querySelectorAll(".view").forEach((view) => view.classList.remove("active"));
   $(`${state.activeView}View`).classList.add("active");
@@ -492,6 +489,7 @@ function render() {
   renderUsers();
   renderCoachRequests();
   renderCoachSelf();
+  maybeLoadCoachDashboardReservations();
 }
 
 function renderMetrics() {
@@ -729,6 +727,9 @@ function bindAuthForm(mode) {
           });
       state.currentUser = user;
       if (state.currentUser?.coachKey) state.coachSelfKey = state.currentUser.coachKey;
+      state.coachDashboardLoadState = "idle";
+      state.coachDashboardLoadError = "";
+      state.bookings = [];
       closeAuthModal();
       render();
     } catch (error) {
@@ -776,6 +777,11 @@ function bindGuestConsultForm() {
 function renderStudentHome() {
   const container = $("studentViewContent");
   if (!container) return;
+  if (state.currentUser?.role === "coach") {
+    renderCoachDashboard(container);
+    return;
+  }
+  setStudentHeader(false);
   const leagueLessons = state.coaches.filter((coach) => coach.category === "league");
   const recommended = leagueLessons.slice(0, 3);
   const nextLesson = state.bookings[0];
@@ -868,6 +874,97 @@ function renderStudentHome() {
           </div>
         `}
       </article>
+    </section>
+  `;
+}
+
+function setStudentHeader(isCoach) {
+  const head = $("studentView")?.querySelector(".student-head");
+  if (!head) return;
+  const eyebrow = head.querySelector(".eyebrow");
+  const title = head.querySelector("h2");
+  const balance = head.querySelector(".student-balance");
+  if (isCoach) {
+    if (eyebrow) eyebrow.textContent = "코치 개인 화면";
+    if (title) title.textContent = "내 정보";
+    if (balance) balance.innerHTML = "<span>집계 기준</span><strong>완료 예약</strong>";
+  } else {
+    if (eyebrow) eyebrow.textContent = "수강생 화면";
+    if (title) title.textContent = "내 강의 홈";
+    if (balance) balance.innerHTML = "<span>사용 가능 포인트</span><strong>0원</strong>";
+  }
+}
+
+function parseReservationPrice(value) {
+  const textValue = String(value || "");
+  const amount = Number((textValue.match(/[\d,]+/)?.[0] || "").replace(/,/g, "")) || 0;
+  const unitMatch = textValue.match(/(\d+(?:\.\d+)?)\s*(시간|hour|hours|게임)/i);
+  const unit = unitMatch?.[2] || "";
+  const units = Number(unitMatch?.[1] || 1) || 1;
+  return { amount, hours: /시간|hour/i.test(unit) ? units : 0 };
+}
+
+function formatWon(value) {
+  return `${Math.round(Number(value) || 0).toLocaleString("ko-KR")}원`;
+}
+
+function renderCoachDashboard(container) {
+  setStudentHeader(true);
+  if (state.coachDashboardLoadState === "loading") {
+    container.innerHTML = `
+      <section class="student-panel coach-dashboard-state">
+        <strong>코치 예약 통계를 불러오는 중입니다.</strong>
+        <span>완료된 예약과 수강생 목록을 확인하고 있습니다.</span>
+      </section>
+    `;
+    return;
+  }
+  if (state.coachDashboardLoadState === "error") {
+    container.innerHTML = `
+      <section class="student-panel coach-dashboard-state error">
+        <strong>코치 예약 통계를 불러오지 못했습니다.</strong>
+        <span>${escapeHtml(state.coachDashboardLoadError || "잠시 후 다시 시도해주세요.")}</span>
+      </section>
+    `;
+    return;
+  }
+
+  const reservations = state.bookings;
+  const completed = reservations.filter((booking) => String(booking.status || "") === "완료");
+  const active = reservations.filter((booking) => String(booking.status || "") !== "취소");
+  const totals = completed.reduce((result, booking) => {
+    const parsed = parseReservationPrice(booking.coachPrice);
+    result.hours += parsed.hours;
+    result.revenue += parsed.amount;
+    return result;
+  }, { hours: 0, revenue: 0 });
+  const students = new Set(completed.map((booking) => `${booking.student || ""}|${booking.contact || ""}`).filter((value) => value !== "|"));
+  const history = reservations.slice(0, 30);
+
+  container.innerHTML = `
+    <section class="coach-summary-grid">
+      <article class="coach-summary-card"><span>판매 시간</span><strong>${totals.hours.toLocaleString("ko-KR")}시간</strong><small>완료된 시간제 강의 기준</small></article>
+      <article class="coach-summary-card"><span>예상 매출</span><strong>${formatWon(totals.revenue)}</strong><small>결제 연동 전 예약 금액 합계</small></article>
+      <article class="coach-summary-card"><span>완료 수강생</span><strong>${students.size.toLocaleString("ko-KR")}명</strong><small>완료 예약의 고유 수강생</small></article>
+      <article class="coach-summary-card"><span>전체 예약</span><strong>${active.length.toLocaleString("ko-KR")}건</strong><small>취소 제외 · 완료 ${completed.length.toLocaleString("ko-KR")}건</small></article>
+    </section>
+    <section class="student-panel coach-history-panel">
+      <div class="student-panel-head">
+        <span>예약 내역</span>
+        <strong>내 강의 수강생 목록</strong>
+      </div>
+      <p class="coach-dashboard-note">매출과 판매 시간은 현재 <b>완료</b> 상태인 예약만 집계합니다. 결제 연동 후 실제 결제 금액으로 교체됩니다.</p>
+      <div class="coach-history-list">
+        ${history.length ? history.map((booking) => `
+          <div class="coach-history-row">
+            <em>${escapeHtml(booking.status || "신규")}</em>
+            <span><strong>${escapeHtml(booking.student || "수강생")}</strong><small>${escapeHtml(booking.lesson || booking.coachName || "강의")} · ${escapeHtml(booking.time || "시간 미정")} · ${escapeHtml(booking.contact || "연락처 없음")}</small></span>
+            <small>${escapeHtml(booking.createdAtText || "-")} · ${escapeHtml(booking.coachPrice || "가격 상담")}</small>
+          </div>
+        `).join("") : `
+          <div class="student-empty"><strong>예약 내역이 없습니다.</strong><span>예약이 접수되면 이곳에서 수강생과 상태를 확인할 수 있습니다.</span></div>
+        `}
+      </div>
     </section>
   `;
 }
@@ -1598,6 +1695,9 @@ async function loadCurrentUser() {
     const result = await response.json().catch(() => ({}));
     state.currentUser = response.ok && result.ok ? result.user : null;
     if (state.currentUser?.coachKey) state.coachSelfKey = state.currentUser.coachKey;
+    state.coachDashboardLoadState = "idle";
+    state.coachDashboardLoadError = "";
+    state.bookings = [];
     state.authLoadState = "loaded";
     render();
   } catch {
@@ -1637,6 +1737,9 @@ async function logoutUser() {
     });
   } finally {
     state.currentUser = null;
+    state.coachDashboardLoadState = "idle";
+    state.coachDashboardLoadError = "";
+    state.bookings = [];
     render();
   }
 }
@@ -1707,6 +1810,52 @@ async function fetchReservations() {
   return (result.reservations || []).map(mapReservationFromApi);
 }
 
+async function fetchCoachReservations() {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/reservations`, {
+    method: "GET",
+    credentials: "include",
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return (result.reservations || []).map(mapReservationFromApi);
+}
+
+function maybeLoadCoachDashboardReservations() {
+  if (state.activeView !== "student" || state.currentUser?.role !== "coach" || state.coachDashboardLoadState !== "idle") return;
+  loadCoachReservations();
+}
+
+async function loadCoachReservations() {
+  if (state.currentUser?.role !== "coach") return;
+  if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) {
+    state.coachDashboardLoadState = "error";
+    state.coachDashboardLoadError = "예약 API 주소가 아직 설정되지 않았습니다.";
+    renderStudentHome();
+    return;
+  }
+  state.coachDashboardLoadState = "loading";
+  state.coachDashboardLoadError = "";
+  state.bookings = [];
+  renderStudentHome();
+  try {
+    state.bookings = await fetchCoachReservations();
+    state.coachDashboardLoadState = "loaded";
+    renderMetrics();
+    renderStudentHome();
+  } catch (error) {
+    state.bookings = [];
+    state.coachDashboardLoadState = "error";
+    state.coachDashboardLoadError = error.status === 401
+      ? "코치 계정 인증이 만료되었습니다. 다시 로그인해주세요."
+      : "코치 전용 예약 API가 배포되지 않았거나 일시적으로 사용할 수 없습니다.";
+    renderStudentHome();
+  }
+}
+
 async function loadReservations(options = {}) {
   const { promptForLogin = true, silent = false } = options;
   if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) return;
@@ -1741,6 +1890,7 @@ function mapReservationFromApi(reservation) {
   const feedback = reservation.feedback_metadata || {};
   return {
     id: reservation.id || "",
+    coachId: reservation.coach_id || reservation.coachId || "",
     status: reservation.status || "신규",
     createdAt: reservation.created_at || "",
     createdAtText: formatDateTime(reservation.created_at),
@@ -2504,11 +2654,13 @@ function renderCoachSelf() {
     state.coachSelfKey = identities[0]?.key || currentCoachKey || "shineast";
   }
   const current = identities.find((coach) => coach.key === state.coachSelfKey);
-  $("coachSelfTabs").innerHTML = identities.map((coach) => `
+  const canSwitchCoach = state.currentUser?.role === "admin";
+  $("coachSelfTabs").hidden = !canSwitchCoach;
+  $("coachSelfTabs").innerHTML = canSwitchCoach ? identities.map((coach) => `
     <button class="coach-self-tab ${coach.key === state.coachSelfKey ? "active" : ""}" type="button" data-self-coach-key="${escapeHtml(coach.key)}">
       ${escapeHtml(coach.name)}
     </button>
-  `).join("");
+  `).join("") : "";
   $("coachSelfName").textContent = current ? current.name : "코치 선택";
   $("coachSelfHint").textContent = current ? `${current.tier} · ${current.lessons}개 강의` : "강의를 선택하면 오른쪽에서 수정할 수 있습니다.";
 
