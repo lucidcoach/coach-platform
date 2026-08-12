@@ -305,8 +305,29 @@ function boot() {
   state.coachLoadState = "loaded";
   render();
   bindEvents();
+  showOAuthResult();
   loadCurrentUser();
   loadCoachesFromApi();
+}
+
+function showOAuthResult() {
+  const url = new URL(window.location.href);
+  const error = url.searchParams.get("oauth_error");
+  const success = url.searchParams.get("oauth") === "success";
+  if (!error && !success) return;
+  url.searchParams.delete("oauth");
+  url.searchParams.delete("oauth_error");
+  history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  if (error) {
+    openAuthModal("login");
+    const messages = {
+      account_link_required: "같은 이메일의 기존 계정이 있습니다. 기존 방식으로 로그인해 주세요.",
+      oauth_cancelled: "소셜 로그인이 취소되었습니다.",
+      invalid_oauth_state: "로그인 요청이 만료되었습니다. 다시 시도해 주세요.",
+    };
+    const status = $("authStatus");
+    if (status) status.textContent = messages[error] || "소셜 로그인에 실패했습니다. 다시 시도해 주세요.";
+  }
 }
 
 function bindEvents() {
@@ -477,9 +498,12 @@ function renderMetrics() {
 }
 
 async function openAdminView(nextView) {
-  if (!["bookings", "admin", "users"].includes(nextView)) return;
+  if (!["bookings", "admin", "users", "coachSelf"].includes(nextView)) return;
   const allowed = await ensureAdminAccess();
   if (!allowed) return;
+  if (nextView === "coachSelf" && state.currentUser?.role !== "admin") {
+    state.coachSelfKey = getFallbackCoachKey();
+  }
   state.activeView = nextView;
   document.querySelector(".admin-menu")?.removeAttribute("open");
   render();
@@ -496,11 +520,26 @@ function hasCoachMenuAccess() {
 
 function getFallbackCoachKey(user = state.currentUser) {
   if (!user) return "";
-  return user.coachKey || String(user.displayName || user.email || "")
+  const knownKey = getKnownCoachKeyForUser(user);
+  if (user.coachKey || knownKey) return user.coachKey || knownKey;
+  return String(user.displayName || user.email || "")
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9가-힣]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function getKnownCoachKeyForUser(user = state.currentUser) {
+  const name = String(user?.displayName || "").toLowerCase();
+  if (name.includes("샤이니스트") || name.includes("shineast")) return "shineast";
+  if (name.includes("메피") || name.includes("mephi")) return "mephi";
+  if (name.includes("정미르") || name.includes("미르") || name.includes("mireu")) return "mireu";
+  if (name.includes("페르소나") || name.includes("persona")) return "persona";
+  return "";
+}
+
+function hasCoachLikeAccount() {
+  return state.currentUser?.role === "admin" || state.currentUser?.role === "coach" || Boolean(getKnownCoachKeyForUser());
 }
 
 function renderRoleMenu() {
@@ -511,7 +550,7 @@ function renderRoleMenu() {
     menu.innerHTML = "";
     return;
   }
-  const canManageLessons = state.currentUser?.role === "admin" || state.currentUser?.role === "coach";
+  const canManageLessons = hasCoachLikeAccount();
   menu.hidden = false;
   menu.innerHTML = `
     <span class="label">${canManageLessons ? "코치 메뉴" : "계정 메뉴"}</span>
@@ -519,7 +558,7 @@ function renderRoleMenu() {
     ${state.currentUser?.role === "student" ? `<button class="role-menu-button ${state.activeView === "coachApply" ? "active" : ""}" id="openCoachApplyMenuBtn" type="button">코치 등록 요청</button>` : ""}
   `;
   $("openCoachSelfMenuBtn")?.addEventListener("click", () => {
-    if (state.currentUser?.role === "coach") state.coachSelfKey = getFallbackCoachKey();
+    if (state.currentUser?.role !== "admin") state.coachSelfKey = getFallbackCoachKey();
     state.activeView = "coachSelf";
     render();
   });
@@ -634,6 +673,10 @@ function renderAuthMarkup(mode) {
       <span class="eyebrow">로그인</span>
       <h2 id="authTitle">내 강의 이어보기</h2>
       <p>예약 내역과 후기 작성 가능 강의를 계정으로 이어서 확인합니다.</p>
+      <div class="social-auth" aria-label="소셜 로그인">
+        <button class="google" type="button" data-oauth-provider="google">Google로 계속하기</button>
+        <button class="naver" type="button" data-oauth-provider="naver">네이버로 계속하기</button>
+      </div>
       <label>이메일<input name="email" type="email" required maxlength="${EMAIL_MAX_LENGTH}" autocomplete="email" placeholder="example@email.com"></label>
       <label>비밀번호
         <span class="password-field">
@@ -654,6 +697,11 @@ function bindAuthForm(mode) {
   }
   const form = $("authForm");
   if (!form) return;
+  form.querySelectorAll("[data-oauth-provider]").forEach((button) => {
+    button.addEventListener("click", () => {
+      window.location.assign(`${API_BASE_URL.replace(/\/$/, "")}/api/auth/oauth/${button.dataset.oauthProvider}/start`);
+    });
+  });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = form.querySelector("button[type='submit']");
@@ -2341,6 +2389,7 @@ function renderUsers() {
         <select data-user-role="${escapeHtml(user.id)}">
           ${[...(user.role === "coach" ? ["coach"] : []), "student", "admin"].filter((role, index, array) => array.indexOf(role) === index).map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${getRoleLabel(role)}</option>`).join("")}
         </select>
+        ${user.role === "coach" ? `<small>${escapeHtml(getUserCoachLabel(user))}</small>` : ""}
       </td>
       <td>
         <div class="inline-save">
@@ -2409,6 +2458,12 @@ function getCoachRequestStatusLabel(status) {
   return { pending: "대기중", approved: "승인됨", rejected: "거절됨" }[status] || status;
 }
 
+function getUserCoachLabel(user) {
+  const key = user.coachKey || getKnownCoachKeyForUser(user);
+  const coach = getCoachIdentities("league").find((item) => item.key === key);
+  return coach ? `${coach.name} 연결됨` : "코치 프로필 자동 생성 대상";
+}
+
 function getUserSaveClass(id) {
   const message = state.userSaveStates[id] || "";
   if (message.includes("완료")) return "success";
@@ -2430,17 +2485,18 @@ function findUserCoachSelect(id) {
 }
 
 function getCoachSelfLessons() {
-  const allowedKey = state.currentUser?.role === "coach" ? state.currentUser.coachKey : state.coachSelfKey;
+  const allowedKey = state.currentUser?.role !== "admin" ? getFallbackCoachKey() : state.coachSelfKey;
   return state.coaches.filter((coach) => coach.category === "league" && getCoachKey(coach) === allowedKey);
 }
 
 function renderCoachSelf() {
   if (!$("coachSelfTabs") || !$("coachSelfLessonGrid") || !$("coachSelfEditor")) return;
+  const currentCoachKey = getFallbackCoachKey();
   const identities = getCoachIdentities("league").filter((coach) => (
-    state.currentUser?.role !== "coach" || coach.key === state.currentUser.coachKey
+    state.currentUser?.role === "admin" || coach.key === currentCoachKey
   ));
   if (!identities.some((coach) => coach.key === state.coachSelfKey)) {
-    state.coachSelfKey = identities[0]?.key || "shineast";
+    state.coachSelfKey = identities[0]?.key || currentCoachKey || "shineast";
   }
   const current = identities.find((coach) => coach.key === state.coachSelfKey);
   $("coachSelfTabs").innerHTML = identities.map((coach) => `
