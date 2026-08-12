@@ -361,7 +361,7 @@ button {
 }
 .market-head {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 12px;
   margin: 18px 0 12px;
@@ -2274,6 +2274,30 @@ body[data-theme="dark"] .booking-panel {
   background: #172033;
   border-color: #334155;
   border-left-color: #60a5fa;
+}
+body[data-theme="dark"] .detail-body .detail-owner,
+body[data-theme="dark"] .coach-owner,
+body[data-theme="dark"] .purpose-label,
+body[data-theme="dark"] .price {
+  color: #bfdbfe;
+}
+body[data-theme="dark"] .purpose-label {
+  background: #1e293b;
+  border-color: #475569;
+}
+body[data-theme="dark"] .detail-trust em,
+body[data-theme="dark"] .review-preview span {
+  background: #1e293b;
+  color: #cbd5e1;
+}
+body[data-theme="dark"] .detail-summary span,
+body[data-theme="dark"] .lesson-info-grid small {
+  color: #94a3b8;
+}
+body[data-theme="dark"] .detail-summary strong,
+body[data-theme="dark"] .review-preview strong,
+body[data-theme="dark"] .review-preview b {
+  color: #f8fafc;
 }
 body[data-theme="dark"] .booking-panel-head strong,
 body[data-theme="dark"] .booking-panel-head em,

@@ -444,9 +444,9 @@ function render() {
 function renderMetrics() {
   const ratings = state.coaches.map((coach) => coach.rating).filter(Boolean);
   const average = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
-  $("metricCoaches").textContent = state.coaches.length;
-  $("metricBookings").textContent = state.bookings.length;
-  $("metricRating").textContent = average.toFixed(1);
+  if ($("metricCoaches")) $("metricCoaches").textContent = state.coaches.length;
+  if ($("metricBookings")) $("metricBookings").textContent = state.bookings.length;
+  if ($("metricRating")) $("metricRating").textContent = average.toFixed(1);
 }
 
 function applyTheme(theme) {
@@ -953,7 +953,8 @@ function getActiveFilterSet() {
 function renderFeatured(visible) {
   const featured = getFeaturedCoachSlots(visible);
   const section = $("featuredSection");
-  if (!featured.length) {
+  const isMainCatalog = !state.query && !state.selectedCoachKey && state.type === "all" && state.segment === "all";
+  if (!featured.length || !isMainCatalog) {
     section.hidden = true;
     $("featuredList").innerHTML = "";
     return;
