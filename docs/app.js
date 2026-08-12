@@ -467,7 +467,7 @@ function renderUserActions() {
   } else {
     loginButton.textContent = "로그인";
     loginButton.classList.remove("active-user");
-    guestButton.textContent = "비회원 구매";
+    guestButton.textContent = "비회원 상담";
   }
 }
 
@@ -511,7 +511,7 @@ function renderAuthMarkup(mode) {
         <span class="eyebrow">회원가입</span>
         <h2 id="authTitle">수강생 계정 만들기</h2>
         <p>강의 구매 내역, 예약 시간, 후기 작성 권한을 계정에 저장합니다.</p>
-        <label>닉네임<input name="displayName" required placeholder="예: 닉네임#KR1"></label>
+        <label>닉네임<input name="displayName" required placeholder="닉네임"></label>
         <label>이메일<input name="email" type="email" required autocomplete="email" placeholder="example@email.com"></label>
         <label>비밀번호<input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="8자 이상"></label>
         <button class="primary" type="submit">회원가입</button>
@@ -522,16 +522,18 @@ function renderAuthMarkup(mode) {
   if (mode === "guest") {
     const selected = state.coaches.find((coach) => coach.id === state.selectedCoachId);
     return `
-      <div class="auth-content">
-        <span class="eyebrow">비회원 구매</span>
-        <h2 id="authTitle">계정 없이 예약하기</h2>
-        <p>로그인 없이도 연락처와 Riot ID를 남겨 예약할 수 있게 둘 예정입니다. 구매 내역 조회는 주문번호와 연락처로 확인하는 흐름입니다.</p>
+      <form class="auth-content" id="guestConsultForm">
+        <span class="eyebrow">비회원 상담</span>
+        <h2 id="authTitle">계정 없이 문의하기</h2>
+        <p>로그인 없이 Riot ID와 연락처를 남기면 운영진이 확인 후 상담을 이어갑니다.</p>
         ${selected ? `<div class="guest-selected"><span>선택 강의</span><strong>${escapeHtml(selected.name)}</strong><em>${escapeHtml(selected.price)}</em></div>` : ""}
-        <label>수강생 이름<input placeholder="예: 닉네임#KR1"></label>
-        <label>Riot ID / Discord<input placeholder="연락 가능한 ID"></label>
-        <label>연락처<input placeholder="디스코드 또는 이메일"></label>
-        <button class="primary" type="button" disabled>비회원 구매 준비중</button>
-      </div>
+        <label>Riot 닉네임#태그<input name="riotId" required placeholder="Riot 닉네임#태그"></label>
+        <label>연락처<input name="contact" required placeholder="디스코드 또는 이메일"></label>
+        <label>받고싶은 피드백 라인 및 포인트<textarea name="feedbackPoint" required rows="4" placeholder="예: 탑 라인, 가렌 1/5/10 게임 라인전이 잘 안풀려서 피드백 받고 싶습니다."></textarea></label>
+        <label>강의 방식<textarea name="lessonStyle" required rows="3" placeholder="예: 주2회 한달 강의 희망합니다."></textarea></label>
+        <button class="primary" type="submit">비회원 상담 문의</button>
+        <span class="auth-status" id="guestConsultStatus" aria-live="polite"></span>
+      </form>
     `;
   }
   return `
@@ -548,6 +550,10 @@ function renderAuthMarkup(mode) {
 }
 
 function bindAuthForm(mode) {
+  if (mode === "guest") {
+    bindGuestConsultForm();
+    return;
+  }
   const form = $("authForm");
   if (!form) return;
   form.addEventListener("submit", async (event) => {
@@ -575,6 +581,39 @@ function bindAuthForm(mode) {
       render();
     } catch (error) {
       if (status) status.textContent = getAuthErrorMessage(error.message);
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  });
+}
+
+function bindGuestConsultForm() {
+  const form = $("guestConsultForm");
+  if (!form) return;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const selected = state.coaches.find((coach) => coach.id === state.selectedCoachId);
+    const button = form.querySelector("button[type='submit']");
+    const status = $("guestConsultStatus");
+    const originalText = button.textContent;
+    const data = new FormData(form);
+    button.disabled = true;
+    button.textContent = "문의 접수 중";
+    if (status) status.textContent = "";
+    try {
+      await submitGuestConsultation({
+        selectedCoach: selected,
+        riotId: data.get("riotId"),
+        contact: data.get("contact"),
+        feedbackPoint: data.get("feedbackPoint"),
+        lessonStyle: data.get("lessonStyle"),
+      });
+      form.reset();
+      closeAuthModal();
+      alert("비회원 상담 문의가 접수되었습니다. 운영진이 연락드릴게요.");
+    } catch (error) {
+      if (status) status.textContent = error.message || "문의를 접수하지 못했습니다.";
     } finally {
       button.disabled = false;
       button.textContent = originalText;
@@ -1288,7 +1327,7 @@ function renderLessonDetailMarkup(coach) {
         </div>
         <div class="booking-route">
           <button class="secondary" type="button" onclick="openAuthModal('login')">회원으로 예약</button>
-          <button class="secondary" type="button" onclick="openAuthModal('guest')">비회원 구매</button>
+          <button class="secondary" type="button" onclick="openAuthModal('guest')">비회원 상담</button>
         </div>
         <div id="lessonBookingMount"></div>
       </section>
@@ -1359,10 +1398,41 @@ async function submitReservation(reservation) {
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok || !result.ok) {
-    const detail = result.error ? `?ㅻ쪟: ${result.error}` : `HTTP ${response.status}`;
+    const detail = result.error ? `오류: ${result.error}` : `HTTP ${response.status}`;
     throw new Error(detail);
   }
   return result.reservation || {};
+}
+
+async function submitGuestConsultation({ selectedCoach, riotId, contact, feedbackPoint, lessonStyle }) {
+  const cleanRiotId = String(riotId || "").trim();
+  const cleanContact = String(contact || "").trim();
+  const cleanFeedbackPoint = String(feedbackPoint || "").trim();
+  const cleanLessonStyle = String(lessonStyle || "").trim();
+  if (!cleanRiotId || !cleanContact || !cleanFeedbackPoint || !cleanLessonStyle) {
+    throw new Error("필수 항목을 모두 입력해주세요.");
+  }
+  return submitReservation({
+    coachId: selectedCoach?.id || "guest-consultation",
+    coachName: selectedCoach ? `${selectedCoach.name} 상담 문의` : "비회원 상담 문의",
+    coachCategory: selectedCoach?.category || "league",
+    coachPrice: selectedCoach?.price || "상담 문의",
+    student: cleanRiotId,
+    contact: cleanContact,
+    time: cleanLessonStyle,
+    memo: cleanFeedbackPoint,
+    source: "guest-consultation",
+    feedbackMetadata: {
+      inquiry: cleanFeedbackPoint,
+      lesson_style: cleanLessonStyle,
+      selected_lesson: selectedCoach ? {
+        id: selectedCoach.id,
+        name: selectedCoach.name,
+        price: selectedCoach.price,
+        coach: selectedCoach.coachProfileName || selectedCoach.name,
+      } : null,
+    },
+  });
 }
 
 async function loadCurrentUser() {
@@ -1449,7 +1519,15 @@ async function loginForReservations() {
   if (response.ok && result.ok && result.adminToken) {
     sessionStorage.setItem(ADMIN_TOKEN_KEY, result.adminToken);
   }
-  return response.ok && result.ok;
+  if (response.ok && result.ok && !result.adminToken) {
+    alert("관리자 인증 응답에 토큰이 없습니다. 서버를 최신 코드로 다시 배포해주세요.");
+    return false;
+  }
+  if (!response.ok || !result.ok) {
+    alert("관리자 비밀번호가 맞지 않거나 인증 서버에 연결할 수 없습니다.");
+    return false;
+  }
+  return true;
 }
 
 async function fetchReservations() {
@@ -1510,6 +1588,7 @@ function mapReservationFromApi(reservation) {
     source: reservation.source || "-",
     feedback,
     isDiscordFeedback: reservation.source === "discord-feedback",
+    isGuestConsultation: reservation.source === "guest-consultation",
     studentName: reservation.student_name || "-",
     preferredTime: reservation.preferred_time || "-",
     student: reservation.student_name || "-",
@@ -1533,6 +1612,7 @@ async function runAdminRequest(callback) {
     return await callback();
   } catch (error) {
     if (error.status === 401) {
+      sessionStorage.removeItem(ADMIN_TOKEN_KEY);
       const loggedIn = await loginForReservations();
       if (loggedIn) return callback();
     }
@@ -1742,6 +1822,23 @@ function renderBookingDetail() {
         ${renderDetailItem("서버 / 채널", `${booking.feedback?.guild_name || "-"} / ${booking.feedback?.channel_name || "-"}`)}
         ${renderDetailLink("ROFL 파일", attachment.filename, attachment.url)}
         ${renderDetailItem("문의사항", booking.feedback?.inquiry || booking.memo, true)}
+      </div>
+    `;
+    return;
+  }
+  if (booking.isGuestConsultation) {
+    const selected = booking.feedback?.selected_lesson || {};
+    panel.hidden = false;
+    panel.innerHTML = `
+      <h3>비회원 상담 문의</h3>
+      <div class="booking-detail-grid">
+        ${renderDetailItem("접수 시간", booking.createdAtText)}
+        ${renderDetailItem("Riot 닉네임#태그", booking.studentName)}
+        ${renderDetailItem("연락처", booking.contact)}
+        ${renderDetailItem("선택 강의", selected.name ? `${selected.name} · ${selected.price || "-"}` : booking.coachName)}
+        ${renderDetailItem("현재 상태", booking.status)}
+        ${renderDetailItem("받고싶은 피드백 라인 및 포인트", booking.feedback?.inquiry || booking.memo, true)}
+        ${renderDetailItem("강의 방식", booking.feedback?.lesson_style || booking.preferredTime, true)}
       </div>
     `;
     return;
