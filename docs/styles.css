@@ -354,10 +354,10 @@ button {
 .view.active { display: block; }
 .toolbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 .market-head {
   display: flex;
@@ -401,7 +401,8 @@ button {
 }
 .featured-image {
   position: relative;
-  height: 162px;
+  aspect-ratio: 16 / 9;
+  height: auto;
   background: #0f111a;
   overflow: hidden;
 }
@@ -556,7 +557,9 @@ button {
 .filter-block {
   display: grid;
   gap: 8px;
+  align-items: start;
   margin: -4px 0 18px;
+  max-width: 760px;
 }
 .filter-row {
   display: flex;
@@ -568,20 +571,34 @@ button {
   font-size: 13px;
 }
 .search {
-  display: flex;
+  width: min(100%, 520px);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 9px;
+  gap: 12px;
   background: var(--panel);
   border: 1px solid var(--line);
-  padding: 8px 12px;
+  padding: 10px 13px;
   border-radius: 8px;
-  min-width: 330px;
+  box-shadow: 0 10px 24px rgba(21, 32, 43, 0.05);
 }
-.search span { color: var(--muted); font-size: 13px; }
+.search:focus-within {
+  border-color: #9de0bb;
+  box-shadow: 0 0 0 3px rgba(24, 160, 88, 0.12);
+}
+.search span {
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
 .search input {
   border: 0;
   outline: 0;
   width: 100%;
+  min-height: 22px;
+  padding: 0;
+  background: transparent;
 }
 .layout {
   display: grid;
@@ -738,7 +755,8 @@ button {
   line-height: 1.55;
 }
 .detail-hero {
-  height: 210px;
+  aspect-ratio: 16 / 9;
+  height: auto;
   background: #111827;
   position: relative;
   overflow: hidden;
@@ -1033,7 +1051,8 @@ button {
   color: #17202a;
 }
 .lesson-detail-hero {
-  height: 240px;
+  aspect-ratio: 16 / 9;
+  height: auto;
   background: #111827;
   overflow: hidden;
 }
@@ -1208,6 +1227,7 @@ body[data-theme="dark"] input,
 body[data-theme="dark"] select,
 body[data-theme="dark"] textarea {
   background: #0f172a;
+  border-color: #334155;
   color: var(--text);
 }
 body[data-theme="dark"] input::placeholder,
@@ -2133,6 +2153,7 @@ body[data-theme="dark"] .admin-list,
 body[data-theme="dark"] .coach-self-preview,
 body[data-theme="dark"] .coach-self-editor,
 body[data-theme="dark"] .coach-self-card,
+body[data-theme="dark"] .coach-explorer-dialog,
 body[data-theme="dark"] .lesson-detail-dialog,
 body[data-theme="dark"] .auth-dialog,
 body[data-theme="dark"] .empty {
@@ -2147,9 +2168,16 @@ body[data-theme="dark"] .lesson-info-grid article,
 body[data-theme="dark"] .student-next,
 body[data-theme="dark"] .student-empty,
 body[data-theme="dark"] .student-review-card,
-body[data-theme="dark"] .booking-note {
+body[data-theme="dark"] .booking-note,
+body[data-theme="dark"] .explorer-coach-card,
+body[data-theme="dark"] .guest-selected,
+body[data-theme="dark"] .info-box {
   background: var(--panel-2);
   color: var(--text);
+}
+body[data-theme="dark"] .detail-empty {
+  background: linear-gradient(180deg, #172033 0%, #111827 100%);
+  color: #cbd5e1;
 }
 body[data-theme="dark"] .student-hero-card,
 body[data-theme="dark"] .student-hero-card.highlight,
@@ -2160,6 +2188,64 @@ body[data-theme="dark"] .student-row {
 }
 body[data-theme="dark"] .student-hero-card p {
   color: #cbd5e1;
+}
+body[data-theme="dark"] .tab,
+body[data-theme="dark"] .purpose-tab,
+body[data-theme="dark"] .explorer-filter {
+  background: #111827;
+  border-color: #334155;
+  color: #e5e7eb;
+}
+body[data-theme="dark"] .search {
+  background: #111827;
+  border-color: #334155;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
+}
+body[data-theme="dark"] .search:focus-within {
+  border-color: #34d399;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.16);
+}
+body[data-theme="dark"] .search span {
+  color: #86efac;
+}
+body[data-theme="dark"] .tab:hover,
+body[data-theme="dark"] .purpose-tab:hover,
+body[data-theme="dark"] .explorer-filter:hover {
+  border-color: #4b637f;
+  background: #172033;
+}
+body[data-theme="dark"] .tab.active,
+body[data-theme="dark"] .purpose-tab.active,
+body[data-theme="dark"] .explorer-filter.active {
+  background: #123827;
+  border-color: #34d399;
+  color: #bbf7d0;
+}
+body[data-theme="dark"] .coach-explorer-dialog .crop-close,
+body[data-theme="dark"] .lesson-detail-dialog .crop-close {
+  color: #e5e7eb;
+}
+body[data-theme="dark"] .explorer-coach-card:hover,
+body[data-theme="dark"] .explorer-coach-card.active {
+  border-color: #34d399;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+}
+body[data-theme="dark"] .explorer-card-meta,
+body[data-theme="dark"] .chip,
+body[data-theme="dark"] .explorer-card-foot span span {
+  background: #111827;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+body[data-theme="dark"] .badge.good {
+  background: #10233f;
+  border-color: #3b82f6;
+  color: #bfdbfe;
+}
+body[data-theme="dark"] .badge.recommend {
+  background: #422b04;
+  border-color: #d69e2e;
+  color: #fde68a;
 }
 body[data-theme="dark"] .secondary {
   background: #253142;
@@ -2183,6 +2269,13 @@ body[data-theme="dark"] .student-panel-head span {
 body[data-theme="dark"] .booking-panel-head span,
 body[data-theme="dark"] .booking-note {
   color: #bbf7d0;
+}
+body[data-theme="dark"] .lesson-info-grid ul,
+body[data-theme="dark"] .lesson-info-grid p,
+body[data-theme="dark"] .review p,
+body[data-theme="dark"] .review-preview p,
+body[data-theme="dark"] .explorer-coach-body small {
+  color: #cbd5e1;
 }
 
 @media (max-width: 980px) {
