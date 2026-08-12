@@ -1,61 +1,62 @@
-const categories = [
-  { id: "league", label: "리그오브레전드" },
-  { id: "valorant", label: "발로란트" },
-  { id: "academy", label: "테스트" },
+﻿const categories = [
+  { id: "league", label: "由ш렇?ㅻ툕?덉쟾?? },
+  { id: "valorant", label: "諛쒕줈??? },
+  { id: "academy", label: "?뚯뒪?? },
 ];
 
 const API_BASE_URL = "https://lucid-chzzk-auth.onrender.com";
 const ADMIN_TOKEN_KEY = "coach-admin-token";
-const RESERVATION_STATUSES = ["신규", "상담중", "예약확정", "완료", "취소"];
+const THEME_KEY = "coach-theme";
+const RESERVATION_STATUSES = ["?좉퇋", "?곷떞以?, "?덉빟?뺤젙", "?꾨즺", "痍⑥냼"];
 const COACH_API_TIMEOUT_MS = 6500;
 
 const filterSets = {
   league: {
     type: [
-      { id: "all", label: "전체" },
-      { id: "value", label: "가성비 리플레이" },
-      { id: "low", label: "입문/저티어" },
-      { id: "high", label: "고티어/프로지망" },
-      { id: "team", label: "팀게임/스크림" },
+      { id: "all", label: "?꾩껜" },
+      { id: "value", label: "媛?깅퉬 由ы뵆?덉씠" },
+      { id: "low", label: "?낅Ц/??곗뼱" },
+      { id: "high", label: "怨좏떚???꾨줈吏留? },
+      { id: "team", label: "?寃뚯엫/?ㅽ겕由? },
     ],
     segment: [
-      { id: "all", label: "전체 라인" },
-      { id: "top", label: "탑" },
-      { id: "mid", label: "미드" },
-      { id: "jungle", label: "정글" },
-      { id: "adc", label: "원딜" },
-      { id: "support", label: "서폿" },
+      { id: "all", label: "?꾩껜 ?쇱씤" },
+      { id: "top", label: "?? },
+      { id: "mid", label: "誘몃뱶" },
+      { id: "jungle", label: "?뺢?" },
+      { id: "adc", label: "?먮뵜" },
+      { id: "support", label: "?쒗뤏" },
     ],
   },
   valorant: {
     type: [
-      { id: "all", label: "전체" },
-      { id: "value", label: "가성비 리플레이" },
-      { id: "low", label: "입문/저티어" },
-      { id: "high", label: "고티어/프로지망" },
-      { id: "team", label: "팀게임/스크림" },
+      { id: "all", label: "?꾩껜" },
+      { id: "value", label: "媛?깅퉬 由ы뵆?덉씠" },
+      { id: "low", label: "?낅Ц/??곗뼱" },
+      { id: "high", label: "怨좏떚???꾨줈吏留? },
+      { id: "team", label: "?寃뚯엫/?ㅽ겕由? },
     ],
     segment: [
-      { id: "all", label: "전체 역할" },
-      { id: "duelist", label: "타격대" },
-      { id: "controller", label: "전략가" },
-      { id: "initiator", label: "척후대" },
-      { id: "sentinel", label: "감시자" },
-      { id: "aim", label: "에임/피킹" },
+      { id: "all", label: "?꾩껜 ??븷" },
+      { id: "duelist", label: "?寃⑸?" },
+      { id: "controller", label: "?꾨왂媛" },
+      { id: "initiator", label: "泥숉썑?" },
+      { id: "sentinel", label: "媛먯떆?? },
+      { id: "aim", label: "?먯엫/?쇳궧" },
     ],
   },
   academy: {
     type: [
-      { id: "all", label: "전체" },
-      { id: "entry", label: "입문" },
-      { id: "curriculum", label: "커리큘럼" },
-      { id: "branding", label: "브랜딩" },
+      { id: "all", label: "?꾩껜" },
+      { id: "entry", label: "?낅Ц" },
+      { id: "curriculum", label: "而ㅻ━?섎읆" },
+      { id: "branding", label: "釉뚮옖?? },
     ],
     segment: [
-      { id: "all", label: "전체 과정" },
-      { id: "coach-basic", label: "기초 과정" },
-      { id: "coach-advanced", label: "심화 과정" },
-      { id: "operation", label: "운영/관리" },
+      { id: "all", label: "?꾩껜 怨쇱젙" },
+      { id: "coach-basic", label: "湲곗큹 怨쇱젙" },
+      { id: "coach-advanced", label: "?ы솕 怨쇱젙" },
+      { id: "operation", label: "?댁쁺/愿由? },
     ],
   },
 };
@@ -65,372 +66,372 @@ const purposes = Object.values(filterSets).flatMap((set) => [...set.type, ...set
 );
 
 const adminLineOptions = {
-  league: ["탑", "미드", "정글", "원딜", "서폿"],
-  valorant: ["타격대", "척후대", "감시자", "전략가"],
-  academy: ["기초 과정", "심화 과정", "운영/관리"],
+  league: ["??, "誘몃뱶", "?뺢?", "?먮뵜", "?쒗뤏"],
+  valorant: ["?寃⑸?", "泥숉썑?", "媛먯떆??, "?꾨왂媛"],
+  academy: ["湲곗큹 怨쇱젙", "?ы솕 怨쇱젙", "?댁쁺/愿由?],
 };
 
 const adminFieldOptions = {
-  league: ["운영", "라인전", "한타", "오브젝트", "시야", "고티어"],
-  valorant: ["에임", "피킹", "엔트리", "스크림", "리플레이", "팀 피드백"],
-  academy: ["코치 입문", "커리큘럼", "피드백", "브랜딩", "운영", "수강생 관리"],
+  league: ["?댁쁺", "?쇱씤??, "?쒗?", "?ㅻ툕?앺듃", "?쒖빞", "怨좏떚??],
+  valorant: ["?먯엫", "?쇳궧", "?뷀듃由?, "?ㅽ겕由?, "由ы뵆?덉씠", "? ?쇰뱶諛?],
+  academy: ["肄붿튂 ?낅Ц", "而ㅻ━?섎읆", "?쇰뱶諛?, "釉뚮옖??, "?댁쁺", "?섍컯??愿由?],
 };
 
 const priceUnits = {
-  time: ["30분", "1시간", "1.5시간", "2시간"],
-  game: ["1게임", "2게임", "3게임"],
+  time: ["30遺?, "1?쒓컙", "1.5?쒓컙", "2?쒓컙"],
+  game: ["1寃뚯엫", "2寃뚯엫", "3寃뚯엫"],
 };
 
-const badgeOptions = ["엠버서더", "최우수", "우수", "추천", "일반", "저가 입문", "입문 추천", "리뷰 우수", "팀 피드백 가능"];
+const badgeOptions = ["?좊쾭?쒕뜑", "理쒖슦??, "?곗닔", "異붿쿇", "?쇰컲", "?媛 ?낅Ц", "?낅Ц 異붿쿇", "由щ럭 ?곗닔", "? ?쇰뱶諛?媛??];
 
 const text = {
-  navMarket: "강의 목록",
-  navBookings: "예약 관리",
-  navAdmin: "코치 관리",
-  navCoachSelf: "코치 개인 관리",
-  sideLabel: "예약 안내",
-  sideCopy: "코치 목록에서 원하는 상품을 고르면 상세 정보와 예약 신청이 바로 열립니다.",
-  heroEyebrow: "LoL 리플레이 분석 · 라인전 교정 · 팀 피드백",
-  heroTitle: "LoL 코칭 플랫폼",
-  metricCoachesLabel: "강의",
-  metricBookingsLabel: "예약",
-  metricRatingLabel: "평점",
-  searchLabel: "검색",
-  searchPlaceholder: "코치명, 라인, 챔피언, 강의명",
-  bookingEyebrow: "관리자 화면",
-  bookingTitle: "예약 신청 목록",
-  clearBookingsBtn: "예약 새로고침",
-  thStatus: "상태",
-  thStudent: "수강생",
-  thLesson: "강의",
-  thTime: "희망 시간",
-  thContact: "연락처",
-  thMemo: "메모",
-  adminEyebrow: "로컬 편집",
-  adminTitle: "코치/강의 관리",
-  resetCoachesBtn: "강의 샘플 초기화",
-  labelCategory: "카테고리",
-  labelName: "코치명",
-  labelTagline: "한 줄 소개",
-  labelPurpose: "분류",
-  labelRoles: "전문 분야",
-  labelPrice: "가격",
-  labelImage: "이미지 경로",
-  labelImagePosition: "이미지 위치",
-  labelBadges: "배지",
-  labelBio: "상세 설명",
-  optLeague: "리그오브레전드",
-  optValorant: "발로란트",
-  optAcademy: "테스트",
-  saveCoachBtn: "저장",
-  newCoachBtn: "새 강의",
-  deleteCoachBtn: "삭제",
-  bookingStudentLabel: "수강생 이름",
+  navMarket: "媛뺤쓽 紐⑸줉",
+  navBookings: "?덉빟 愿由?,
+  navAdmin: "肄붿튂 愿由?,
+  navCoachSelf: "肄붿튂 媛쒖씤 愿由?,
+  sideLabel: "?덉빟 ?덈궡",
+  sideCopy: "肄붿튂 紐⑸줉?먯꽌 ?먰븯???곹뭹??怨좊Ⅴ硫??곸꽭 ?뺣낫? ?덉빟 ?좎껌??諛붾줈 ?대┰?덈떎.",
+  heroEyebrow: "LoL 由ы뵆?덉씠 遺꾩꽍 쨌 ?쇱씤??援먯젙 쨌 ? ?쇰뱶諛?,
+  heroTitle: "LoL 肄붿묶 ?뚮옯??,
+  metricCoachesLabel: "媛뺤쓽",
+  metricBookingsLabel: "?덉빟",
+  metricRatingLabel: "?됱젏",
+  searchLabel: "寃??,
+  searchPlaceholder: "肄붿튂紐? ?쇱씤, 梨뷀뵾?? 媛뺤쓽紐?,
+  bookingEyebrow: "愿由ъ옄 ?붾㈃",
+  bookingTitle: "?덉빟 ?좎껌 紐⑸줉",
+  clearBookingsBtn: "?덉빟 ?덈줈怨좎묠",
+  thStatus: "?곹깭",
+  thStudent: "?섍컯??,
+  thLesson: "媛뺤쓽",
+  thTime: "?щ쭩 ?쒓컙",
+  thContact: "?곕씫泥?,
+  thMemo: "硫붾え",
+  adminEyebrow: "濡쒖뺄 ?몄쭛",
+  adminTitle: "肄붿튂/媛뺤쓽 愿由?,
+  resetCoachesBtn: "媛뺤쓽 ?섑뵆 珥덇린??,
+  labelCategory: "移댄뀒怨좊━",
+  labelName: "肄붿튂紐?,
+  labelTagline: "??以??뚭컻",
+  labelPurpose: "遺꾨쪟",
+  labelRoles: "?꾨Ц 遺꾩빞",
+  labelPrice: "媛寃?,
+  labelImage: "?대?吏 寃쎈줈",
+  labelImagePosition: "?대?吏 ?꾩튂",
+  labelBadges: "諛곗?",
+  labelBio: "?곸꽭 ?ㅻ챸",
+  optLeague: "由ш렇?ㅻ툕?덉쟾??,
+  optValorant: "諛쒕줈???,
+  optAcademy: "?뚯뒪??,
+  saveCoachBtn: "???,
+  newCoachBtn: "??媛뺤쓽",
+  deleteCoachBtn: "??젣",
+  bookingStudentLabel: "?섍컯???대쫫",
   bookingContactLabel: "Riot ID / Discord",
-  bookingTimeLabel: "희망 시간",
-  bookingMemoLabel: "요청사항",
-  bookingSubmitBtn: "예약 신청",
-  featuredTitle: "추천 코칭 상품",
-  featuredHint: "후기와 재예약률이 좋은 강의",
-  expertTitle: "코칭 상품 찾기",
-  expertHint: "포지션, 티어, 팀게임 기준으로 골라보세요.",
+  bookingTimeLabel: "?щ쭩 ?쒓컙",
+  bookingMemoLabel: "?붿껌?ы빆",
+  bookingSubmitBtn: "?덉빟 ?좎껌",
+  featuredTitle: "異붿쿇 肄붿묶 ?곹뭹",
+  featuredHint: "?꾧린? ?ъ삁?쎈쪧??醫뗭? 媛뺤쓽",
+  expertTitle: "肄붿묶 ?곹뭹 李얘린",
+  expertHint: "?ъ??? ?곗뼱, ?寃뚯엫 湲곗??쇰줈 怨⑤씪蹂댁꽭??",
 };
 
 const samples = [
   {
     id: "lol-1",
     category: "league",
-    name: "페르소나 코치",
-    tier: "최우수",
-    tagline: "탑 라인전 주도권, 웨이브 관리, 사이드 운영 설계",
+    name: "?섎Ⅴ?뚮굹 肄붿튂",
+    tier: "理쒖슦??,
+    tagline: "???쇱씤??二쇰룄沅? ?⑥씠釉?愿由? ?ъ씠???댁쁺 ?ㅺ퀎",
     purpose: ["top", "high"],
-    roles: ["탑", "운영", "고티어"],
-    price: "70,000원 / 1시간",
+    roles: ["??, "?댁쁺", "怨좏떚??],
+    price: "70,000??/ 1?쒓컙",
     image: "assets/personacoach.png",
     imagePosition: "center 8%",
-    badges: ["최우수", "추천"],
+    badges: ["理쒖슦??, "異붿쿇"],
     rating: 4.9,
     lessons: 248,
-    bio: "탑 라인전의 딜교 타이밍, 웨이브 고정과 푸쉬 선택, 사이드 운영 전환까지 리플레이 기준으로 정리해주는 1:1 코칭입니다.",
+    bio: "???쇱씤?꾩쓽 ?쒓탳 ??대컢, ?⑥씠釉?怨좎젙怨??몄돩 ?좏깮, ?ъ씠???댁쁺 ?꾪솚源뚯? 由ы뵆?덉씠 湲곗??쇰줈 ?뺣━?댁＜??1:1 肄붿묶?낅땲??",
     reviews: [
-      ["리조토", "라인전에서 왜 계속 손해보는지 처음으로 이해했어요. 다음 판부터 CS가 확 늘었습니다."],
-      ["봄", "상대 정글 위치를 근거로 플레이하는 법을 배워서 게임이 덜 흔들렸습니다."],
+      ["由ъ“??, "?쇱씤?꾩뿉????怨꾩냽 ?먰빐蹂대뒗吏 泥섏쓬?쇰줈 ?댄빐?덉뼱?? ?ㅼ쓬 ?먮???CS媛 ???섏뿀?듬땲??"],
+      ["遊?, "?곷? ?뺢? ?꾩튂瑜?洹쇨굅濡??뚮젅?댄븯??踰뺤쓣 諛곗썙??寃뚯엫?????붾뱾?몄뒿?덈떎."],
     ],
   },
   {
     id: "lol-2",
     category: "league",
     name: "Lucid Macro",
-    tier: "최우수",
-    tagline: "팀 게임 관점의 중후반 운영, 오더, 시야 컨트롤",
+    tier: "理쒖슦??,
+    tagline: "? 寃뚯엫 愿?먯쓽 以묓썑諛??댁쁺, ?ㅻ뜑, ?쒖빞 而⑦듃濡?,
     purpose: ["team", "high"],
-    roles: ["정글", "서폿", "운영"],
-    price: "75,000원 / 1시간",
+    roles: ["?뺢?", "?쒗뤏", "?댁쁺"],
+    price: "75,000??/ 1?쒓컙",
     image: "assets/KakaoTalk_20250810_005153132_04.jpg",
     imagePosition: "center 8%",
-    badges: ["최우수", "추천"],
+    badges: ["理쒖슦??, "異붿쿇"],
     rating: 5.0,
     lessons: 212,
-    bio: "솔랭과 내전 리플레이를 함께 보며 시야 장악, 오브젝트 전 준비, 사이드 압박, 콜 우선순위를 정리합니다.",
+    bio: "?붾옲怨??댁쟾 由ы뵆?덉씠瑜??④퍡 蹂대ŉ ?쒖빞 ?μ븙, ?ㅻ툕?앺듃 ??以鍮? ?ъ씠???뺣컯, 肄??곗꽑?쒖쐞瑜??뺣━?⑸땲??",
     reviews: [
-      ["사이니스트", "복기하면서 제가 맵을 거의 안 보고 있었다는 걸 깨달았어요."],
-      ["메론", "왜 이기는 게임을 굴리지 못했는지 흐름 단위로 설명해줘서 좋았습니다."],
+      ["?ъ씠?덉뒪??, "蹂듦린?섎㈃???쒓? 留듭쓣 嫄곗쓽 ??蹂닿퀬 ?덉뿀?ㅻ뒗 嫄?源⑤떖?섏뼱??"],
+      ["硫붾줎", "???닿린??寃뚯엫??援대━吏 紐삵뻽?붿? ?먮쫫 ?⑥쐞濡??ㅻ챸?댁쨾??醫뗭븯?듬땲??"],
     ],
   },
   {
     id: "lol-3",
     category: "league",
-    name: "미르 코치",
-    tier: "우수",
-    tagline: "정글 첫 동선, 갱 타이밍, 오브젝트 판단 집중 코칭",
+    name: "誘몃Ⅴ 肄붿튂",
+    tier: "?곗닔",
+    tagline: "?뺢? 泥??숈꽑, 媛???대컢, ?ㅻ툕?앺듃 ?먮떒 吏묒쨷 肄붿묶",
     purpose: ["jungle", "low"],
-    roles: ["정글", "동선", "오브젝트"],
-    price: "45,000원 / 1시간",
+    roles: ["?뺢?", "?숈꽑", "?ㅻ툕?앺듃"],
+    price: "45,000??/ 1?쒓컙",
     image: "assets/mireucoach.png",
     imagePosition: "center 8%",
-    badges: ["우수", "추천"],
+    badges: ["?곗닔", "異붿쿇"],
     rating: 4.7,
     lessons: 121,
-    bio: "첫 바퀴 이후 턴이 사라지는 정글러를 위해 라인 상태, 캠프 리젠, 오브젝트 타이밍을 기준으로 목적 있는 동선을 잡아줍니다.",
+    bio: "泥?諛뷀??댄썑 ?댁씠 ?щ씪吏???뺢??щ? ?꾪빐 ?쇱씤 ?곹깭, 罹좏봽 由ъ젨, ?ㅻ툕?앺듃 ??대컢??湲곗??쇰줈 紐⑹쟻 ?덈뒗 ?숈꽑???≪븘以띾땲??",
     reviews: [
-      ["홍보서버", "매번 감으로 하던 걸 기준으로 바꾸니까 게임이 덜 흔들렸습니다."],
-      ["게스트", "내전 리플레이로 설명해줘서 이해가 빨랐어요."],
+      ["?띾낫?쒕쾭", "留ㅻ쾲 媛먯쑝濡??섎뜕 嫄?湲곗??쇰줈 諛붽씀?덇퉴 寃뚯엫?????붾뱾?몄뒿?덈떎."],
+      ["寃뚯뒪??, "?댁쟾 由ы뵆?덉씠濡??ㅻ챸?댁쨾???댄빐媛 鍮⑤옄?댁슂."],
     ],
   },
   {
     id: "lol-4",
     category: "league",
     name: "Luna Mid Lab",
-    tier: "우수",
-    tagline: "미드 메이지 라인전, 로밍 타이밍, 시야 설계",
+    tier: "?곗닔",
+    tagline: "誘몃뱶 硫붿씠吏 ?쇱씤?? 濡쒕컢 ??대컢, ?쒖빞 ?ㅺ퀎",
     purpose: ["mid", "high"],
-    roles: ["미드", "메이지", "로밍"],
-    price: "42,000원 / 1시간",
+    roles: ["誘몃뱶", "硫붿씠吏", "濡쒕컢"],
+    price: "42,000??/ 1?쒓컙",
     image: "assets/KakaoTalk_20250810_005153132_06.jpg",
     imagePosition: "center 8%",
-    badges: ["우수", "추천"],
+    badges: ["?곗닔", "異붿쿇"],
     rating: 4.8,
     lessons: 136,
-    bio: "챔피언 숙련도보다 먼저 잡아야 할 미니맵 시선, 턴 사용, 귀환 타이밍을 중심으로 피드백합니다.",
+    bio: "梨뷀뵾???숇젴?꾨낫??癒쇱? ?≪븘????誘몃땲留??쒖꽑, ???ъ슜, 洹????대컢??以묒떖?쇰줈 ?쇰뱶諛깊빀?덈떎.",
     reviews: [
-      ["테스트", "친절한데 핵심은 정확해서 만족했습니다."],
-      ["미드연습중", "라인을 밀어야 할 때와 받아야 할 때가 구분됐어요."],
+      ["?뚯뒪??, "移쒖젅?쒕뜲 ?듭떖? ?뺥솗?댁꽌 留뚯”?덉뒿?덈떎."],
+      ["誘몃뱶?곗뒿以?, "?쇱씤??諛?댁빞 ???뚯? 諛쏆븘?????뚭? 援щ텇?먯뼱??"],
     ],
   },
   {
     id: "lol-5",
     category: "league",
-    name: "메피 코치",
-    tier: "우수",
-    tagline: "원딜/서폿 바텀 라인전과 2:2 교전 설계",
+    name: "硫뷀뵾 肄붿튂",
+    tier: "?곗닔",
+    tagline: "?먮뵜/?쒗뤏 諛뷀? ?쇱씤?꾧낵 2:2 援먯쟾 ?ㅺ퀎",
     purpose: ["adc", "support", "team"],
-    roles: ["원딜", "서폿", "듀오"],
-    price: "48,000원 / 1시간",
+    roles: ["?먮뵜", "?쒗뤏", "???],
+    price: "48,000??/ 1?쒓컙",
     image: "assets/mephicoach.png",
     imagePosition: "72% 12%",
-    badges: ["우수", "추천"],
+    badges: ["?곗닔", "異붿쿇"],
     rating: 4.8,
     lessons: 103,
-    bio: "바텀 조합별 1레벨 운영, 라인 주도권 교환, 원딜과 서폿의 교전 각을 실제 리플레이로 정리합니다.",
+    bio: "諛뷀? 議고빀蹂?1?덈꺼 ?댁쁺, ?쇱씤 二쇰룄沅?援먰솚, ?먮뵜怨??쒗뤏??援먯쟾 媛곸쓣 ?ㅼ젣 由ы뵆?덉씠濡??뺣━?⑸땲??",
     reviews: [
-      ["새벽반", "둘이 말이 안 맞아서 지던 판이 줄었습니다."],
-      ["민트", "서폿 동선이 원딜 성장에 얼마나 큰지 체감했어요."],
+      ["?덈꼍諛?, "?섏씠 留먯씠 ??留욎븘??吏???먯씠 以꾩뿀?듬땲??"],
+      ["誘쇳듃", "?쒗뤏 ?숈꽑???먮뵜 ?깆옣???쇰쭏???곗? 泥닿컧?덉뼱??"],
     ],
   },
   {
     id: "lol-6",
     category: "league",
-    name: "탑 라인전 30분 진단",
-    tier: "일반",
-    tagline: "한 경기만 보고 라인전 손해 원인 3가지를 짚어주는 입문 상품",
+    name: "???쇱씤??30遺?吏꾨떒",
+    tier: "?쇰컲",
+    tagline: "??寃쎄린留?蹂닿퀬 ?쇱씤???먰빐 ?먯씤 3媛吏瑜?吏싳뼱二쇰뒗 ?낅Ц ?곹뭹",
     purpose: ["value", "top", "low"],
-    roles: ["저가 입문", "탑", "라인전"],
-    price: "9,900원 / 30분",
+    roles: ["?媛 ?낅Ц", "??, "?쇱씤??],
+    price: "9,900??/ 30遺?,
     image: "assets/personacoach.png",
     imagePosition: "center 8%",
-    badges: ["저가 입문"],
+    badges: ["?媛 ?낅Ц"],
     rating: 4.5,
     lessons: 61,
-    bio: "부담 없이 시작할 수 있는 짧은 진단 상품입니다. 한 경기 리플레이를 기준으로 웨이브, 딜교 타이밍, 갱 회피 와드 중 가장 손해가 큰 3가지를 정리합니다.",
+    bio: "遺???놁씠 ?쒖옉?????덈뒗 吏㏃? 吏꾨떒 ?곹뭹?낅땲?? ??寃쎄린 由ы뵆?덉씠瑜?湲곗??쇰줈 ?⑥씠釉? ?쒓탳 ??대컢, 媛??뚰뵾 ???以?媛???먰빐媛 ??3媛吏瑜??뺣━?⑸땲??",
     reviews: [
-      ["탑유저", "무작정 싸우던 습관을 고쳤습니다."],
-      ["나르연습", "상성 설명이 쉬워서 좋았어요."],
+      ["?묒쑀?", "臾댁옉???몄슦???듦???怨좎낀?듬땲??"],
+      ["?섎Ⅴ?곗뒿", "?곸꽦 ?ㅻ챸???ъ썙??醫뗭븯?댁슂."],
     ],
   },
   {
     id: "lol-7",
     category: "league",
-    name: "서폿 시야 입문 체크",
-    tier: "일반",
-    tagline: "와드 위치보다 먼저 잡아야 할 시야 타이밍 빠른 점검",
+    name: "?쒗뤏 ?쒖빞 ?낅Ц 泥댄겕",
+    tier: "?쇰컲",
+    tagline: "????꾩튂蹂대떎 癒쇱? ?≪븘?????쒖빞 ??대컢 鍮좊Ⅸ ?먭?",
     purpose: ["value", "support", "low"],
-    roles: ["저가 입문", "서폿", "시야"],
-    price: "12,000원 / 30분",
+    roles: ["?媛 ?낅Ц", "?쒗뤏", "?쒖빞"],
+    price: "12,000??/ 30遺?,
     image: "assets/mephicoach.png",
     imagePosition: "center 8%",
-    badges: ["저가 입문"],
+    badges: ["?媛 ?낅Ц"],
     rating: 4.4,
     lessons: 54,
-    bio: "와드를 어디에 박는지보다 왜 그 타이밍에 움직이는지를 먼저 잡아주는 입문 코칭입니다.",
+    bio: "??쒕? ?대뵒??諛뺣뒗吏蹂대떎 ??洹???대컢???吏곸씠?붿?瑜?癒쇱? ?≪븘二쇰뒗 ?낅Ц 肄붿묶?낅땲??",
     reviews: [
-      ["서폿처음", "미드 로밍 타이밍을 처음 알았습니다."],
-      ["봄", "시야 점수가 아니라 의미 있는 시야를 배웠어요."],
+      ["?쒗뤏泥섏쓬", "誘몃뱶 濡쒕컢 ??대컢??泥섏쓬 ?뚯븯?듬땲??"],
+      ["遊?, "?쒖빞 ?먯닔媛 ?꾨땲???섎? ?덈뒗 ?쒖빞瑜?諛곗썱?댁슂."],
     ],
   },
   {
     id: "lol-8",
     category: "league",
-    name: "원딜 한타 생존 클리닉",
-    tier: "일반",
-    tagline: "죽는 한타 장면만 골라 포지션 습관을 고치는 저가 상품",
+    name: "?먮뵜 ?쒗? ?앹〈 ?대━??,
+    tier: "?쇰컲",
+    tagline: "二쎈뒗 ?쒗? ?λ㈃留?怨⑤씪 ?ъ????듦???怨좎튂???媛 ?곹뭹",
     purpose: ["value", "adc", "low"],
-    roles: ["저가 입문", "원딜", "한타"],
-    price: "14,900원 / 30분",
+    roles: ["?媛 ?낅Ц", "?먮뵜", "?쒗?"],
+    price: "14,900??/ 30遺?,
     image: "assets/mephicoach.png",
     imagePosition: "center 8%",
-    badges: ["저가 입문"],
+    badges: ["?媛 ?낅Ц"],
     rating: 4.6,
     lessons: 72,
-    bio: "죽지 않고 딜하는 위치, 앞라인 거리 유지, 스펠 체크, 한타 전 대기 위치를 중심으로 봅니다.",
+    bio: "二쎌? ?딄퀬 ?쒗븯???꾩튂, ?욌씪??嫄곕━ ?좎?, ?ㅽ렆 泥댄겕, ?쒗? ???湲??꾩튂瑜?以묒떖?쇰줈 遊낅땲??",
     reviews: [
-      ["원딜연습", "앞무빙하다 죽는 장면을 정확히 짚어줬습니다."],
-      ["실버탈출", "한타 전에 서는 위치가 바뀌니까 딜량이 올랐어요."],
+      ["?먮뵜?곗뒿", "?욌Т鍮숉븯??二쎈뒗 ?λ㈃???뺥솗??吏싳뼱以ъ뒿?덈떎."],
+      ["?ㅻ쾭?덉텧", "?쒗? ?꾩뿉 ?쒕뒗 ?꾩튂媛 諛붾뚮땲源??쒕웾???щ옄?댁슂."],
     ],
   },
   {
     id: "lol-9",
     category: "league",
-    name: "챔피언폭 20분 상담",
-    tier: "일반",
-    tagline: "OP.GG와 플레이 성향 기준으로 연습 챔피언 2~3개 추천",
+    name: "梨뷀뵾?명룺 20遺??곷떞",
+    tier: "?쇰컲",
+    tagline: "OP.GG? ?뚮젅???깊뼢 湲곗??쇰줈 ?곗뒿 梨뷀뵾??2~3媛?異붿쿇",
     purpose: ["value", "aim", "low"],
-    roles: ["저가 입문", "챔피언폭", "솔랭"],
-    price: "7,900원 / 20분",
+    roles: ["?媛 ?낅Ц", "梨뷀뵾?명룺", "?붾옲"],
+    price: "7,900??/ 20遺?,
     image: "assets/KakaoTalk_20250810_005153132_06.jpg",
     imagePosition: "center 8%",
-    badges: ["저가 입문"],
+    badges: ["?媛 ?낅Ц"],
     rating: 4.3,
     lessons: 39,
-    bio: "현재 티어, 선호 플레이, 라인별 약점을 보고 무리 없이 연습 가능한 챔피언 2~3개를 추천합니다.",
+    bio: "?꾩옱 ?곗뼱, ?좏샇 ?뚮젅?? ?쇱씤蹂??쎌젏??蹂닿퀬 臾대━ ?놁씠 ?곗뒿 媛?ν븳 梨뷀뵾??2~3媛쒕? 異붿쿇?⑸땲??",
     reviews: [
-      ["챔프고민", "괜히 어려운 챔프만 잡고 있었다는 걸 알았어요."],
-      ["입문러", "연습 순서가 생겨서 랭크가 덜 무서워졌습니다."],
+      ["梨뷀봽怨좊?", "愿쒗엳 ?대젮??梨뷀봽留??↔퀬 ?덉뿀?ㅻ뒗 嫄??뚯븯?댁슂."],
+      ["?낅Ц??, "?곗뒿 ?쒖꽌媛 ?앷꺼????겕媛 ??臾댁꽌?뚯죱?듬땲??"],
     ],
   },
   {
     id: "lol-10",
     category: "league",
     name: "Replay Quick Check",
-    tier: "일반",
-    tagline: "짧은 리플레이 진단과 바로 고칠 3가지 과제",
+    tier: "?쇰컲",
+    tagline: "吏㏃? 由ы뵆?덉씠 吏꾨떒怨?諛붾줈 怨좎튌 3媛吏 怨쇱젣",
     purpose: ["value", "low"],
-    roles: ["리플레이", "피드백", "입문"],
-    price: "9,900원 / 30분",
+    roles: ["由ы뵆?덉씠", "?쇰뱶諛?, "?낅Ц"],
+    price: "9,900??/ 30遺?,
     image: "assets/mephicoach.png",
     imagePosition: "72% 12%",
-    badges: ["저가 입문"],
+    badges: ["?媛 ?낅Ц"],
     rating: 4.5,
     lessons: 84,
-    bio: "한 경기 리플레이를 빠르게 보며 가장 손해가 큰 습관 3개와 다음 판에서 바로 해볼 과제를 남깁니다.",
+    bio: "??寃쎄린 由ы뵆?덉씠瑜?鍮좊Ⅴ寃?蹂대ŉ 媛???먰빐媛 ???듦? 3媛쒖? ?ㅼ쓬 ?먯뿉??諛붾줈 ?대낵 怨쇱젣瑜??④퉩?덈떎.",
     reviews: [
-      ["게스트", "짧게 봤는데도 고칠 게 명확했습니다."],
-      ["랭크전사", "가격 부담 없이 점검받기 좋아요."],
+      ["寃뚯뒪??, "吏㏐쾶 遊ㅻ뒗?곕룄 怨좎튌 寃?紐낇솗?덉뒿?덈떎."],
+      ["??겕?꾩궗", "媛寃?遺???놁씠 ?먭?諛쏄린 醫뗭븘??"],
     ],
   },
   {
     id: "val-1",
     category: "valorant",
     name: "Astra Aim Room",
-    tagline: "에임 루틴과 피킹 습관 교정",
+    tagline: "?먯엫 猷⑦떞怨??쇳궧 ?듦? 援먯젙",
     purpose: ["value", "low"],
-    roles: ["에임", "피킹", "감도"],
-    price: "32,000원 / 1시간",
+    roles: ["?먯엫", "?쇳궧", "媛먮룄"],
+    price: "32,000??/ 1?쒓컙",
     image: "assets/KakaoTalk_20250810_005153132_06.jpg",
     imagePosition: "center 8%",
-    badges: ["입문 추천", "리뷰 우수"],
+    badges: ["?낅Ц 異붿쿇", "由щ럭 ?곗닔"],
     rating: 4.8,
     lessons: 88,
-    bio: "데스매치만 많이 하는 방식에서 벗어나, 실제 랭크에서 나오는 교전 각도와 크로스헤어 위치를 고칩니다.",
+    bio: "?곗뒪留ㅼ튂留?留롮씠 ?섎뒗 諛⑹떇?먯꽌 踰쀬뼱?? ?ㅼ젣 ??겕?먯꽌 ?섏삤??援먯쟾 媛곷룄? ?щ줈?ㅽ뿤???꾩튂瑜?怨좎묩?덈떎.",
     reviews: [
-      ["새벽반", "감도부터 훈련 루틴까지 한 번에 정리돼서 좋았어요."],
-      ["민트", "왜 먼저 쏘고도 지는지 정확히 짚어줬습니다."],
+      ["?덈꼍諛?, "媛먮룄遺???덈젴 猷⑦떞源뚯? ??踰덉뿉 ?뺣━?쇱꽌 醫뗭븯?댁슂."],
+      ["誘쇳듃", "??癒쇱? ?섍퀬??吏?붿? ?뺥솗??吏싳뼱以ъ뒿?덈떎."],
     ],
   },
   {
     id: "val-2",
     category: "valorant",
     name: "Duelist Clinic",
-    tagline: "엔트리 타이밍, 스킬 연계, 사이트 진입",
+    tagline: "?뷀듃由???대컢, ?ㅽ궗 ?곌퀎, ?ъ씠??吏꾩엯",
     purpose: ["team", "duelist"],
-    roles: ["듀얼리스트", "엔트리", "스크림"],
-    price: "38,000원 / 1시간",
+    roles: ["??쇰━?ㅽ듃", "?뷀듃由?, "?ㅽ겕由?],
+    price: "38,000??/ 1?쒓컙",
     image: "assets/KakaoTalk_20250810_005153132_17.jpg",
     imagePosition: "72% 12%",
-    badges: ["팀 피드백 가능"],
+    badges: ["? ?쇰뱶諛?媛??],
     rating: 4.6,
     lessons: 73,
-    bio: "혼자 들어가다 죽는 진입을 팀이 따라올 수 있는 진입으로 바꾸는 데 집중합니다.",
+    bio: "?쇱옄 ?ㅼ뼱媛??二쎈뒗 吏꾩엯??????곕씪?????덈뒗 吏꾩엯?쇰줈 諛붽씀????吏묒쨷?⑸땲??",
     reviews: [
-      ["플래찍자", "진입 타이밍이랑 콜을 같이 봐줘서 팀 게임이 쉬워졌어요."],
-      ["쭈", "공격 라운드가 답답했는데 선택지가 생겼습니다."],
+      ["?뚮옒李띿옄", "吏꾩엯 ??대컢?대옉 肄쒖쓣 媛숈씠 遊먯쨾??? 寃뚯엫???ъ썙議뚯뼱??"],
+      ["彛?, "怨듦꺽 ?쇱슫?쒓? ?듬떟?덈뒗???좏깮吏媛 ?앷꼈?듬땲??"],
     ],
   },
   {
     id: "academy-1",
     category: "academy",
-    name: "신규 코치 베이직 4주",
-    tagline: "코칭 진행법, 리플레이 분석, 수강생 관리",
+    name: "?좉퇋 肄붿튂 踰좎씠吏?4二?,
+    tagline: "肄붿묶 吏꾪뻾踰? 由ы뵆?덉씠 遺꾩꽍, ?섍컯??愿由?,
     purpose: ["entry", "curriculum", "coach-basic"],
-    roles: ["코치 입문", "커리큘럼", "피드백"],
-    price: "300,000원 / 4주",
+    roles: ["肄붿튂 ?낅Ц", "而ㅻ━?섎읆", "?쇰뱶諛?],
+    price: "300,000??/ 4二?,
     image: "assets/KakaoTalk_20250810_005153132_01.jpg",
     imagePosition: "center 8%",
-    badges: ["수료 배지", "플랫폼 입점 연계"],
+    badges: ["?섎즺 諛곗?", "?뚮옯???낆젏 ?곌퀎"],
     rating: 4.9,
     lessons: 42,
-    bio: "게임을 잘하는 사람을 실제로 돈을 받고 가르칠 수 있는 코치로 만드는 기초 과정입니다.",
+    bio: "寃뚯엫???섑븯???щ엺???ㅼ젣濡??덉쓣 諛쏄퀬 媛瑜댁튌 ???덈뒗 肄붿튂濡?留뚮뱶??湲곗큹 怨쇱젙?낅땲??",
     reviews: [
-      ["수료생 A", "말로 설명하는 법을 배우니까 코칭이 훨씬 안정됐습니다."],
-      ["수료생 B", "피드백 템플릿이 있어서 첫 유료 강의까지 바로 이어졌어요."],
+      ["?섎즺??A", "留먮줈 ?ㅻ챸?섎뒗 踰뺤쓣 諛곗슦?덇퉴 肄붿묶???⑥뵮 ?덉젙?먯뒿?덈떎."],
+      ["?섎즺??B", "?쇰뱶諛??쒗뵆由우씠 ?덉뼱??泥??좊즺 媛뺤쓽源뚯? 諛붾줈 ?댁뼱議뚯뼱??"],
     ],
   },
   {
     id: "academy-2",
     category: "academy",
-    name: "우수 코치 전환반",
-    tagline: "후기 관리, 상품화, 장기 수강 설계",
+    name: "?곗닔 肄붿튂 ?꾪솚諛?,
+    tagline: "?꾧린 愿由? ?곹뭹?? ?κ린 ?섍컯 ?ㅺ퀎",
     purpose: ["branding", "coach-advanced", "operation"],
-    roles: ["고급반", "브랜딩", "운영"],
-    price: "180,000원 / 2주",
+    roles: ["怨좉툒諛?, "釉뚮옖??, "?댁쁺"],
+    price: "180,000??/ 2二?,
     image: "assets/lollogo.png",
     imagePosition: "center center",
-    badges: ["수수료 감면 후보"],
+    badges: ["?섏닔猷?媛먮㈃ ?꾨낫"],
     rating: 4.7,
     lessons: 26,
-    bio: "강의 단가를 올리고 반복 예약을 만들기 위한 상담 방식과 패키지 구성을 다룹니다.",
+    bio: "媛뺤쓽 ?④?瑜??щ━怨?諛섎났 ?덉빟??留뚮뱾湲??꾪븳 ?곷떞 諛⑹떇怨??⑦궎吏 援ъ꽦???ㅻ９?덈떎.",
     reviews: [
-      ["코치K", "강의 소개를 바꿨더니 문의가 더 구체적으로 들어왔습니다."],
-      ["코치M", "후기 요청 방식 하나만 바꿔도 차이가 컸어요."],
+      ["肄붿튂K", "媛뺤쓽 ?뚭컻瑜?諛붽엥?붾땲 臾몄쓽媛 ??援ъ껜?곸쑝濡??ㅼ뼱?붿뒿?덈떎."],
+      ["肄붿튂M", "?꾧린 ?붿껌 諛⑹떇 ?섎굹留?諛붽퓭??李⑥씠媛 而몄뼱??"],
     ],
   },
 ];
 
 const bookingSamples = [
   {
-    status: "신규",
-    student: "리조토#KR1",
+    status: "?좉퇋",
+    student: "由ъ“??KR1",
     lesson: "Coach Shineast",
     time: "8/10 21:00",
     contact: "discord: risotto",
-    memo: "탑 라인전 복기와 챔프폭 상담",
+    memo: "???쇱씤??蹂듦린? 梨뷀봽???곷떞",
   },
   {
-    status: "상담중",
-    student: "테스트#테스트",
-    lesson: "신규 코치 베이직 4주",
+    status: "?곷떞以?,
+    student: "?뚯뒪???뚯뒪??,
+    lesson: "?좉퇋 肄붿튂 踰좎씠吏?4二?,
     time: "8/12 20:00",
     contact: "discord: testcoach",
-    memo: "코치 등록 전에 커리큘럼을 보고 싶음",
+    memo: "肄붿튂 ?깅줉 ?꾩뿉 而ㅻ━?섎읆??蹂닿퀬 ?띠쓬",
   },
 ];
 
@@ -444,41 +445,41 @@ const imageMigration = {
   "../assets/emojis/misc/lollogo.png": "assets/lollogo.png",
 };
 
-const tierRank = { "엠버서더": 0, "최우수": 1, "우수": 2, "일반": 3 };
+const tierRank = { "?좊쾭?쒕뜑": 0, "理쒖슦??: 1, "?곗닔": 2, "?쇰컲": 3 };
 
 const leagueCoachProfiles = {
   shineast: {
-    name: "샤이니스트 코치",
-    tier: "최우수",
-    tagline: "프로팀 출신 · 전 라인 피드백 · 팀게임 운영까지 가능",
-    roles: ["전 라인", "팀게임", "운영", "프로팀 경험"],
+    name: "?ㅼ씠?덉뒪??肄붿튂",
+    tier: "理쒖슦??,
+    tagline: "?꾨줈? 異쒖떊 쨌 ???쇱씤 ?쇰뱶諛?쨌 ?寃뚯엫 ?댁쁺源뚯? 媛??,
+    roles: ["???쇱씤", "?寃뚯엫", "?댁쁺", "?꾨줈? 寃쏀뿕"],
     image: "assets/KakaoTalk_20250810_005153132_04.jpg",
     imagePosition: "center 12%",
     featuredImagePosition: "center 16%",
   },
   mireu: {
-    name: "정미르 코치",
-    tier: "우수",
-    tagline: "학교 강의 경험 · 저티어/일반인 친화 · 가성비 팀게임 피드백",
-    roles: ["정글", "저티어", "팀게임", "입문"],
+    name: "?뺣?瑜?肄붿튂",
+    tier: "?곗닔",
+    tagline: "?숆탳 媛뺤쓽 寃쏀뿕 쨌 ??곗뼱/?쇰컲??移쒗솕 쨌 媛?깅퉬 ?寃뚯엫 ?쇰뱶諛?,
+    roles: ["?뺢?", "??곗뼱", "?寃뚯엫", "?낅Ц"],
     image: "assets/mireucoach.png",
     imagePosition: "center 8%",
     featuredImagePosition: "center 8%",
   },
   persona: {
-    name: "페르소나 코치",
-    tier: "우수",
-    tagline: "탑 라이너 출신 · 탄탄한 이론 · 고티어 라인전/운영",
-    roles: ["탑", "이론", "고티어", "라인전"],
+    name: "?섎Ⅴ?뚮굹 肄붿튂",
+    tier: "?곗닔",
+    tagline: "???쇱씠??異쒖떊 쨌 ?꾪깂???대줎 쨌 怨좏떚???쇱씤???댁쁺",
+    roles: ["??, "?대줎", "怨좏떚??, "?쇱씤??],
     image: "assets/personacoach.png",
     imagePosition: "center 8%",
     featuredImagePosition: "center 8%",
   },
   mephi: {
-    name: "메피 코치",
-    tier: "엠버서더",
-    tagline: "전프로 바텀 라이너 · 시즌5부터 챌린저 유지 · 팀게임 피드백",
-    roles: ["바텀", "전 라인", "팀게임", "전프로"],
+    name: "硫뷀뵾 肄붿튂",
+    tier: "?좊쾭?쒕뜑",
+    tagline: "?꾪봽濡?諛뷀? ?쇱씠??쨌 ?쒖쫵5遺??梨뚮┛? ?좎? 쨌 ?寃뚯엫 ?쇰뱶諛?,
+    roles: ["諛뷀?", "???쇱씤", "?寃뚯엫", "?꾪봽濡?],
     image: "assets/mephicoach.png",
     imagePosition: "72% 12%",
     featuredImagePosition: "72% 12%",
@@ -488,79 +489,79 @@ const leagueCoachProfiles = {
 const leagueLessonOverrides = {
   "lol-1": {
     coachKey: "persona",
-    name: "탑 라인전 이론 코칭",
+    name: "???쇱씤???대줎 肄붿묶",
     purpose: ["top", "high"],
-    roles: ["탑", "라인전", "고티어"],
-    price: "45,000원 / 1시간",
-    tagline: "탑 라인전 주도권, 웨이브 관리, 사이드 운영 설계",
+    roles: ["??, "?쇱씤??, "怨좏떚??],
+    price: "45,000??/ 1?쒓컙",
+    tagline: "???쇱씤??二쇰룄沅? ?⑥씠釉?愿由? ?ъ씠???댁쁺 ?ㅺ퀎",
   },
   "lol-2": {
     coachKey: "shineast",
-    name: "프로팀식 팀게임 운영 피드백",
+    name: "?꾨줈????寃뚯엫 ?댁쁺 ?쇰뱶諛?,
     purpose: ["team", "high"],
-    roles: ["전 라인", "팀게임", "오더", "운영"],
-    price: "100,000원 / 1시간",
-    tagline: "프로팀 출신 관점으로 보는 중후반 운영, 오더, 시야 컨트롤",
+    roles: ["???쇱씤", "?寃뚯엫", "?ㅻ뜑", "?댁쁺"],
+    price: "100,000??/ 1?쒓컙",
+    tagline: "?꾨줈? 異쒖떊 愿?먯쑝濡?蹂대뒗 以묓썑諛??댁쁺, ?ㅻ뜑, ?쒖빞 而⑦듃濡?,
   },
   "lol-3": {
     coachKey: "mireu",
-    name: "정글 저티어 탈출 코칭",
+    name: "?뺢? ??곗뼱 ?덉텧 肄붿묶",
     purpose: ["jungle", "low"],
-    roles: ["정글", "저티어", "동선", "오브젝트"],
-    price: "35,000원 / 1시간",
-    tagline: "정글 첫 동선, 갱 타이밍, 오브젝트 판단 집중 코칭",
+    roles: ["?뺢?", "??곗뼱", "?숈꽑", "?ㅻ툕?앺듃"],
+    price: "35,000??/ 1?쒓컙",
+    tagline: "?뺢? 泥??숈꽑, 媛???대컢, ?ㅻ툕?앺듃 ?먮떒 吏묒쨷 肄붿묶",
   },
   "lol-4": {
     coachKey: "shineast",
-    name: "전 라인 솔랭 리플레이 분석",
+    name: "???쇱씤 ?붾옲 由ы뵆?덉씠 遺꾩꽍",
     purpose: ["high"],
-    roles: ["탑", "정글", "미드", "원딜", "서폿"],
-    price: "90,000원 / 1시간",
-    tagline: "라인 상관없이 승리 플랜과 실수 패턴을 잡아주는 고급 피드백",
+    roles: ["??, "?뺢?", "誘몃뱶", "?먮뵜", "?쒗뤏"],
+    price: "90,000??/ 1?쒓컙",
+    tagline: "?쇱씤 ?곴??놁씠 ?밸━ ?뚮옖怨??ㅼ닔 ?⑦꽩???≪븘二쇰뒗 怨좉툒 ?쇰뱶諛?,
   },
   "lol-5": {
     coachKey: "mephi",
-    name: "바텀 라인전 2:2 코칭",
+    name: "諛뷀? ?쇱씤??2:2 肄붿묶",
     purpose: ["adc", "support", "team"],
-    roles: ["원딜", "서폿", "바텀", "듀오"],
-    price: "70,000원 / 1시간",
-    tagline: "원딜/서폿 바텀 라인전과 2:2 교전 설계",
+    roles: ["?먮뵜", "?쒗뤏", "諛뷀?", "???],
+    price: "70,000??/ 1?쒓컙",
+    tagline: "?먮뵜/?쒗뤏 諛뷀? ?쇱씤?꾧낵 2:2 援먯쟾 ?ㅺ퀎",
   },
   "lol-6": {
     coachKey: "persona",
-    name: "탑 라인전 30분 진단",
+    name: "???쇱씤??30遺?吏꾨떒",
     purpose: ["value", "top", "low"],
-    roles: ["탑", "라인전", "입문"],
-    price: "14,900원 / 30분",
+    roles: ["??, "?쇱씤??, "?낅Ц"],
+    price: "14,900??/ 30遺?,
   },
   "lol-7": {
     coachKey: "mephi",
-    name: "서폿 시야 입문 체크",
+    name: "?쒗뤏 ?쒖빞 ?낅Ц 泥댄겕",
     purpose: ["value", "support", "low"],
-    roles: ["서폿", "시야", "입문"],
-    price: "20,000원 / 30분",
+    roles: ["?쒗뤏", "?쒖빞", "?낅Ц"],
+    price: "20,000??/ 30遺?,
   },
   "lol-8": {
     coachKey: "mephi",
-    name: "원딜 한타 생존 클리닉",
+    name: "?먮뵜 ?쒗? ?앹〈 ?대━??,
     purpose: ["value", "adc", "low"],
-    roles: ["원딜", "한타", "포지션"],
-    price: "25,000원 / 30분",
+    roles: ["?먮뵜", "?쒗?", "?ъ???],
+    price: "25,000??/ 30遺?,
   },
   "lol-9": {
     coachKey: "mireu",
-    name: "챔피언폭 20분 상담",
+    name: "梨뷀뵾?명룺 20遺??곷떞",
     purpose: ["value", "low"],
-    roles: ["저티어", "챔피언폭", "솔랭"],
-    price: "9,900원 / 20분",
+    roles: ["??곗뼱", "梨뷀뵾?명룺", "?붾옲"],
+    price: "9,900??/ 20遺?,
   },
   "lol-10": {
     coachKey: "mireu",
-    name: "가성비 팀게임 피드백",
+    name: "媛?깅퉬 ?寃뚯엫 ?쇰뱶諛?,
     purpose: ["value", "team", "low"],
-    roles: ["팀게임", "정글", "저티어", "오더"],
-    price: "30,000원 / 1시간",
-    tagline: "팀 단위 내전/스크림을 저렴하게 점검하는 운영 피드백",
+    roles: ["?寃뚯엫", "?뺢?", "??곗뼱", "?ㅻ뜑"],
+    price: "30,000??/ 1?쒓컙",
+    tagline: "? ?⑥쐞 ?댁쟾/?ㅽ겕由쇱쓣 ??댄븯寃??먭??섎뒗 ?댁쁺 ?쇰뱶諛?,
   },
 };
 
@@ -610,9 +611,9 @@ function inferLeagueCoachKey(coach) {
   const id = String(coach.id || "");
   if (leagueLessonOverrides[id]?.coachKey) return leagueLessonOverrides[id].coachKey;
   const haystack = [coach.name, coach.tagline, coach.bio, ...(coach.roles || [])].join(" ").toLowerCase();
-  if (haystack.includes("메피") || haystack.includes("바텀") || haystack.includes("원딜") || haystack.includes("서폿")) return "mephi";
-  if (haystack.includes("미르") || haystack.includes("정글") || haystack.includes("저티어")) return "mireu";
-  if (haystack.includes("페르소나") || haystack.includes("탑")) return "persona";
+  if (haystack.includes("硫뷀뵾") || haystack.includes("諛뷀?") || haystack.includes("?먮뵜") || haystack.includes("?쒗뤏")) return "mephi";
+  if (haystack.includes("誘몃Ⅴ") || haystack.includes("?뺢?") || haystack.includes("??곗뼱")) return "mireu";
+  if (haystack.includes("?섎Ⅴ?뚮굹") || haystack.includes("??)) return "persona";
   return "shineast";
 }
 
@@ -651,17 +652,17 @@ function normalizeCoachProfiles(coaches) {
 }
 
 function boot() {
+  applyTheme(localStorage.getItem(THEME_KEY) || "light");
   Object.entries(text).forEach(([id, value]) => {
     const el = $(id);
     if (!el) return;
     if (el.tagName === "INPUT") el.placeholder = value;
     else el.textContent = value;
   });
-  $("navStudent").textContent = "수강생 홈";
   $("navStudent").textContent = "내 정보";
   $("navCoachSearch").textContent = "맞춤 강의 검색";
   $("searchInput").placeholder = text.searchPlaceholder;
-  $("coachImagePosition").placeholder = "예: center 8%, 72% 12%";
+  $("coachImagePosition").placeholder = "?? center 8%, 72% 12%";
   state.coaches = migrateCoachImages(structuredClone(samples));
   state.coachLoadState = "loaded";
   render();
@@ -732,6 +733,16 @@ function bindEvents() {
   $("lessonDetailModal")?.addEventListener("click", (event) => {
     if (event.target.id === "lessonDetailModal") closeLessonDetail();
   });
+  $("themeToggleBtn")?.addEventListener("click", toggleTheme);
+  $("loginOpenBtn")?.addEventListener("click", () => openAuthModal("login"));
+  $("guestBuyOpenBtn")?.addEventListener("click", () => openAuthModal("guest"));
+  $("authCloseBtn")?.addEventListener("click", closeAuthModal);
+  $("authModal")?.addEventListener("click", (event) => {
+    if (event.target.id === "authModal") closeAuthModal();
+  });
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+    button.addEventListener("click", () => openAuthModal(button.dataset.authMode));
+  });
 
   $("coachForm").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -763,28 +774,28 @@ function bindEvents() {
   });
   $("coachImage")?.addEventListener("input", () => updateCoachImagePreview());
   $("coachImageFile").addEventListener("change", handleCoachImageFile);
-  $("coachFeaturedImageFile").addEventListener("change", (event) => handleWideCoachImageFile(event, "coachFeaturedImage", "coachFeaturedImagePreview", "상단 추천 이미지"));
-  $("coachDetailImageFile").addEventListener("change", (event) => handleWideCoachImageFile(event, "coachDetailImage", "coachDetailImagePreview", "상세 설명 이미지"));
+  $("coachFeaturedImageFile").addEventListener("change", (event) => handleWideCoachImageFile(event, "coachFeaturedImage", "coachFeaturedImagePreview", "?곷떒 異붿쿇 ?대?吏"));
+  $("coachDetailImageFile").addEventListener("change", (event) => handleWideCoachImageFile(event, "coachDetailImage", "coachDetailImagePreview", "?곸꽭 ?ㅻ챸 ?대?吏"));
   $("openFeaturedCropBtn").addEventListener("click", () => openCropModal({
     inputId: "coachFeaturedImage",
     previewId: "coachFeaturedImagePreview",
     width: 1200,
     height: 675,
-    label: "상단 추천 이미지",
+    label: "?곷떒 異붿쿇 ?대?吏",
   }));
   $("openCropBtn").addEventListener("click", () => openCropModal({
     inputId: "coachImage",
     previewId: "coachImagePreview",
     width: 520,
     height: 520,
-    label: "일반 목록 이미지",
+    label: "?쇰컲 紐⑸줉 ?대?吏",
   }));
   $("openDetailCropBtn").addEventListener("click", () => openCropModal({
     inputId: "coachDetailImage",
     previewId: "coachDetailImagePreview",
     width: 1200,
     height: 675,
-    label: "상세 설명 이미지",
+    label: "?곸꽭 ?ㅻ챸 ?대?吏",
   }));
   $("cropCloseBtn").addEventListener("click", closeCropModal);
   $("applyCropBtn").addEventListener("click", applyImageCrop);
@@ -825,6 +836,79 @@ function renderMetrics() {
   $("metricRating").textContent = average.toFixed(1);
 }
 
+function applyTheme(theme) {
+  const nextTheme = theme === "dark" ? "dark" : "light";
+  document.body.dataset.theme = nextTheme;
+  localStorage.setItem(THEME_KEY, nextTheme);
+  const button = $("themeToggleBtn");
+  if (button) {
+    button.textContent = nextTheme === "dark" ? "?쇱씠?몃え?? : "?ㅽ겕紐⑤뱶";
+    button.setAttribute("aria-pressed", String(nextTheme === "dark"));
+  }
+}
+
+function toggleTheme() {
+  applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
+}
+
+function closeAuthModal() {
+  const modal = $("authModal");
+  if (modal) modal.hidden = true;
+}
+
+function openAuthModal(mode = "login") {
+  const modal = $("authModal");
+  const body = $("authBody");
+  if (!modal || !body) return;
+  const nextMode = ["login", "signup", "guest"].includes(mode) ? mode : "login";
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.authMode === nextMode);
+  });
+  body.innerHTML = renderAuthMarkup(nextMode);
+  modal.hidden = false;
+}
+
+function renderAuthMarkup(mode) {
+  if (mode === "signup") {
+    return `
+      <div class="auth-content">
+        <span class="eyebrow">?뚯썝媛??/span>
+        <h2 id="authTitle">?섍컯??怨꾩젙 留뚮뱾湲?/h2>
+        <p>媛뺤쓽 援щℓ ?댁뿭, ?덉빟 ?쒓컙, ?꾧린 ?묒꽦 沅뚰븳??怨꾩젙????ν븯???붾㈃?낅땲??</p>
+        <label>?됰꽕??input placeholder="?? ?됰꽕??KR1"></label>
+        <label>?대찓??input placeholder="example@email.com"></label>
+        <label>鍮꾨?踰덊샇<input type="password" placeholder="鍮꾨?踰덊샇"></label>
+        <button class="primary" type="button" disabled>?뚯썝媛??以鍮꾩쨷</button>
+      </div>
+    `;
+  }
+  if (mode === "guest") {
+    const selected = state.coaches.find((coach) => coach.id === state.selectedCoachId);
+    return `
+      <div class="auth-content">
+        <span class="eyebrow">鍮꾪쉶??援щℓ</span>
+        <h2 id="authTitle">怨꾩젙 ?놁씠 ?덉빟?섍린</h2>
+        <p>濡쒓렇???놁씠???곕씫泥섏? Riot ID瑜??④꺼 ?덉빟?????덇쾶 ???덉젙?낅땲?? 援щℓ ?댁뿭 議고쉶??二쇰Ц踰덊샇/?곕씫泥섎줈 ?뺤씤?섎뒗 ?먮쫫?낅땲??</p>
+        ${selected ? `<div class="guest-selected"><span>?좏깮 媛뺤쓽</span><strong>${escapeHtml(selected.name)}</strong><em>${escapeHtml(selected.price)}</em></div>` : ""}
+        <label>?섍컯???대쫫<input placeholder="?? ?됰꽕??KR1"></label>
+        <label>Riot ID / Discord<input placeholder="?곕씫 媛?ν븳 ID"></label>
+        <label>?곕씫泥?input placeholder="?붿뒪肄붾뱶 ?먮뒗 ?대찓??></label>
+        <button class="primary" type="button" disabled>鍮꾪쉶??援щℓ 以鍮꾩쨷</button>
+      </div>
+    `;
+  }
+  return `
+    <div class="auth-content">
+      <span class="eyebrow">濡쒓렇??/span>
+      <h2 id="authTitle">??媛뺤쓽 ?댁뼱蹂닿린</h2>
+      <p>異⑹쟾 湲덉븸, 媛뺤쓽 援щℓ ?댁뿭, ?덉빟 ?쒓컙, ?꾧린 ?묒꽦 媛??媛뺤쓽瑜??뺤씤?섎뒗 ?섍컯??濡쒓렇???붾㈃?낅땲??</p>
+      <label>?대찓???먮뒗 Discord ID<input placeholder="example@email.com"></label>
+      <label>鍮꾨?踰덊샇<input type="password" placeholder="鍮꾨?踰덊샇"></label>
+      <button class="primary" type="button" disabled>濡쒓렇??以鍮꾩쨷</button>
+    </div>
+  `;
+}
+
 function renderStudentHome() {
   const container = $("studentViewContent");
   if (!container) return;
@@ -835,103 +919,88 @@ function renderStudentHome() {
     lesson: coach.name,
     coach: coach.coachProfileName || coach.name,
     price: coach.price,
-    status: index === 0 ? "예약 전" : index === 1 ? "수강 완료" : "찜한 강의",
+    status: ["예약 확정", "수강 완료", "후기 완료"][index] || "구매 완료",
+    time: ["8/14 21:00", "8/10 20:00", "8/02 22:00"][index] || "시간 조율 중",
+    reviewStatus: ["후기 작성 가능 +1,000P", "후기 작성 가능 +1,000P", "후기 작성 완료"][index] || "후기 대기",
   }));
-  const reviewTarget = recommended.find((coach) => coach.reviews?.length);
+  const reviewRows = historyRows.filter((row) => row.status.includes("완료"));
 
   container.innerHTML = `
-    <section class="student-guide">
-      <div>
-        <span>1</span>
-        <strong>충전 / 결제</strong>
-        <p>포인트 충전이나 결제수단 관리는 여기서 시작합니다.</p>
-      </div>
-      <div>
-        <span>2</span>
-        <strong>강의 예약</strong>
-        <p>강의 상세보기에서 신청하면 내 강의 목록에 쌓입니다.</p>
-      </div>
-      <div>
-        <span>3</span>
-        <strong>수강 / 후기</strong>
-        <p>완료된 강의는 후기 작성 버튼이 열리는 구조입니다.</p>
-      </div>
-    </section>
-
-    <section class="student-grid">
-      <article class="student-panel student-wallet">
-        <div class="student-panel-head">
-          <span>결제</span>
-          <strong>충전과 결제 위치</strong>
-        </div>
+    <section class="student-hero">
+      <article class="student-hero-card">
+        <span>내 지갑</span>
+        <strong>0원</strong>
+        <p>강의 결제와 포인트 보상이 여기에 쌓입니다.</p>
         <div class="student-actions">
           <button class="primary" type="button" disabled>포인트 충전</button>
-          <button class="secondary" type="button" disabled>결제수단 관리</button>
-          <button class="secondary" type="button" disabled>쿠폰함</button>
+          <button class="secondary" type="button" disabled>결제수단</button>
         </div>
-        <p>아직 결제 기능은 연결 전이라 버튼만 자리 잡아둔 상태입니다.</p>
       </article>
-
-      <article class="student-panel">
-        <div class="student-panel-head">
-          <span>예정</span>
-          <strong>다가오는 강의</strong>
-        </div>
-        ${nextLesson ? `
-          <div class="student-next">
-            <strong>${escapeHtml(nextLesson.lesson || "예약 강의")}</strong>
-            <span>${escapeHtml(nextLesson.time || "시간 확인 중")}</span>
-            <em>${escapeHtml(nextLesson.status || "접수")}</em>
-          </div>
-        ` : `
-          <div class="student-empty">
-            <strong>예약된 강의가 없습니다.</strong>
-            <span>강의 목록에서 원하는 코칭을 고르면 예약 신청으로 이어집니다.</span>
-          </div>
-        `}
+      <article class="student-hero-card highlight">
+        <span>다음 일정</span>
+        <strong>${nextLesson ? escapeHtml(nextLesson.time || "시간 확인 중") : "예약 대기"}</strong>
+        <p>${nextLesson ? escapeHtml(nextLesson.lesson || "예약 강의") : "강의 상세보기에서 신청하면 이곳에 표시됩니다."}</p>
+        <em>${nextLesson ? escapeHtml(nextLesson.status || "접수") : "예약된 강의 없음"}</em>
+      </article>
+      <article class="student-hero-card reward">
+        <span>후기 보상</span>
+        <strong>+1,000P</strong>
+        <p>수강 완료 강의에 후기를 남기면 포인트를 받을 수 있습니다.</p>
+        <em>${reviewRows.length}개 작성 가능</em>
       </article>
     </section>
 
-    <section class="student-grid lower">
-      <article class="student-panel">
+    <section class="student-flow">
+      <div><span>1</span><strong>강의 선택</strong><p>목록이나 맞춤 검색에서 코치를 고릅니다.</p></div>
+      <div><span>2</span><strong>예약 신청</strong><p>희망 시간과 연락처를 남깁니다.</p></div>
+      <div><span>3</span><strong>수강 후 후기</strong><p>후기 작성 시 포인트 보상이 표시됩니다.</p></div>
+    </section>
+
+    <section class="student-main-grid">
+      <article class="student-panel student-history-panel">
         <div class="student-panel-head">
           <span>내역</span>
           <strong>강의 구매 / 신청 내역</strong>
         </div>
-        <div class="student-history">
+        <div class="student-timeline">
           ${historyRows.map((row) => `
             <div class="student-row">
+              <em>${escapeHtml(row.status)}</em>
               <span>
                 <strong>${escapeHtml(row.lesson)}</strong>
-                <small>${escapeHtml(row.coach)} · ${escapeHtml(row.price)}</small>
+                <small>${escapeHtml(row.coach)} · ${escapeHtml(row.price)} · ${escapeHtml(row.time)}</small>
+                <small class="student-review-state">${escapeHtml(row.reviewStatus)}</small>
               </span>
-              <em>${escapeHtml(row.status)}</em>
             </div>
           `).join("") || `
             <div class="student-empty">
-              <strong>내역이 없습니다.</strong>
-              <span>구매나 예약이 생기면 이 목록에서 확인합니다.</span>
+              <strong>?댁뿭???놁뒿?덈떎.</strong>
+              <span>援щℓ???덉빟???앷린硫???紐⑸줉?먯꽌 ?뺤씤?⑸땲??</span>
             </div>
           `}
         </div>
       </article>
 
-      <article class="student-panel">
+      <article class="student-panel student-review-panel">
         <div class="student-panel-head">
           <span>후기</span>
-          <strong>후기 작성</strong>
+          <strong>후기 작성 보상</strong>
         </div>
-        ${reviewTarget ? `
-          <div class="student-review-card">
-            <strong>${escapeHtml(reviewTarget.name)}</strong>
-            <span>${escapeHtml(reviewTarget.coachProfileName || reviewTarget.name)}</span>
-            <p>수강 완료 후 별점과 후기를 남기는 영역입니다.</p>
-            <button class="primary" type="button" disabled>후기 작성</button>
+        ${reviewRows.length ? `
+          <div class="student-review-list">
+            ${reviewRows.map((row, index) => `
+              <div class="student-review-card">
+                <strong>${escapeHtml(row.lesson)}</strong>
+                <span>${escapeHtml(row.coach)} · ${escapeHtml(row.time)}</span>
+                <p>${index === 0 ? "수강 완료 후 별점과 후기를 남기면 포인트 보상이 지급되는 예시입니다." : "이미 후기를 작성한 강의는 완료 상태로 표시됩니다."}</p>
+                <button class="${index === 0 ? "primary" : "secondary"}" type="button" disabled>${index === 0 ? "후기 작성 + 1,000P" : "후기 작성 완료"}</button>
+              </div>
+            `).join("")}
           </div>
         ` : `
           <div class="student-empty">
-            <strong>작성 가능한 후기가 없습니다.</strong>
-            <span>강의가 완료되면 후기 작성 버튼이 표시됩니다.</span>
+            <strong>?묒꽦 媛?ν븳 ?꾧린媛 ?놁뒿?덈떎.</strong>
+            <span>媛뺤쓽媛 ?꾨즺?섎㈃ ?꾧린 ?묒꽦 踰꾪듉???쒖떆?⑸땲??</span>
           </div>
         `}
       </article>
@@ -948,9 +1017,9 @@ function getCoachIdentityFromGroup(coachKey, coaches) {
   const profile = first.category === "league" ? leagueCoachProfiles[coachKey] : null;
   return {
     key: coachKey,
-    name: profile?.name || first.coachProfileName || first.name || "코치",
-    tier: profile?.tier || first.coachTier || first.tier || "일반",
-    tagline: profile?.tagline || first.coachSummary || first.tagline || "코칭 상품",
+    name: profile?.name || first.coachProfileName || first.name || "肄붿튂",
+    tier: profile?.tier || first.coachTier || first.tier || "?쇰컲",
+    tagline: profile?.tagline || first.coachSummary || first.tagline || "肄붿묶 ?곹뭹",
     roles: profile?.roles || first.roles || [],
     image: profile?.image || first.image || "assets/lollogo.png",
     imagePosition: profile?.imagePosition || first.imagePosition || "center 8%",
@@ -997,23 +1066,23 @@ function renderSidebarCoaches() {
   target.innerHTML = `
     <button class="coach-explorer-open" id="openCoachExplorerBtn" type="button">
       <span>
-        <strong>코치 목록 열기</strong>
-        <small>${escapeHtml(categoryLabel(state.category))} ${identities.length}명 · ${state.coaches.filter((coach) => coach.category === state.category).length}개 강의</small>
+        <strong>肄붿튂 紐⑸줉 ?닿린</strong>
+        <small>${escapeHtml(categoryLabel(state.category))} ${identities.length}紐?쨌 ${state.coaches.filter((coach) => coach.category === state.category).length}媛?媛뺤쓽</small>
       </span>
-      <em>선택</em>
+      <em>?좏깮</em>
     </button>
     ${selected ? `
       <button class="selected-side-coach active" type="button" data-side-coach-key="${escapeHtml(selected.key)}">
         <img src="${selected.image}" alt="">
         <span>
           <strong>${escapeHtml(selected.name)}</strong>
-          <small>${escapeHtml(selected.lessons)}개 강의 · ${escapeHtml(selected.tier)}</small>
+          <small>${escapeHtml(selected.lessons)}媛?媛뺤쓽 쨌 ${escapeHtml(selected.tier)}</small>
         </span>
       </button>
-    ` : `<p class="side-empty">아직 선택한 코치가 없습니다.</p>`}
+    ` : `<p class="side-empty">?꾩쭅 ?좏깮??肄붿튂媛 ?놁뒿?덈떎.</p>`}
     ${recent.length ? `
       <div class="recent-side-coaches">
-        <span>최근 선택</span>
+        <span>理쒓렐 ?좏깮</span>
         ${recent.map((coach) => `
           <button class="recent-side-coach ${coach.key === state.selectedCoachKey ? "active" : ""}" type="button" data-side-coach-key="${escapeHtml(coach.key)}">
             <img src="${coach.image}" alt="">
@@ -1051,7 +1120,7 @@ function closeCoachExplorer() {
 function getCoachExplorerFilters() {
   const activeSet = getActiveFilterSet();
   const roleFilters = activeSet.segment.filter((item) => item.id !== "all");
-  const tierFilters = ["엠버서더", "최우수", "우수", "일반"]
+  const tierFilters = ["?좊쾭?쒕뜑", "理쒖슦??, "?곗닔", "?쇰컲"]
     .filter((tier) => getCoachIdentities().some((coach) => coach.tier === tier))
     .map((tier) => ({ id: tier, label: tier }));
   return { roleFilters, tierFilters };
@@ -1081,14 +1150,14 @@ function renderCoachExplorer() {
   if (state.coachExplorerTier !== "all" && !tierFilters.some((filter) => filter.id === state.coachExplorerTier)) {
     state.coachExplorerTier = "all";
   }
-  $("coachExplorerTitle").textContent = `${categoryLabel(state.category)} 코치 목록`;
-  $("coachExplorerMeta").textContent = `${getCoachIdentities().length}명 · ${state.coaches.filter((coach) => coach.category === state.category).length}개 강의`;
-  $("coachExplorerRoleFilters").innerHTML = [{ id: "all", label: "전체" }, ...roleFilters].map((filter) => `
+  $("coachExplorerTitle").textContent = `${categoryLabel(state.category)} 肄붿튂 紐⑸줉`;
+  $("coachExplorerMeta").textContent = `${getCoachIdentities().length}紐?쨌 ${state.coaches.filter((coach) => coach.category === state.category).length}媛?媛뺤쓽`;
+  $("coachExplorerRoleFilters").innerHTML = [{ id: "all", label: "?꾩껜" }, ...roleFilters].map((filter) => `
     <button class="explorer-filter ${state.coachExplorerRole === filter.id ? "active" : ""}" type="button" data-explorer-role="${escapeHtml(filter.id)}">
       ${escapeHtml(filter.label)}
     </button>
   `).join("");
-  $("coachExplorerTierFilters").innerHTML = [{ id: "all", label: "전체 등급" }, ...tierFilters].map((filter) => `
+  $("coachExplorerTierFilters").innerHTML = [{ id: "all", label: "?꾩껜 ?깃툒" }, ...tierFilters].map((filter) => `
     <button class="explorer-filter ${state.coachExplorerTier === filter.id ? "active" : ""}" type="button" data-explorer-tier="${escapeHtml(filter.id)}">
       ${escapeHtml(filter.label)}
     </button>
@@ -1096,7 +1165,7 @@ function renderCoachExplorer() {
 
   const visible = getVisibleExplorerCoaches();
   $("coachExplorerGrid").innerHTML = visible.length ? visible.map(renderCoachExplorerCard).join("") : `
-    <div class="empty">조건에 맞는 코치가 없습니다.</div>
+    <div class="empty">議곌굔??留욌뒗 肄붿튂媛 ?놁뒿?덈떎.</div>
   `;
   document.querySelectorAll("[data-explorer-role]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1123,8 +1192,8 @@ function renderCoachExplorer() {
 
 function renderCoachExplorerCard(coach) {
   const productCount = coach.lessons || 0;
-  const roleText = (coach.roles || []).slice(0, 4).join(" · ");
-  const badges = ["추천", coach.tier].slice(0, 2).map((badge) => `<span>${escapeHtml(badge)}</span>`).join("");
+  const roleText = (coach.roles || []).slice(0, 4).join(" 쨌 ");
+  const badges = ["異붿쿇", coach.tier].slice(0, 2).map((badge) => `<span>${escapeHtml(badge)}</span>`).join("");
   return `
     <button class="explorer-coach-card ${coach.key === state.selectedCoachKey ? "active" : ""}" type="button" data-explorer-coach-key="${escapeHtml(coach.key)}">
       <img src="${coach.image}" alt="" style="object-position: ${coach.imagePosition};">
@@ -1133,11 +1202,11 @@ function renderCoachExplorerCard(coach) {
           <strong>${escapeHtml(coach.name)}</strong>
           <em>${escapeHtml(coach.tier)}</em>
         </span>
-        <small>${escapeHtml(coach.tagline || "코칭 상품")}</small>
-        <span class="explorer-card-meta">${escapeHtml(roleText || "강의")}</span>
+        <small>${escapeHtml(coach.tagline || "肄붿묶 ?곹뭹")}</small>
+        <span class="explorer-card-meta">${escapeHtml(roleText || "媛뺤쓽")}</span>
         <span class="explorer-card-foot">
           <span>${badges}</span>
-          <b>${productCount}개 강의</b>
+          <b>${productCount}媛?媛뺤쓽</b>
         </span>
       </span>
     </button>
@@ -1216,7 +1285,7 @@ function renderMarket() {
   if (state.coachLoadState === "idle" || state.coachLoadState === "loading") {
     $("featuredSection").hidden = true;
     $("featuredList").innerHTML = "";
-    $("coachList").innerHTML = `<div class="empty">코치 목록을 불러오는 중입니다.</div>`;
+    $("coachList").innerHTML = `<div class="empty">肄붿튂 紐⑸줉??遺덈윭?ㅻ뒗 以묒엯?덈떎.</div>`;
     state.selectedCoachId = null;
     renderDetail();
     return;
@@ -1225,7 +1294,7 @@ function renderMarket() {
   if (state.coachLoadState === "error") {
     $("featuredSection").hidden = true;
     $("featuredList").innerHTML = "";
-    $("coachList").innerHTML = `<div class="empty">코치 목록을 불러오지 못했습니다.</div>`;
+    $("coachList").innerHTML = `<div class="empty">肄붿튂 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲??</div>`;
     state.selectedCoachId = null;
     renderDetail();
     return;
@@ -1246,7 +1315,7 @@ function renderMarket() {
   );
   const listed = visible.filter((coach) => !featuredIds.has(coach.id));
   $("coachList").innerHTML = listed.length ? listed.map(renderCoachCard).join("") : `
-    <div class="empty">검색 결과가 없습니다.</div>
+    <div class="empty">寃??寃곌낵媛 ?놁뒿?덈떎.</div>
   `;
   document.querySelectorAll("[data-coach-id]").forEach((card) => {
     card.addEventListener("click", (event) => {
@@ -1293,7 +1362,7 @@ function chooseFeaturedCoachLesson(coaches) {
 }
 
 function getFeaturedCoachSlots(visible) {
-  const eligible = visible.filter((coach) => coach.category === state.category && ["엠버서더", "최우수"].includes(coach.tier));
+  const eligible = visible.filter((coach) => coach.category === state.category && ["?좊쾭?쒕뜑", "理쒖슦??].includes(coach.tier));
   const grouped = new Map();
   eligible.forEach((coach) => {
     const key = getCoachKey(coach);
@@ -1309,12 +1378,12 @@ function getFeaturedCoachSlots(visible) {
 function renderFeaturedCard(coach) {
   const originalPrice = getOriginalPrice(coach.price);
   const featuredImage = getFeaturedImage(coach);
-  const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
+  const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" 쨌 ");
   return `
     <article class="featured-card ${getTierClass(coach)}" data-coach-id="${coach.id}">
       <div class="featured-image">
         <img src="${featuredImage}" alt="" style="${getWideImageStyle(coach, "featuredImagePosition")}">
-        <span class="ad-label">추천</span>
+        <span class="ad-label">異붿쿇</span>
         <span class="tier-ribbon">${coach.tier}</span>
       </div>
       <div class="featured-body">
@@ -1322,12 +1391,12 @@ function renderFeaturedCard(coach) {
         <p class="coach-owner">${escapeHtml(coach.coachProfileName || coach.name)}</p>
         <p class="purpose-label">${purposeText}</p>
         <p class="featured-summary">${coach.tagline}</p>
-        <div class="featured-rating">★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></div>
+        <div class="featured-rating">??${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></div>
         <div class="featured-price">
           <strong>${coach.price}</strong>
           ${originalPrice ? `<del>${originalPrice}</del>` : ""}
         </div>
-        <button class="detail-link" type="button" data-detail-id="${escapeHtml(coach.id)}">상세보기</button>
+        <button class="detail-link" type="button" data-detail-id="${escapeHtml(coach.id)}">?곸꽭蹂닿린</button>
       </div>
     </article>
   `;
@@ -1336,13 +1405,13 @@ function renderFeaturedCard(coach) {
 function getOriginalPrice(price) {
   const amount = Number(String(price || "").replace(/[^\d]/g, ""));
   if (!amount) return "";
-  return `${Math.round(amount * 1.7).toLocaleString("ko-KR")}원`;
+  return `${Math.round(amount * 1.7).toLocaleString("ko-KR")}??;
 }
 
 function renderCoachCard(coach) {
   const badges = getCoachBadges(coach);
   const imageStyle = getImageStyle(coach);
-  const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
+  const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" 쨌 ");
   return `
     <article class="coach-card ${coach.id === state.selectedCoachId ? "active" : ""} ${getTierClass(coach)}" data-coach-id="${coach.id}">
       <div class="avatar-frame"><img class="avatar" src="${coach.image}" alt="" style="${imageStyle}"></div>
@@ -1355,29 +1424,29 @@ function renderCoachCard(coach) {
         <div class="chips">${(coach.roles || []).map((role) => `<span class="chip">${role}</span>`).join("")}</div>
       </div>
       <div class="card-foot">
-        <span>★ ${coach.rating.toFixed(1)} · 후기 ${coach.reviews?.length || 0}</span>
+        <span>??${coach.rating.toFixed(1)} 쨌 ?꾧린 ${coach.reviews?.length || 0}</span>
         <span class="price">${coach.price}</span>
       </div>
-      <button class="detail-link card-detail-link" type="button" data-detail-id="${escapeHtml(coach.id)}">상세보기</button>
+      <button class="detail-link card-detail-link" type="button" data-detail-id="${escapeHtml(coach.id)}">?곸꽭蹂닿린</button>
     </article>
   `;
 }
 
 function getCoachBadges(coach) {
-  if (coach.tier === "엠버서더") return ["추천", "엠버서더"];
-  if (coach.tier === "최우수") return ["추천", "최우수"];
-  if (coach.tier === "우수") return ["추천", "우수"];
+  if (coach.tier === "?좊쾭?쒕뜑") return ["異붿쿇", "?좊쾭?쒕뜑"];
+  if (coach.tier === "理쒖슦??) return ["異붿쿇", "理쒖슦??];
+  if (coach.tier === "?곗닔") return ["異붿쿇", "?곗닔"];
   return coach.badges || [];
 }
 
 function renderBadge(label) {
-  const className = label === "추천" ? "badge recommend" : ["최우수", "엠버서더"].includes(label) ? "badge best" : "badge good";
+  const className = label === "異붿쿇" ? "badge recommend" : ["理쒖슦??, "?좊쾭?쒕뜑"].includes(label) ? "badge best" : "badge good";
   return `<span class="${className}">${label}</span>`;
 }
 
 function getTierClass(coach) {
-  if (["최우수", "엠버서더"].includes(coach.tier)) return "tier-best";
-  if (coach.tier === "우수") return "tier-good";
+  if (["理쒖슦??, "?좊쾭?쒕뜑"].includes(coach.tier)) return "tier-best";
+  if (coach.tier === "?곗닔") return "tier-good";
   return "tier-normal";
 }
 
@@ -1407,7 +1476,7 @@ function getPurposeLabels(value) {
   const labels = ids
     .map((id) => purposes.find((purpose) => purpose.id === String(id).trim())?.label || String(id).trim())
     .filter(Boolean);
-  return labels.length ? labels : ["분류 미지정"];
+  return labels.length ? labels : ["遺꾨쪟 誘몄???];
 }
 
 function renderDetail() {
@@ -1415,8 +1484,8 @@ function renderDetail() {
   if (!coach) {
     $("coachDetail").innerHTML = `
       <div class="detail-empty">
-        <strong>상품을 선택하면 미리보기가 표시됩니다.</strong>
-        <span>상세보기에서 설명, 후기, 예약 신청을 한 번에 확인할 수 있습니다.</span>
+        <strong>?곹뭹???좏깮?섎㈃ 誘몃━蹂닿린媛 ?쒖떆?⑸땲??</strong>
+        <span>?곸꽭蹂닿린?먯꽌 ?ㅻ챸, ?꾧린, ?덉빟 ?좎껌????踰덉뿉 ?뺤씤?????덉뒿?덈떎.</span>
       </div>
     `;
     return;
@@ -1428,17 +1497,17 @@ function renderDetail() {
     <div class="detail-body">
       <div class="rank-badges">${getCoachBadges(coach).map(renderBadge).join("")}</div>
       <h2>${coach.name}</h2>
-      <p class="detail-owner">${escapeHtml(coach.coachProfileName || coach.name)} · ${escapeHtml(coach.coachSummary || coach.tier || "코치")}</p>
+      <p class="detail-owner">${escapeHtml(coach.coachProfileName || coach.name)} 쨌 ${escapeHtml(coach.coachSummary || coach.tier || "肄붿튂")}</p>
       <div class="detail-trust">
-        <strong>★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></strong>
-        <em>${reviews.length}개 후기</em>
+        <strong>??${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></strong>
+        <em>${reviews.length}媛??꾧린</em>
       </div>
       <p>${coach.tagline || coach.bio}</p>
       <div class="detail-summary">
-        <div><span>가격</span><strong>${coach.price}</strong></div>
-        <div><span>전문 분야</span><strong>${(coach.roles || []).slice(0, 4).join(", ")}</strong></div>
+        <div><span>媛寃?/span><strong>${coach.price}</strong></div>
+        <div><span>?꾨Ц 遺꾩빞</span><strong>${(coach.roles || []).slice(0, 4).join(", ")}</strong></div>
       </div>
-      <button class="primary detail-panel-button" type="button" data-detail-id="${escapeHtml(coach.id)}">상세보기</button>
+      <button class="primary detail-panel-button" type="button" data-detail-id="${escapeHtml(coach.id)}">?곸꽭蹂닿린</button>
     </div>
   `;
   $("coachDetail").querySelector("[data-detail-id]")?.addEventListener("click", () => openLessonDetail(coach.id));
@@ -1462,7 +1531,7 @@ function closeLessonDetail() {
 function getLessonFocusItems(coach) {
   const roles = (coach.roles || []).slice(0, 4);
   const purposeLabels = getPurposeLabels(coach.purpose).slice(0, 3);
-  const fallback = ["리플레이 핵심 장면 점검", "라인전 습관 교정", "다음 게임 적용 과제 정리"];
+  const fallback = ["由ы뵆?덉씠 ?듭떖 ?λ㈃ ?먭?", "?쇱씤???듦? 援먯젙", "?ㅼ쓬 寃뚯엫 ?곸슜 怨쇱젣 ?뺣━"];
   return [...roles, ...purposeLabels, ...fallback]
     .map((item) => String(item).trim())
     .filter(Boolean)
@@ -1472,11 +1541,11 @@ function getLessonFocusItems(coach) {
 
 function getCoachDetailTone(coach) {
   const key = getCoachKey(coach);
-  if (key === "shineast") return "프로팀 운영 관점으로 라인전, 오더, 팀게임 판단까지 넓게 봅니다.";
-  if (key === "mephi") return "전프로 바텀 라이너 관점으로 전 라인 피드백과 팀게임 리뷰까지 가능합니다.";
-  if (key === "mireu") return "저티어와 일반 수강생이 바로 따라 할 수 있게 동선과 판단 기준을 쉽게 정리합니다.";
-  if (key === "persona") return "탑 라인 중심의 이론과 매치업 이해도를 차분하게 정리합니다.";
-  return "현재 플레이에서 바로 고칠 수 있는 습관과 다음 연습 과제를 정리합니다.";
+  if (key === "shineast") return "?꾨줈? ?댁쁺 愿?먯쑝濡??쇱씤?? ?ㅻ뜑, ?寃뚯엫 ?먮떒源뚯? ?볤쾶 遊낅땲??";
+  if (key === "mephi") return "?꾪봽濡?諛뷀? ?쇱씠??愿?먯쑝濡????쇱씤 ?쇰뱶諛깃낵 ?寃뚯엫 由щ럭源뚯? 媛?ν빀?덈떎.";
+  if (key === "mireu") return "??곗뼱? ?쇰컲 ?섍컯?앹씠 諛붾줈 ?곕씪 ?????덇쾶 ?숈꽑怨??먮떒 湲곗????쎄쾶 ?뺣━?⑸땲??";
+  if (key === "persona") return "???쇱씤 以묒떖???대줎怨?留ㅼ튂???댄빐?꾨? 李⑤텇?섍쾶 ?뺣━?⑸땲??";
+  return "?꾩옱 ?뚮젅?댁뿉??諛붾줈 怨좎튌 ???덈뒗 ?듦?怨??ㅼ쓬 ?곗뒿 怨쇱젣瑜??뺣━?⑸땲??";
 }
 
 function renderLessonInfoBlocks(coach) {
@@ -1485,21 +1554,21 @@ function renderLessonInfoBlocks(coach) {
   return `
     <section class="lesson-info-grid">
       <article>
-        <span>이 강의에서 보는 것</span>
+        <span>??媛뺤쓽?먯꽌 蹂대뒗 寃?/span>
         <ul>${focusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
       </article>
       <article>
-        <span>진행 방식</span>
+        <span>吏꾪뻾 諛⑹떇</span>
         <ul>
-          <li>디스코드 화면공유 또는 리플레이 리뷰</li>
-          <li>핵심 장면 위주로 원인과 대안을 정리</li>
-          <li>끝나기 전 다음 연습 과제 확인</li>
+          <li>?붿뒪肄붾뱶 ?붾㈃怨듭쑀 ?먮뒗 由ы뵆?덉씠 由щ럭</li>
+          <li>?듭떖 ?λ㈃ ?꾩＜濡??먯씤怨???덉쓣 ?뺣━</li>
+          <li>?앸굹湲????ㅼ쓬 ?곗뒿 怨쇱젣 ?뺤씤</li>
         </ul>
       </article>
       <article>
-        <span>추천 대상</span>
+        <span>異붿쿇 ???/span>
         <p>${escapeHtml(getCoachDetailTone(coach))}</p>
-        <small>판매 ${coach.lessons || 0}회 · 후기 ${reviewCount}개 · 평점 ${coach.rating.toFixed(1)}</small>
+        <small>?먮ℓ ${coach.lessons || 0}??쨌 ?꾧린 ${reviewCount}媛?쨌 ?됱젏 ${coach.rating.toFixed(1)}</small>
       </article>
     </section>
   `;
@@ -1512,22 +1581,22 @@ function renderLessonDetailMarkup(coach) {
     <div class="lesson-detail-body">
       <div class="rank-badges">${getCoachBadges(coach).map(renderBadge).join("")}</div>
       <h2 id="lessonDetailTitle">${escapeHtml(coach.name)}</h2>
-      <p class="detail-owner">${escapeHtml(coach.coachProfileName || coach.name)} · ${escapeHtml(coach.coachSummary || coach.tier || "코치")}</p>
+      <p class="detail-owner">${escapeHtml(coach.coachProfileName || coach.name)} 쨌 ${escapeHtml(coach.coachSummary || coach.tier || "肄붿튂")}</p>
       <div class="detail-trust">
-        <strong>★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></strong>
-        <em>${reviews.length}개 후기</em>
+        <strong>??${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></strong>
+        <em>${reviews.length}媛??꾧린</em>
       </div>
       <p>${escapeHtml(coach.bio || coach.tagline || "")}</p>
       <div class="detail-summary">
-        <div><span>가격</span><strong>${escapeHtml(coach.price)}</strong></div>
-        <div><span>전문 분야</span><strong>${escapeHtml((coach.roles || []).slice(0, 5).join(", "))}</strong></div>
+        <div><span>媛寃?/span><strong>${escapeHtml(coach.price)}</strong></div>
+        <div><span>?꾨Ц 遺꾩빞</span><strong>${escapeHtml((coach.roles || []).slice(0, 5).join(", "))}</strong></div>
       </div>
       ${renderLessonInfoBlocks(coach)}
       ${reviews.length ? `
         <section class="review-preview full">
           <div>
-            <strong>후기</strong>
-            <span>${reviews.length}개</span>
+            <strong>?꾧린</strong>
+            <span>${reviews.length}媛?/span>
           </div>
           ${reviews.slice(0, 3).map(([name, body]) => `<p><b>${escapeHtml(name)}</b> ${escapeHtml(body)}</p>`).join("")}
         </section>
@@ -1535,13 +1604,17 @@ function renderLessonDetailMarkup(coach) {
       <section class="booking-panel">
         <div class="booking-panel-head">
           <div>
-            <strong>예약 신청</strong>
-            <span>Riot ID와 희망 시간을 남기면 운영진이 확인합니다.</span>
+            <strong>?덉빟 ?좎껌</strong>
+            <span>Riot ID? ?щ쭩 ?쒓컙???④린硫??댁쁺吏꾩씠 ?뺤씤?⑸땲??</span>
           </div>
           <em>${escapeHtml(coach.price)}</em>
         </div>
         <div class="booking-note">
-          디스코드 화면공유 또는 리플레이 리뷰로 진행됩니다.
+          ?붿뒪肄붾뱶 ?붾㈃怨듭쑀 ?먮뒗 由ы뵆?덉씠 由щ럭濡?吏꾪뻾?⑸땲??
+        </div>
+        <div class="booking-route">
+          <button class="secondary" type="button" onclick="openAuthModal('login')">?뚯썝?쇰줈 ?덉빟</button>
+          <button class="secondary" type="button" onclick="openAuthModal('guest')">鍮꾪쉶??援щℓ</button>
         </div>
         <div id="lessonBookingMount"></div>
       </section>
@@ -1559,16 +1632,16 @@ function mountBookingForm(mountId, coach) {
   $("bookingTimeLabel").textContent = text.bookingTimeLabel;
   $("bookingMemoLabel").textContent = text.bookingMemoLabel;
   $("bookingSubmitBtn").textContent = text.bookingSubmitBtn;
-  $("bookingForm").student.placeholder = "예: 닉네임#KR1";
-  $("bookingForm").contact.placeholder = "예: Discord ID";
-  $("bookingForm").time.placeholder = "예: 8/10 21:00";
-  $("bookingForm").memo.placeholder = "라인, 챔피언, 고민을 적어주세요.";
+  $("bookingForm").student.placeholder = "?? ?됰꽕??KR1";
+  $("bookingForm").contact.placeholder = "?? Discord ID";
+  $("bookingForm").time.placeholder = "?? 8/10 21:00";
+  $("bookingForm").memo.placeholder = "?쇱씤, 梨뷀뵾?? 怨좊????곸뼱二쇱꽭??";
   $("bookingForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const submitButton = $("bookingSubmitBtn");
     const originalText = submitButton.textContent;
     submitButton.disabled = true;
-    submitButton.textContent = "예약 전송 중";
+    submitButton.textContent = "?덉빟 ?꾩넚 以?;
     const data = new FormData(event.target);
     const reservation = {
       coachId: coach.id,
@@ -1585,10 +1658,10 @@ function mountBookingForm(mountId, coach) {
       await submitReservation(reservation);
       await loadReservations({ promptForLogin: false, silent: true });
       event.target.reset();
-      alert("예약 신청이 접수됐습니다. 운영진이 연락드릴게요.");
+      alert("?덉빟 ?좎껌???묒닔?먯뒿?덈떎. ?댁쁺吏꾩씠 ?곕씫?쒕┫寃뚯슂.");
       render();
     } catch (error) {
-      alert(`예약 신청을 저장하지 못했습니다.\n${error.message}`);
+      alert(`?덉빟 ?좎껌????ν븯吏 紐삵뻽?듬땲??\n${error.message}`);
     } finally {
       submitButton.disabled = false;
       submitButton.textContent = originalText;
@@ -1598,7 +1671,7 @@ function mountBookingForm(mountId, coach) {
 
 async function submitReservation(reservation) {
   if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) {
-    throw new Error("예약 API 주소가 아직 설정되지 않았습니다.");
+    throw new Error("?덉빟 API 二쇱냼媛 ?꾩쭅 ?ㅼ젙?섏? ?딆븯?듬땲??");
   }
   const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/reservations`, {
     method: "POST",
@@ -1607,7 +1680,7 @@ async function submitReservation(reservation) {
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok || !result.ok) {
-    const detail = result.error ? `오류: ${result.error}` : `HTTP ${response.status}`;
+    const detail = result.error ? `?ㅻ쪟: ${result.error}` : `HTTP ${response.status}`;
     throw new Error(detail);
   }
   return result.reservation || {};
@@ -1619,7 +1692,7 @@ async function ensureAdminAccess() {
 }
 
 async function loginForReservations() {
-  const password = window.prompt("관리자 비밀번호를 입력하세요.");
+  const password = window.prompt("愿由ъ옄 鍮꾨?踰덊샇瑜??낅젰?섏꽭??");
   if (!password) return false;
 
   const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/admin/login`, {
@@ -1675,7 +1748,7 @@ async function loadReservations(options = {}) {
     }
     if (!silent) {
       state.bookingLoadState = "error";
-      state.bookingLoadError = "예약 목록을 불러오지 못했습니다.";
+      state.bookingLoadError = "?덉빟 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲??";
       renderBookings();
     }
   }
@@ -1685,7 +1758,7 @@ function mapReservationFromApi(reservation) {
   const feedback = reservation.feedback_metadata || {};
   return {
     id: reservation.id || "",
-    status: reservation.status || "신규",
+    status: reservation.status || "?좉퇋",
     createdAt: reservation.created_at || "",
     createdAtText: formatDateTime(reservation.created_at),
     coachName: reservation.coach_name || "-",
@@ -1756,7 +1829,7 @@ async function loadCoachesFromApi() {
     }
   } catch (error) {
     state.coachLoadState = hasFallbackCoaches ? "loaded" : "error";
-    console.warn("코치 목록을 불러오지 못했습니다.", error);
+    console.warn("肄붿튂 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲??", error);
     render();
   } finally {
     clearTimeout(timeoutId);
@@ -1815,7 +1888,7 @@ async function resetCoachesToSamples() {
     state.selectedCoachId = null;
     render();
   } catch (error) {
-    alert(`코치 샘플을 DB에 저장하지 못했습니다.\n${error.message}`);
+    alert(`肄붿튂 ?섑뵆??DB????ν븯吏 紐삵뻽?듬땲??\n${error.message}`);
   }
 }
 
@@ -1865,19 +1938,19 @@ async function changeReservationStatus(id, status) {
       const loggedIn = await loginForReservations();
       if (loggedIn) return changeReservationStatus(id, status);
     }
-    alert(`예약 상태를 변경하지 못했습니다.\n${error.message}`);
+    alert(`?덉빟 ?곹깭瑜?蹂寃쏀븯吏 紐삵뻽?듬땲??\n${error.message}`);
   }
 }
 
 async function completeReservation(id) {
-  await changeReservationStatus(id, "완료");
-  if (state.bookingFilterStatus !== "all" && state.bookingFilterStatus !== "완료") {
+  await changeReservationStatus(id, "?꾨즺");
+  if (state.bookingFilterStatus !== "all" && state.bookingFilterStatus !== "?꾨즺") {
     renderBookings();
   }
 }
 
 async function removeReservation(id) {
-  if (!window.confirm("이 예약을 완전히 삭제할까요? 삭제하면 목록에서 사라집니다.")) return;
+  if (!window.confirm("???덉빟???꾩쟾????젣?좉퉴?? ??젣?섎㈃ 紐⑸줉?먯꽌 ?щ씪吏묐땲??")) return;
   try {
     await runAdminRequest(() => deleteReservation(id));
     state.bookings = state.bookings.filter((booking) => booking.id !== id);
@@ -1885,7 +1958,7 @@ async function removeReservation(id) {
     renderMetrics();
     renderBookings();
   } catch (error) {
-    alert(`예약을 삭제하지 못했습니다.\n${error.message}`);
+    alert(`?덉빟????젣?섏? 紐삵뻽?듬땲??\n${error.message}`);
   }
 }
 
@@ -1915,34 +1988,34 @@ function renderBookingDetail() {
     const attachment = booking.feedback?.attachment || {};
     panel.hidden = false;
     panel.innerHTML = `
-      <h3>Discord /피드백 접수</h3>
+      <h3>Discord /?쇰뱶諛??묒닔</h3>
       <div class="booking-detail-grid">
-        ${renderDetailItem("신청 시간", booking.createdAtText)}
-        ${renderDetailItem("수강생 Riot ID", booking.studentName)}
-        ${renderDetailItem("챔피언 및 K/D/A", booking.coachPrice)}
-        ${renderDetailItem("현재 상태", booking.status)}
-        ${renderDetailItem("Discord 신청자", `${booking.feedback?.discord_display_name || "-"} (${booking.feedback?.discord_user_id || "-"})`)}
-        ${renderDetailItem("서버 / 채널", `${booking.feedback?.guild_name || "-"} / ${booking.feedback?.channel_name || "-"}`)}
-        ${renderDetailLink("ROFL 파일", attachment.filename, attachment.url)}
-        ${renderDetailItem("문의사항", booking.feedback?.inquiry || booking.memo, true)}
+        ${renderDetailItem("?좎껌 ?쒓컙", booking.createdAtText)}
+        ${renderDetailItem("?섍컯??Riot ID", booking.studentName)}
+        ${renderDetailItem("梨뷀뵾??諛?K/D/A", booking.coachPrice)}
+        ${renderDetailItem("?꾩옱 ?곹깭", booking.status)}
+        ${renderDetailItem("Discord ?좎껌??, `${booking.feedback?.discord_display_name || "-"} (${booking.feedback?.discord_user_id || "-"})`)}
+        ${renderDetailItem("?쒕쾭 / 梨꾨꼸", `${booking.feedback?.guild_name || "-"} / ${booking.feedback?.channel_name || "-"}`)}
+        ${renderDetailLink("ROFL ?뚯씪", attachment.filename, attachment.url)}
+        ${renderDetailItem("臾몄쓽?ы빆", booking.feedback?.inquiry || booking.memo, true)}
       </div>
     `;
     return;
   }
   panel.hidden = false;
   panel.innerHTML = `
-    <h3>예약 상세</h3>
+    <h3>?덉빟 ?곸꽭</h3>
     <div class="booking-detail-grid">
-      ${renderDetailItem("예약 ID", booking.id)}
-      ${renderDetailItem("신청 시간", booking.createdAtText)}
-      ${renderDetailItem("코치명", booking.coachName)}
-      ${renderDetailItem("상품 가격", booking.coachPrice)}
-      ${renderDetailItem("접수 경로", booking.source)}
-      ${renderDetailItem("수강생 Riot ID", booking.studentName)}
-      ${renderDetailItem("연락처", booking.contact)}
-      ${renderDetailItem("희망 시간", booking.preferredTime)}
-      ${renderDetailItem("현재 상태", booking.status)}
-      ${renderDetailItem("요청사항", booking.memo, true)}
+      ${renderDetailItem("?덉빟 ID", booking.id)}
+      ${renderDetailItem("?좎껌 ?쒓컙", booking.createdAtText)}
+      ${renderDetailItem("肄붿튂紐?, booking.coachName)}
+      ${renderDetailItem("?곹뭹 媛寃?, booking.coachPrice)}
+      ${renderDetailItem("?묒닔 寃쎈줈", booking.source)}
+      ${renderDetailItem("?섍컯??Riot ID", booking.studentName)}
+      ${renderDetailItem("?곕씫泥?, booking.contact)}
+      ${renderDetailItem("?щ쭩 ?쒓컙", booking.preferredTime)}
+      ${renderDetailItem("?꾩옱 ?곹깭", booking.status)}
+      ${renderDetailItem("?붿껌?ы빆", booking.memo, true)}
     </div>
   `;
 }
@@ -1957,7 +2030,7 @@ function renderDetailItem(label, value, wide = false) {
 }
 
 function renderDetailLink(label, text, url) {
-  const link = url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(text || "다운로드")}</a>` : "-";
+  const link = url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(text || "?ㅼ슫濡쒕뱶")}</a>` : "-";
   return `
     <div class="booking-detail-item">
       <span>${label}</span>
@@ -1984,19 +2057,19 @@ function escapeHtml(value) {
 
 function renderBookings() {
   $("bookingStatusFilter").innerHTML = `
-    <option value="all">전체 상태</option>
+    <option value="all">?꾩껜 ?곹깭</option>
     ${renderStatusOptions(state.bookingFilterStatus)}
   `;
   $("bookingStatusFilter").value = state.bookingFilterStatus;
   $("bookingSearchInput").value = state.bookingQuery;
 
   if (state.bookingLoadState === "loading") {
-    $("bookingRows").innerHTML = `<tr><td colspan="7">예약 목록을 불러오는 중입니다.</td></tr>`;
+    $("bookingRows").innerHTML = `<tr><td colspan="7">?덉빟 紐⑸줉??遺덈윭?ㅻ뒗 以묒엯?덈떎.</td></tr>`;
     renderBookingDetail();
     return;
   }
   if (state.bookingLoadState === "error") {
-    $("bookingRows").innerHTML = `<tr><td colspan="7">${state.bookingLoadError || "예약 목록을 불러오지 못했습니다."}</td></tr>`;
+    $("bookingRows").innerHTML = `<tr><td colspan="7">${state.bookingLoadError || "?덉빟 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲??"}</td></tr>`;
     renderBookingDetail();
     return;
   }
@@ -2019,12 +2092,12 @@ function renderBookings() {
       <td>${escapeHtml(booking.memo)}</td>
       <td>
         <div class="booking-actions">
-          <button type="button" class="mini primary-mini" data-booking-complete="${escapeHtml(booking.id)}">완료</button>
-          <button type="button" class="mini danger-mini" data-booking-delete="${escapeHtml(booking.id)}">삭제</button>
+          <button type="button" class="mini primary-mini" data-booking-complete="${escapeHtml(booking.id)}">?꾨즺</button>
+          <button type="button" class="mini danger-mini" data-booking-delete="${escapeHtml(booking.id)}">??젣</button>
         </div>
       </td>
     </tr>
-  `).join("") : `<tr><td colspan="7">예약이 없습니다.</td></tr>`;
+  `).join("") : `<tr><td colspan="7">?덉빟???놁뒿?덈떎.</td></tr>`;
 
   document.querySelectorAll("[data-booking-id]").forEach((row) => {
     row.addEventListener("click", () => {
@@ -2056,7 +2129,7 @@ function renderBookings() {
 function renderAdmin() {
   const groups = new Map();
   state.coaches.forEach((coach) => {
-    const name = String(coach.coachProfileName || coach.name || "이름 없음").trim();
+    const name = String(coach.coachProfileName || coach.name || "?대쫫 ?놁쓬").trim();
     if (!groups.has(name)) groups.set(name, []);
     groups.get(name).push(coach);
   });
@@ -2065,20 +2138,20 @@ function renderAdmin() {
     <section class="admin-coach-group">
       <div class="admin-coach-head">
         <strong>${name}</strong>
-        <span>${coaches.length}개 강의</span>
+        <span>${coaches.length}媛?媛뺤쓽</span>
       </div>
       ${coaches.map((coach) => `
         <button class="admin-row" type="button" data-id="${coach.id}">
           <img src="${coach.image}" alt="">
           <span>
             <h4>${coach.tagline || coach.name}</h4>
-            <p>${categoryLabel(coach.category)} · ${coach.price}</p>
+            <p>${categoryLabel(coach.category)} 쨌 ${coach.price}</p>
           </span>
-          <span class="chip">수정</span>
+          <span class="chip">?섏젙</span>
         </button>
       `).join("")}
     </section>
-  `).join("") : `<div class="empty">등록된 강의가 없습니다.</div>`;
+  `).join("") : `<div class="empty">?깅줉??媛뺤쓽媛 ?놁뒿?덈떎.</div>`;
 
   document.querySelectorAll(".admin-row").forEach((row) => {
     row.addEventListener("click", () => fillCoachForm(state.coaches.find((coach) => coach.id === row.dataset.id)));
@@ -2101,8 +2174,8 @@ function renderCoachSelf() {
       ${escapeHtml(coach.name)}
     </button>
   `).join("");
-  $("coachSelfName").textContent = current ? current.name : "코치 선택";
-  $("coachSelfHint").textContent = current ? `${current.tier} · ${current.lessons}개 강의` : "강의를 선택하면 오른쪽에서 수정합니다.";
+  $("coachSelfName").textContent = current ? current.name : "肄붿튂 ?좏깮";
+  $("coachSelfHint").textContent = current ? `${current.tier} 쨌 ${current.lessons}媛?媛뺤쓽` : "媛뺤쓽瑜??좏깮?섎㈃ ?ㅻⅨ履쎌뿉???섏젙?⑸땲??";
 
   const lessons = getCoachSelfLessons();
   if (state.coachSelfLessonId && !lessons.some((lesson) => lesson.id === state.coachSelfLessonId)) {
@@ -2113,11 +2186,11 @@ function renderCoachSelf() {
       <img src="${lesson.image}" alt="" style="${getImageStyle(lesson)}">
       <span>
         <strong>${escapeHtml(lesson.name)}</strong>
-        <small>${escapeHtml(lesson.tagline || "강의 설명 없음")}</small>
-        <em>${escapeHtml(lesson.price || "가격 상담")}</em>
+        <small>${escapeHtml(lesson.tagline || "媛뺤쓽 ?ㅻ챸 ?놁쓬")}</small>
+        <em>${escapeHtml(lesson.price || "媛寃??곷떞")}</em>
       </span>
     </button>
-  `).join("") : `<div class="empty">이 코치에게 연결된 강의가 없습니다.</div>`;
+  `).join("") : `<div class="empty">??肄붿튂?먭쾶 ?곌껐??媛뺤쓽媛 ?놁뒿?덈떎.</div>`;
 
   document.querySelectorAll("[data-self-coach-key]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -2141,15 +2214,15 @@ function renderCoachSelfEditor() {
   if (!lesson) {
     editor.innerHTML = `
       <div class="detail-empty">
-        <strong>강의를 선택해주세요.</strong>
-        <span>선택한 코치의 강의만 여기에서 개별 수정할 수 있습니다.</span>
+        <strong>媛뺤쓽瑜??좏깮?댁＜?몄슂.</strong>
+        <span>?좏깮??肄붿튂??媛뺤쓽留??ш린?먯꽌 媛쒕퀎 ?섏젙?????덉뒿?덈떎.</span>
       </div>
     `;
     return;
   }
   const amount = String(lesson.price || "").match(/[\d,]+/)?.[0]?.replace(/[^\d]/g, "") || "";
-  const unitType = String(lesson.price || "").includes("게임") ? "game" : "time";
-  const unit = String(lesson.price || "").split("/")[1]?.trim() || (unitType === "game" ? "1게임" : "1시간");
+  const unitType = String(lesson.price || "").includes("寃뚯엫") ? "game" : "time";
+  const unit = String(lesson.price || "").split("/")[1]?.trim() || (unitType === "game" ? "1寃뚯엫" : "1?쒓컙");
   const filters = filterSets.league;
   const purposeOptions = filters.type.filter((item) => item.id !== "all");
   const selectedPurposes = getCoachPurposes(lesson);
@@ -2159,45 +2232,45 @@ function renderCoachSelfEditor() {
       <input type="hidden" id="coachSelfLessonId" value="${escapeHtml(lesson.id)}">
       <div class="coach-self-editor-head">
         <div>
-          <span>${escapeHtml(lesson.coachProfileName || "코치")}</span>
+          <span>${escapeHtml(lesson.coachProfileName || "肄붿튂")}</span>
           <h3>${escapeHtml(lesson.name)}</h3>
         </div>
-        <button type="submit" class="primary" id="coachSelfSaveBtn">저장</button>
+        <button type="submit" class="primary" id="coachSelfSaveBtn">???/button>
       </div>
-      <label>강의명<input id="coachSelfLessonName" required value="${escapeHtml(lesson.name)}"></label>
-      <label>한 줄 소개<input id="coachSelfTagline" required value="${escapeHtml(lesson.tagline || "")}"></label>
+      <label>媛뺤쓽紐?input id="coachSelfLessonName" required value="${escapeHtml(lesson.name)}"></label>
+      <label>??以??뚭컻<input id="coachSelfTagline" required value="${escapeHtml(lesson.tagline || "")}"></label>
       <div class="price-builder">
-        <label><span>가격</span><input id="coachSelfPriceAmount" inputmode="numeric" value="${escapeHtml(amount)}"></label>
-        <label><span>기준</span>
+        <label><span>媛寃?/span><input id="coachSelfPriceAmount" inputmode="numeric" value="${escapeHtml(amount)}"></label>
+        <label><span>湲곗?</span>
           <select id="coachSelfPriceUnitType">
-            <option value="time" ${unitType === "time" ? "selected" : ""}>시간</option>
-            <option value="game" ${unitType === "game" ? "selected" : ""}>게임</option>
+            <option value="time" ${unitType === "time" ? "selected" : ""}>?쒓컙</option>
+            <option value="game" ${unitType === "game" ? "selected" : ""}>寃뚯엫</option>
           </select>
         </label>
-        <label><span>단위</span><select id="coachSelfPriceUnit"></select></label>
+        <label><span>?⑥쐞</span><select id="coachSelfPriceUnit"></select></label>
         <input id="coachSelfPrice" type="hidden">
       </div>
-      ${["엠버서더", "최우수"].includes(lesson.tier) ? `
+      ${["?좊쾭?쒕뜑", "理쒖슦??].includes(lesson.tier) ? `
         <label class="toggle-line">
           <input id="coachSelfFeaturedAd" type="checkbox" ${lesson.featuredAd ? "checked" : ""}>
-          <span>이 강의를 상단 추천 광고로 노출</span>
+          <span>??媛뺤쓽瑜??곷떒 異붿쿇 愿묎퀬濡??몄텧</span>
         </label>
       ` : ""}
       <fieldset class="choice-field">
-        <legend>분류</legend>
+        <legend>遺꾨쪟</legend>
         <div class="choice-grid">
           ${purposeOptions.map((item) => `<label><input type="checkbox" name="coachSelfPurposeChoice" value="${item.id}" ${selectedPurposes.includes(item.id) ? "checked" : ""}> ${item.label}</label>`).join("")}
         </div>
       </fieldset>
       <fieldset class="choice-field">
-        <legend>전문 분야</legend>
+        <legend>?꾨Ц 遺꾩빞</legend>
         <div class="choice-grid">
           ${[...adminLineOptions.league, ...adminFieldOptions.league].map((role) => `<label><input type="checkbox" name="coachSelfRoleChoice" value="${role}" ${selectedRoles.includes(role) ? "checked" : ""}> ${role}</label>`).join("")}
         </div>
       </fieldset>
-      <label>상세 설명<textarea id="coachSelfBio" rows="7">${escapeHtml(lesson.bio || "")}</textarea></label>
+      <label>?곸꽭 ?ㅻ챸<textarea id="coachSelfBio" rows="7">${escapeHtml(lesson.bio || "")}</textarea></label>
       <div class="form-actions">
-        <button type="button" class="secondary" id="coachSelfOpenFullEditBtn">전체 편집 화면에서 열기</button>
+        <button type="button" class="secondary" id="coachSelfOpenFullEditBtn">?꾩껜 ?몄쭛 ?붾㈃?먯꽌 ?닿린</button>
         <span class="save-status" id="coachSelfSaveStatus" aria-live="polite"></span>
       </div>
     </form>
@@ -2225,7 +2298,7 @@ function renderCoachSelfPriceUnitOptions(type, selected = "") {
 
 function updateCoachSelfPriceValue() {
   const amount = Number(String($("coachSelfPriceAmount")?.value || "").replace(/[^\d]/g, ""));
-  const amountText = amount ? `${amount.toLocaleString("ko-KR")}원` : "가격 상담";
+  const amountText = amount ? `${amount.toLocaleString("ko-KR")}?? : "媛寃??곷떞";
   if ($("coachSelfPrice")) $("coachSelfPrice").value = `${amountText} / ${$("coachSelfPriceUnit").value}`;
 }
 
@@ -2236,14 +2309,14 @@ async function saveCoachSelfLesson(event) {
   if (!previous) return;
   const saveButton = $("coachSelfSaveBtn");
   saveButton.disabled = true;
-  $("coachSelfSaveStatus").textContent = "저장 중...";
+  $("coachSelfSaveStatus").textContent = "???以?..";
   $("coachSelfSaveStatus").className = "save-status loading";
   const next = {
     ...previous,
     manualCoachEdit: true,
     name: $("coachSelfLessonName").value.trim(),
     tagline: $("coachSelfTagline").value.trim(),
-    price: (updateCoachSelfPriceValue(), $("coachSelfPrice").value.trim() || "가격 상담"),
+    price: (updateCoachSelfPriceValue(), $("coachSelfPrice").value.trim() || "媛寃??곷떞"),
     featuredAd: Boolean($("coachSelfFeaturedAd")?.checked),
     featuredAdUpdatedAt: $("coachSelfFeaturedAd")?.checked ? new Date().toISOString() : "",
     purpose: getCheckedValues("coachSelfPurposeChoice"),
@@ -2254,13 +2327,13 @@ async function saveCoachSelfLesson(event) {
   try {
     const savedCoach = await runAdminRequest(() => saveCoachToApi(next, previousIndex));
     state.coaches = state.coaches.map((coach) => coach.id === id ? migrateCoachImages([savedCoach])[0] : coach);
-    $("coachSelfSaveStatus").textContent = "저장 완료";
+    $("coachSelfSaveStatus").textContent = "????꾨즺";
     $("coachSelfSaveStatus").className = "save-status success";
     renderCoachSelf();
   } catch (error) {
-    $("coachSelfSaveStatus").textContent = "저장 실패";
+    $("coachSelfSaveStatus").textContent = "????ㅽ뙣";
     $("coachSelfSaveStatus").className = "save-status error";
-    alert(`강의 정보를 저장하지 못했습니다.\n${error.message}`);
+    alert(`媛뺤쓽 ?뺣낫瑜???ν븯吏 紐삵뻽?듬땲??\n${error.message}`);
   } finally {
     saveButton.disabled = false;
   }
@@ -2298,13 +2371,13 @@ function renderAdminChoiceControls(selectedPurposes = [], selectedRoles = [], se
   const fieldOptions = adminFieldOptions[category] || adminFieldOptions.league;
   if ($("coachRoleChoices")) $("coachRoleChoices").innerHTML = `
     <div class="choice-subgroup">
-      <span>라인</span>
+      <span>?쇱씤</span>
       <div class="choice-grid">
         ${lineOptions.map((role) => `<label><input type="checkbox" name="coachRoleChoice" value="${role}" ${selectedRoles.includes(role) ? "checked" : ""}> ${role}</label>`).join("")}
       </div>
     </div>
     <div class="choice-subgroup">
-      <span>분야</span>
+      <span>遺꾩빞</span>
       <div class="choice-grid">
         ${fieldOptions.map((role) => `<label><input type="checkbox" name="coachRoleChoice" value="${role}" ${selectedRoles.includes(role) ? "checked" : ""}> ${role}</label>`).join("")}
       </div>
@@ -2322,7 +2395,7 @@ function renderBadgePicker(selectedBadges = []) {
   const selected = [...new Set(selectedBadges.filter(Boolean))];
   if (!$("coachBadgeSelect") || !$("coachBadgeChoices")) return;
   $("coachBadgeSelect").innerHTML = `
-    <option value="">배지 선택</option>
+    <option value="">諛곗? ?좏깮</option>
     ${badgeOptions
       .filter((badge) => !selected.includes(badge))
       .map((badge) => `<option value="${badge}">${badge}</option>`)
@@ -2330,7 +2403,7 @@ function renderBadgePicker(selectedBadges = []) {
   `;
   $("coachBadgeChoices").innerHTML = selected.length ? selected.map((badge) => `
     <label><input type="checkbox" name="coachBadgeChoice" value="${badge}" checked> ${badge}</label>
-  `).join("") : `<span class="choice-empty">선택된 배지 없음</span>`;
+  `).join("") : `<span class="choice-empty">?좏깮??諛곗? ?놁쓬</span>`;
 }
 
 function addSelectedBadge() {
@@ -2344,12 +2417,12 @@ function getCheckedValues(name) {
   return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map((input) => input.value);
 }
 
-function getTierFromBadges(badges, fallback = "일반") {
-  if (badges.includes("엠버서더")) return "엠버서더";
-  if (badges.includes("최우수")) return "최우수";
-  if (badges.includes("우수")) return "우수";
-  if (badges.includes("일반")) return "일반";
-  return fallback || "일반";
+function getTierFromBadges(badges, fallback = "?쇰컲") {
+  if (badges.includes("?좊쾭?쒕뜑")) return "?좊쾭?쒕뜑";
+  if (badges.includes("理쒖슦??)) return "理쒖슦??;
+  if (badges.includes("?곗닔")) return "?곗닔";
+  if (badges.includes("?쇰컲")) return "?쇰컲";
+  return fallback || "?쇰컲";
 }
 
 function setCoachSaveStatus(message = "", type = "") {
@@ -2367,8 +2440,8 @@ function renderPriceUnitOptions(type, selected = "") {
 function setPriceFields(price) {
   const textPrice = String(price || "");
   const amount = textPrice.match(/[\d,]+/)?.[0]?.replace(/[^\d]/g, "") || "";
-  const unit = textPrice.includes("게임") ? "game" : "time";
-  const unitText = textPrice.split("/")[1]?.trim() || (unit === "game" ? "1게임" : "1시간");
+  const unit = textPrice.includes("寃뚯엫") ? "game" : "time";
+  const unitText = textPrice.split("/")[1]?.trim() || (unit === "game" ? "1寃뚯엫" : "1?쒓컙");
   $("coachPriceAmount").value = amount;
   $("coachPriceUnitType").value = unit;
   renderPriceUnitOptions(unit, unitText);
@@ -2377,7 +2450,7 @@ function setPriceFields(price) {
 
 function updateCoachPriceValue() {
   const amount = Number(String($("coachPriceAmount").value || "").replace(/[^\d]/g, ""));
-  const amountText = amount ? `${amount.toLocaleString("ko-KR")}원` : "가격 상담";
+  const amountText = amount ? `${amount.toLocaleString("ko-KR")}?? : "媛寃??곷떞";
   $("coachPrice").value = `${amountText} / ${$("coachPriceUnit").value}`;
 }
 
@@ -2401,12 +2474,12 @@ function handleCoachImageFile(event) {
   const file = event.target.files?.[0];
   if (!file) return;
   if (!file.type.startsWith("image/")) {
-    alert("이미지 파일만 선택할 수 있습니다.");
+    alert("?대?吏 ?뚯씪留??좏깮?????덉뒿?덈떎.");
     event.target.value = "";
     return;
   }
   if (file.size > 1024 * 1024) {
-    alert("이미지는 1MB 이하로 올려주세요. 큰 이미지는 홈페이지 저장 공간을 금방 채웁니다.");
+    alert("?대?吏??1MB ?댄븯濡??щ젮二쇱꽭?? ???대?吏???덊럹?댁? ???怨듦컙??湲덈갑 梨꾩썎?덈떎.");
     event.target.value = "";
     return;
   }
@@ -2420,7 +2493,7 @@ function handleCoachImageFile(event) {
       previewId: "coachImagePreview",
       width: 520,
       height: 520,
-      label: "일반 목록 이미지",
+      label: "?쇰컲 紐⑸줉 ?대?吏",
     });
   });
   reader.readAsDataURL(file);
@@ -2430,12 +2503,12 @@ function handleWideCoachImageFile(event, inputId, previewId, label) {
   const file = event.target.files?.[0];
   if (!file) return;
   if (!file.type.startsWith("image/")) {
-    alert("이미지 파일만 선택할 수 있습니다.");
+    alert("?대?吏 ?뚯씪留??좏깮?????덉뒿?덈떎.");
     event.target.value = "";
     return;
   }
   if (file.size > 3 * 1024 * 1024) {
-    alert(`${label}는 3MB 이하로 올려주세요.`);
+    alert(`${label}??3MB ?댄븯濡??щ젮二쇱꽭??`);
     event.target.value = "";
     return;
   }
@@ -2455,12 +2528,12 @@ function openCropModal(target = null) {
     previewId: "coachImagePreview",
     width: 520,
     height: 520,
-    label: "일반 목록 이미지",
+    label: "?쇰컲 紐⑸줉 ?대?吏",
   };
   const image = state.cropSourceImage || $(state.cropTarget.inputId).value.trim();
   if (!image) return;
   $("cropImage").src = image;
-  $("cropTitle").textContent = `${state.cropTarget.label} 범위 지정`;
+  $("cropTitle").textContent = `${state.cropTarget.label} 踰붿쐞 吏??;
   $("cropModal").hidden = false;
   $("cropX").value = 50;
   $("cropY").value = 50;
@@ -2572,7 +2645,7 @@ function applyImageCrop() {
 async function saveCoachFromForm() {
   const saveButton = $("saveCoachBtn");
   saveButton.disabled = true;
-  setCoachSaveStatus("저장 중...", "loading");
+  setCoachSaveStatus("???以?..", "loading");
   const id = $("coachId").value || `coach-${Date.now()}`;
   const previous = state.coaches.find((coach) => coach.id === id);
   const previousIndex = state.coaches.findIndex((coach) => coach.id === id);
@@ -2588,7 +2661,7 @@ async function saveCoachFromForm() {
     tagline: $("coachTagline").value.trim(),
     purpose: selectedPurposes.length ? selectedPurposes : ["value"],
     roles: getCheckedValues("coachRoleChoice"),
-    price: (updateCoachPriceValue(), $("coachPrice").value.trim() || "가격 상담"),
+    price: (updateCoachPriceValue(), $("coachPrice").value.trim() || "媛寃??곷떞"),
     image: $("coachImage").value.trim() || "assets/lollogo.png",
     featuredImage: $("coachFeaturedImage").value.trim(),
     featuredImagePosition: "center center",
@@ -2603,7 +2676,7 @@ async function saveCoachFromForm() {
     rating: previous?.rating || 4.8,
     lessons: previous?.lessons || 0,
     bio: $("coachBio").value.trim(),
-    reviews: previous?.reviews || [["첫 후기", "관리자가 입력한 샘플 후기입니다."]],
+    reviews: previous?.reviews || [["泥??꾧린", "愿由ъ옄媛 ?낅젰???섑뵆 ?꾧린?낅땲??"]],
   };
   try {
     const savedCoach = await runAdminRequest(() => saveCoachToApi(next, previousIndex >= 0 ? previousIndex : state.coaches.length));
@@ -2615,13 +2688,13 @@ async function saveCoachFromForm() {
     state.selectedCoachId = savedCoach.id;
     render();
     fillCoachForm(savedCoach);
-    setCoachSaveStatus("저장 완료", "success");
+    setCoachSaveStatus("????꾨즺", "success");
     setTimeout(() => {
-      if ($("coachSaveStatus")?.textContent === "저장 완료") setCoachSaveStatus();
+      if ($("coachSaveStatus")?.textContent === "????꾨즺") setCoachSaveStatus();
     }, 2200);
   } catch (error) {
-    setCoachSaveStatus("저장 실패", "error");
-    alert(`코치 정보를 저장하지 못했습니다.\n${error.message}`);
+    setCoachSaveStatus("????ㅽ뙣", "error");
+    alert(`肄붿튂 ?뺣낫瑜???ν븯吏 紐삵뻽?듬땲??\n${error.message}`);
   } finally {
     saveButton.disabled = false;
   }
@@ -2637,7 +2710,7 @@ async function deleteSelectedCoach() {
     fillCoachForm();
     render();
   } catch (error) {
-    alert(`코치 정보를 삭제하지 못했습니다.\n${error.message}`);
+    alert(`肄붿튂 ?뺣낫瑜???젣?섏? 紐삵뻽?듬땲??\n${error.message}`);
   }
 }
 

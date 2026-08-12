@@ -12,6 +12,19 @@
   --shadow: 0 12px 34px rgba(21, 32, 43, 0.08);
 }
 
+body[data-theme="dark"] {
+  --bg: #0f172a;
+  --panel: #172033;
+  --panel-2: #111827;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --line: #334155;
+  --brand: #22c55e;
+  --brand-dark: #86efac;
+  --blue: #60a5fa;
+  --shadow: 0 16px 38px rgba(0, 0, 0, 0.34);
+}
+
 * { box-sizing: border-box; }
 body {
   margin: 0;
@@ -19,6 +32,9 @@ body {
   color: var(--text);
   font-family: Inter, Pretendard, "Segoe UI", Arial, sans-serif;
   letter-spacing: 0;
+}
+body[data-theme="dark"] img {
+  color-scheme: dark;
 }
 button, input, select, textarea {
   font: inherit;
@@ -248,6 +264,30 @@ button {
   justify-items: end;
   gap: 10px;
 }
+.user-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.user-action,
+.theme-toggle {
+  min-height: 34px;
+  border-radius: 8px;
+  padding: 8px 11px;
+  font-size: 12px;
+  font-weight: 900;
+}
+.theme-toggle {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+}
+.theme-toggle[aria-pressed="true"] {
+  border-color: #86efac;
+  background: #052e1a;
+  color: #bbf7d0;
+}
 .metrics {
   display: grid;
   grid-template-columns: repeat(3, 100px);
@@ -269,7 +309,7 @@ button {
   list-style: none;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--panel);
   color: var(--muted);
   padding: 8px 11px;
   font-size: 12px;
@@ -293,7 +333,7 @@ button {
   padding: 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--panel);
   box-shadow: var(--shadow);
 }
 .admin-menu button {
@@ -301,7 +341,7 @@ button {
   border-radius: 7px;
   padding: 9px 10px;
   background: transparent;
-  color: #344054;
+  color: var(--text);
   text-align: left;
   font-size: 13px;
   font-weight: 800;
@@ -821,6 +861,14 @@ button {
   font-size: 13px;
   line-height: 1.45;
 }
+.booking-route {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.booking-route button {
+  min-height: 40px;
+}
 .review-preview {
   display: grid;
   gap: 8px;
@@ -895,6 +943,82 @@ button {
   background: rgba(15, 23, 42, 0.64);
 }
 .lesson-detail-modal[hidden] { display: none; }
+.auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.64);
+}
+.auth-modal[hidden] { display: none; }
+.auth-dialog {
+  width: min(440px, 100%);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  position: relative;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.34);
+  overflow: hidden;
+}
+.auth-dialog .crop-close {
+  color: var(--text);
+}
+.auth-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line);
+}
+.auth-tabs button {
+  min-height: 44px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+.auth-tabs button.active {
+  background: var(--panel);
+  color: var(--brand-dark);
+}
+.auth-content {
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+}
+.auth-content h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.auth-content p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.auth-content button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.guest-selected {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+.guest-selected span,
+.guest-selected em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+.guest-selected strong {
+  font-size: 15px;
+}
 .lesson-detail-dialog {
   width: min(760px, 100%);
   max-height: min(90vh, 920px);
@@ -1080,6 +1204,16 @@ input, select, textarea {
   background: #fff;
   color: var(--text);
 }
+body[data-theme="dark"] input,
+body[data-theme="dark"] select,
+body[data-theme="dark"] textarea {
+  background: #0f172a;
+  color: var(--text);
+}
+body[data-theme="dark"] input::placeholder,
+body[data-theme="dark"] textarea::placeholder {
+  color: #64748b;
+}
 textarea { resize: vertical; }
 .section-head {
   display: flex;
@@ -1216,26 +1350,30 @@ th {
   display: grid;
   gap: 16px;
 }
-.student-guide {
+.student-guide,
+.student-flow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 .student-guide div,
+.student-flow div,
 .student-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
   box-shadow: var(--shadow);
 }
-.student-guide div {
+.student-guide div,
+.student-flow div {
   display: grid;
   grid-template-columns: 36px minmax(0, 1fr);
   gap: 4px 10px;
   padding: 14px;
   align-items: start;
 }
-.student-guide span {
+.student-guide span,
+.student-flow span {
   grid-row: span 2;
   width: 32px;
   height: 32px;
@@ -1246,14 +1384,85 @@ th {
   color: var(--brand-dark);
   font-weight: 900;
 }
-.student-guide strong {
+.student-guide strong,
+.student-flow strong {
   font-size: 15px;
 }
-.student-guide p {
+.student-guide p,
+.student-flow p {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
+}
+.student-hero {
+  display: grid;
+  grid-template-columns: minmax(340px, 1.15fr) minmax(280px, 0.95fr) minmax(260px, 0.8fr);
+  gap: 16px;
+}
+.student-hero-card {
+  display: grid;
+  gap: 10px;
+  min-height: 170px;
+  padding: 20px;
+  border: 1px solid #c7d7ee;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f4f8ff 100%);
+  box-shadow: 0 18px 42px rgba(21, 32, 43, 0.09);
+}
+.student-hero-card.highlight {
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 78%);
+  border-color: #93c5fd;
+}
+.student-hero-card.reward {
+  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 78%);
+  border-color: #86efac;
+}
+.student-hero-card > span {
+  color: #175cd3;
+  font-size: 12px;
+  font-weight: 900;
+}
+.student-hero-card.reward > span {
+  color: #047857;
+}
+.student-hero-card strong {
+  font-size: 32px;
+  line-height: 1.05;
+}
+.student-hero-card p {
+  margin: 0;
+  color: #475467;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.student-hero-card em {
+  justify-self: start;
+  align-self: end;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #dbeafe;
+  color: #175cd3;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+}
+.student-hero-card.reward em {
+  background: #dcfce7;
+  color: #047857;
+}
+.student-flow {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.student-flow div {
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.72);
+}
+.student-main-grid {
+  display: grid;
+  grid-template-columns: minmax(520px, 1.35fr) minmax(340px, 0.85fr);
+  gap: 16px;
+  align-items: start;
 }
 .student-grid {
   display: grid;
@@ -1267,6 +1476,14 @@ th {
 .student-panel {
   padding: 16px;
   min-width: 0;
+}
+.student-history-panel {
+  padding: 18px;
+}
+.student-review-panel {
+  padding: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfffd 100%);
+  border-color: #b8e8cc;
 }
 .student-panel-head {
   display: flex;
@@ -1289,6 +1506,10 @@ th {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
+}
+.student-review-list {
+  display: grid;
+  gap: 10px;
 }
 .student-actions {
   display: flex;
@@ -1336,15 +1557,19 @@ th {
   display: grid;
   gap: 8px;
 }
+.student-timeline {
+  display: grid;
+  gap: 10px;
+}
 .student-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: linear-gradient(90deg, #ffffff 0%, #f8fafc 100%);
 }
 .student-row span {
   min-width: 0;
@@ -1360,6 +1585,10 @@ th {
 .student-row small {
   color: var(--muted);
   font-size: 12px;
+}
+.student-row small.student-review-state {
+  color: var(--brand-dark);
+  font-weight: 900;
 }
 .coach-self-head {
   align-items: flex-end;
@@ -1890,6 +2119,72 @@ th {
   color: var(--muted);
 }
 
+body[data-theme="dark"] .metrics div,
+body[data-theme="dark"] .detail-panel,
+body[data-theme="dark"] .coach-card,
+body[data-theme="dark"] .student-hero-card,
+body[data-theme="dark"] .student-flow div,
+body[data-theme="dark"] .student-guide div,
+body[data-theme="dark"] .student-panel,
+body[data-theme="dark"] .student-balance,
+body[data-theme="dark"] .table-wrap,
+body[data-theme="dark"] .admin-form,
+body[data-theme="dark"] .admin-list,
+body[data-theme="dark"] .coach-self-preview,
+body[data-theme="dark"] .coach-self-editor,
+body[data-theme="dark"] .coach-self-card,
+body[data-theme="dark"] .lesson-detail-dialog,
+body[data-theme="dark"] .auth-dialog,
+body[data-theme="dark"] .empty {
+  background: var(--panel);
+  color: var(--text);
+}
+body[data-theme="dark"] .student-row,
+body[data-theme="dark"] .admin-row,
+body[data-theme="dark"] .booking-detail-item,
+body[data-theme="dark"] .detail-summary div,
+body[data-theme="dark"] .lesson-info-grid article,
+body[data-theme="dark"] .student-next,
+body[data-theme="dark"] .student-empty,
+body[data-theme="dark"] .student-review-card,
+body[data-theme="dark"] .booking-note {
+  background: var(--panel-2);
+  color: var(--text);
+}
+body[data-theme="dark"] .student-hero-card,
+body[data-theme="dark"] .student-hero-card.highlight,
+body[data-theme="dark"] .student-hero-card.reward,
+body[data-theme="dark"] .student-review-panel,
+body[data-theme="dark"] .student-row {
+  background: linear-gradient(135deg, #172033 0%, #111827 100%);
+}
+body[data-theme="dark"] .student-hero-card p {
+  color: #cbd5e1;
+}
+body[data-theme="dark"] .secondary {
+  background: #253142;
+  color: #e5e7eb;
+}
+body[data-theme="dark"] label,
+body[data-theme="dark"] legend {
+  color: #cbd5e1;
+}
+body[data-theme="dark"] .booking-panel {
+  background: #052e1a;
+  border-color: #15803d;
+  border-left-color: #22c55e;
+}
+body[data-theme="dark"] .booking-panel-head strong,
+body[data-theme="dark"] .booking-panel-head em,
+body[data-theme="dark"] .lesson-info-grid span,
+body[data-theme="dark"] .student-panel-head span {
+  color: #86efac;
+}
+body[data-theme="dark"] .booking-panel-head span,
+body[data-theme="dark"] .booking-note {
+  color: #bbf7d0;
+}
+
 @media (max-width: 980px) {
   .app-shell { grid-template-columns: 1fr; }
   .sidebar { position: static; }
@@ -1902,6 +2197,9 @@ th {
   .booking-tools { grid-template-columns: 1fr; }
   .booking-detail-grid { grid-template-columns: 1fr; }
   .student-guide,
+  .student-flow,
+  .student-hero,
+  .student-main-grid,
   .student-grid,
   .student-grid.lower { grid-template-columns: 1fr; }
   .student-head { align-items: stretch; }

@@ -38,6 +38,11 @@
           <h1 id="heroTitle"></h1>
         </div>
         <div class="topbar-actions">
+          <div class="user-actions">
+            <button class="secondary user-action" id="loginOpenBtn" type="button">로그인</button>
+            <button class="secondary user-action" id="guestBuyOpenBtn" type="button">비회원 구매</button>
+            <button class="theme-toggle" id="themeToggleBtn" type="button" aria-pressed="false">다크모드</button>
+          </div>
           <div class="metrics">
             <div><strong id="metricCoaches">0</strong><span id="metricCoachesLabel"></span></div>
             <div><strong id="metricBookings">0</strong><span id="metricBookingsLabel"></span></div>
@@ -277,6 +282,17 @@
     <div class="lesson-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="lessonDetailTitle">
       <button class="crop-close" id="lessonDetailCloseBtn" type="button" aria-label="닫기">×</button>
       <div id="lessonDetailBody"></div>
+    </div>
+  </div>
+  <div class="auth-modal" id="authModal" hidden>
+    <div class="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <button class="crop-close" id="authCloseBtn" type="button" aria-label="닫기">×</button>
+      <div class="auth-tabs">
+        <button type="button" class="active" data-auth-mode="login">로그인</button>
+        <button type="button" data-auth-mode="signup">회원가입</button>
+        <button type="button" data-auth-mode="guest">비회원 구매</button>
+      </div>
+      <div id="authBody"></div>
     </div>
   </div>
   <div class="crop-modal" id="cropModal" hidden>
