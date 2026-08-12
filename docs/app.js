@@ -87,6 +87,7 @@ const text = {
   navMarket: "강의 목록",
   navBookings: "예약 관리",
   navAdmin: "코치 관리",
+  navCoachSelf: "코치 개인 관리",
   sideLabel: "예약 안내",
   sideCopy: "코치 목록에서 원하는 상품을 고르면 상세 정보와 예약 신청이 바로 열립니다.",
   heroEyebrow: "LoL 리플레이 분석 · 라인전 교정 · 팀 피드백",
@@ -567,6 +568,8 @@ const state = {
   selectedCoachId: null,
   selectedCoachKey: null,
   recentCoachKeys: [],
+  coachSelfKey: "shineast",
+  coachSelfLessonId: null,
   query: "",
   coachExplorerQuery: "",
   coachExplorerRole: "all",
@@ -619,17 +622,18 @@ function normalizeCoachProfiles(coaches) {
       };
     }
     const override = leagueLessonOverrides[coach.id] || {};
+    const lessonDefaults = coach.manualCoachEdit ? {} : override;
     const coachKey = override.coachKey || inferLeagueCoachKey(coach);
     const profile = leagueCoachProfiles[coachKey] || leagueCoachProfiles.shineast;
     return {
       ...coach,
-      ...override,
+      ...lessonDefaults,
       coachKey,
       coachProfileName: profile.name,
       coachTier: profile.tier,
       coachSummary: profile.tagline,
       tier: profile.tier,
-      image: coach.image && !override.coachKey ? coach.image : profile.image,
+      image: coach.image && coach.manualCoachEdit ? coach.image : profile.image,
       imagePosition: profile.imagePosition,
       badges: [profile.tier, ...(coach.badges || []).filter((badge) => badge !== profile.tier)].slice(0, 3),
     };
@@ -666,11 +670,16 @@ function bindEvents() {
   });
 
   document.querySelectorAll(".nav-item").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.activeView = button.dataset.view;
+    button.addEventListener("click", async () => {
+      const nextView = button.dataset.view;
+      if (["bookings", "admin", "coachSelf"].includes(nextView)) {
+        const allowed = await ensureAdminAccess();
+        if (!allowed) return;
+      }
+      state.activeView = nextView;
       render();
       if (state.activeView === "bookings") {
-        loadReservations();
+        loadReservations({ promptForLogin: false });
       }
     });
   });
@@ -768,6 +777,7 @@ function render() {
   renderMarket();
   renderBookings();
   renderAdmin();
+  renderCoachSelf();
 }
 
 function renderMetrics() {
@@ -1228,6 +1238,8 @@ function renderDetail() {
     return;
   }
 
+  const reviews = coach.reviews || [];
+  const firstReview = reviews[0];
   $("coachDetail").innerHTML = `
     <div class="detail-hero"><img src="${getDetailImage(coach)}" alt="" style="${getWideImageStyle(coach, "detailImagePosition")}"></div>
     <div class="detail-body">
@@ -1235,24 +1247,32 @@ function renderDetail() {
       <h2>${coach.name}</h2>
       <p class="detail-owner">${escapeHtml(coach.coachProfileName || coach.name)} · ${escapeHtml(coach.coachSummary || coach.tier || "코치")}</p>
       <p>${coach.bio}</p>
-      <div class="booking-note">
-        <strong>예약 전 확인</strong>
-        <span>진행 방식: 디스코드 화면공유 또는 리플레이 리뷰</span>
-        <span>준비물: Riot ID, 최근 경기 리플레이, 궁금한 장면</span>
-        <span>접수 후 운영진이 희망 시간과 연락처를 확인합니다.</span>
+      <div class="detail-summary">
+        <div><span>가격</span><strong>${coach.price}</strong></div>
+        <div><span>전문 분야</span><strong>${(coach.roles || []).slice(0, 4).join(", ")}</strong></div>
       </div>
-      <div class="detail-grid">
-        <div class="info-box"><span>가격</span><strong>${coach.price}</strong></div>
-        <div class="info-box"><span>진행 수</span><strong>${coach.lessons || 0}회</strong></div>
-        <div class="info-box"><span>평점</span><strong>★ ${coach.rating.toFixed(1)}</strong></div>
-        <div class="info-box"><span>전문 분야</span><strong>${(coach.roles || []).join(", ")}</strong></div>
-        <div class="info-box"><span>분류</span><strong>${getPurposeLabels(coach.purpose).join(", ")}</strong></div>
-      </div>
-      <h3>후기</h3>
-      ${(coach.reviews || []).map(([name, body]) => `
-        <div class="review"><strong>${name}</strong><p>${body}</p></div>
-      `).join("")}
-      <div id="bookingMount"></div>
+      ${firstReview ? `
+        <section class="review-preview">
+          <div>
+            <strong>후기</strong>
+            <span>${reviews.length}개</span>
+          </div>
+          <p><b>${escapeHtml(firstReview[0])}</b> ${escapeHtml(firstReview[1])}</p>
+        </section>
+      ` : ""}
+      <section class="booking-panel">
+        <div class="booking-panel-head">
+          <div>
+            <strong>예약 신청</strong>
+            <span>Riot ID와 희망 시간을 남기면 운영진이 확인합니다.</span>
+          </div>
+          <em>${coach.price}</em>
+        </div>
+        <div class="booking-note">
+          디스코드 화면공유 또는 리플레이 리뷰로 진행됩니다.
+        </div>
+        <div id="bookingMount"></div>
+      </section>
     </div>
   `;
 
@@ -1317,8 +1337,13 @@ async function submitReservation(reservation) {
   return result.reservation || {};
 }
 
+async function ensureAdminAccess() {
+  if (sessionStorage.getItem(ADMIN_TOKEN_KEY)) return true;
+  return loginForReservations();
+}
+
 async function loginForReservations() {
-  const password = window.prompt("예약 관리 비밀번호를 입력하세요.");
+  const password = window.prompt("관리자 비밀번호를 입력하세요.");
   if (!password) return false;
 
   const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/admin/login`, {
@@ -1755,7 +1780,7 @@ function renderBookings() {
 function renderAdmin() {
   const groups = new Map();
   state.coaches.forEach((coach) => {
-    const name = String(coach.name || "이름 없음").trim();
+    const name = String(coach.coachProfileName || coach.name || "이름 없음").trim();
     if (!groups.has(name)) groups.set(name, []);
     groups.get(name).push(coach);
   });
@@ -1782,6 +1807,179 @@ function renderAdmin() {
   document.querySelectorAll(".admin-row").forEach((row) => {
     row.addEventListener("click", () => fillCoachForm(state.coaches.find((coach) => coach.id === row.dataset.id)));
   });
+}
+
+function getCoachSelfLessons() {
+  return state.coaches.filter((coach) => coach.category === "league" && getCoachKey(coach) === state.coachSelfKey);
+}
+
+function renderCoachSelf() {
+  if (!$("coachSelfTabs") || !$("coachSelfLessonGrid") || !$("coachSelfEditor")) return;
+  const identities = getCoachIdentities("league");
+  if (!identities.some((coach) => coach.key === state.coachSelfKey)) {
+    state.coachSelfKey = identities[0]?.key || "shineast";
+  }
+  const current = identities.find((coach) => coach.key === state.coachSelfKey);
+  $("coachSelfTabs").innerHTML = identities.map((coach) => `
+    <button class="coach-self-tab ${coach.key === state.coachSelfKey ? "active" : ""}" type="button" data-self-coach-key="${escapeHtml(coach.key)}">
+      ${escapeHtml(coach.name)}
+    </button>
+  `).join("");
+  $("coachSelfName").textContent = current ? current.name : "코치 선택";
+  $("coachSelfHint").textContent = current ? `${current.tier} · ${current.lessons}개 강의` : "강의를 선택하면 오른쪽에서 수정합니다.";
+
+  const lessons = getCoachSelfLessons();
+  if (state.coachSelfLessonId && !lessons.some((lesson) => lesson.id === state.coachSelfLessonId)) {
+    state.coachSelfLessonId = null;
+  }
+  $("coachSelfLessonGrid").innerHTML = lessons.length ? lessons.map((lesson) => `
+    <button class="coach-self-card ${lesson.id === state.coachSelfLessonId ? "active" : ""}" type="button" data-self-lesson-id="${escapeHtml(lesson.id)}">
+      <img src="${lesson.image}" alt="" style="${getImageStyle(lesson)}">
+      <span>
+        <strong>${escapeHtml(lesson.name)}</strong>
+        <small>${escapeHtml(lesson.tagline || "강의 설명 없음")}</small>
+        <em>${escapeHtml(lesson.price || "가격 상담")}</em>
+      </span>
+    </button>
+  `).join("") : `<div class="empty">이 코치에게 연결된 강의가 없습니다.</div>`;
+
+  document.querySelectorAll("[data-self-coach-key]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.coachSelfKey = button.dataset.selfCoachKey;
+      state.coachSelfLessonId = null;
+      renderCoachSelf();
+    });
+  });
+  document.querySelectorAll("[data-self-lesson-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.coachSelfLessonId = button.dataset.selfLessonId;
+      renderCoachSelf();
+    });
+  });
+  renderCoachSelfEditor();
+}
+
+function renderCoachSelfEditor() {
+  const editor = $("coachSelfEditor");
+  const lesson = state.coaches.find((coach) => coach.id === state.coachSelfLessonId);
+  if (!lesson) {
+    editor.innerHTML = `
+      <div class="detail-empty">
+        <strong>강의를 선택해주세요.</strong>
+        <span>선택한 코치의 강의만 여기에서 개별 수정할 수 있습니다.</span>
+      </div>
+    `;
+    return;
+  }
+  const amount = String(lesson.price || "").match(/[\d,]+/)?.[0]?.replace(/[^\d]/g, "") || "";
+  const unitType = String(lesson.price || "").includes("게임") ? "game" : "time";
+  const unit = String(lesson.price || "").split("/")[1]?.trim() || (unitType === "game" ? "1게임" : "1시간");
+  const filters = filterSets.league;
+  const purposeOptions = filters.type.filter((item) => item.id !== "all");
+  const selectedPurposes = getCoachPurposes(lesson);
+  const selectedRoles = lesson.roles || [];
+  editor.innerHTML = `
+    <form class="coach-self-form" id="coachSelfForm">
+      <input type="hidden" id="coachSelfLessonId" value="${escapeHtml(lesson.id)}">
+      <div class="coach-self-editor-head">
+        <div>
+          <span>${escapeHtml(lesson.coachProfileName || "코치")}</span>
+          <h3>${escapeHtml(lesson.name)}</h3>
+        </div>
+        <button type="submit" class="primary" id="coachSelfSaveBtn">저장</button>
+      </div>
+      <label>강의명<input id="coachSelfLessonName" required value="${escapeHtml(lesson.name)}"></label>
+      <label>한 줄 소개<input id="coachSelfTagline" required value="${escapeHtml(lesson.tagline || "")}"></label>
+      <div class="price-builder">
+        <label><span>가격</span><input id="coachSelfPriceAmount" inputmode="numeric" value="${escapeHtml(amount)}"></label>
+        <label><span>기준</span>
+          <select id="coachSelfPriceUnitType">
+            <option value="time" ${unitType === "time" ? "selected" : ""}>시간</option>
+            <option value="game" ${unitType === "game" ? "selected" : ""}>게임</option>
+          </select>
+        </label>
+        <label><span>단위</span><select id="coachSelfPriceUnit"></select></label>
+        <input id="coachSelfPrice" type="hidden">
+      </div>
+      <fieldset class="choice-field">
+        <legend>분류</legend>
+        <div class="choice-grid">
+          ${purposeOptions.map((item) => `<label><input type="checkbox" name="coachSelfPurposeChoice" value="${item.id}" ${selectedPurposes.includes(item.id) ? "checked" : ""}> ${item.label}</label>`).join("")}
+        </div>
+      </fieldset>
+      <fieldset class="choice-field">
+        <legend>전문 분야</legend>
+        <div class="choice-grid">
+          ${[...adminLineOptions.league, ...adminFieldOptions.league].map((role) => `<label><input type="checkbox" name="coachSelfRoleChoice" value="${role}" ${selectedRoles.includes(role) ? "checked" : ""}> ${role}</label>`).join("")}
+        </div>
+      </fieldset>
+      <label>상세 설명<textarea id="coachSelfBio" rows="7">${escapeHtml(lesson.bio || "")}</textarea></label>
+      <div class="form-actions">
+        <button type="button" class="secondary" id="coachSelfOpenFullEditBtn">전체 편집 화면에서 열기</button>
+        <span class="save-status" id="coachSelfSaveStatus" aria-live="polite"></span>
+      </div>
+    </form>
+  `;
+  renderCoachSelfPriceUnitOptions(unitType, unit);
+  updateCoachSelfPriceValue();
+  $("coachSelfPriceUnitType").addEventListener("change", () => {
+    renderCoachSelfPriceUnitOptions($("coachSelfPriceUnitType").value);
+    updateCoachSelfPriceValue();
+  });
+  $("coachSelfPriceAmount").addEventListener("input", updateCoachSelfPriceValue);
+  $("coachSelfPriceUnit").addEventListener("change", updateCoachSelfPriceValue);
+  $("coachSelfForm").addEventListener("submit", saveCoachSelfLesson);
+  $("coachSelfOpenFullEditBtn").addEventListener("click", () => {
+    state.activeView = "admin";
+    render();
+    fillCoachForm(lesson);
+  });
+}
+
+function renderCoachSelfPriceUnitOptions(type, selected = "") {
+  const units = priceUnits[type] || priceUnits.time;
+  $("coachSelfPriceUnit").innerHTML = units.map((item) => `<option value="${item}" ${item === selected ? "selected" : ""}>${item}</option>`).join("");
+}
+
+function updateCoachSelfPriceValue() {
+  const amount = Number(String($("coachSelfPriceAmount")?.value || "").replace(/[^\d]/g, ""));
+  const amountText = amount ? `${amount.toLocaleString("ko-KR")}원` : "가격 상담";
+  if ($("coachSelfPrice")) $("coachSelfPrice").value = `${amountText} / ${$("coachSelfPriceUnit").value}`;
+}
+
+async function saveCoachSelfLesson(event) {
+  event.preventDefault();
+  const id = $("coachSelfLessonId").value;
+  const previous = state.coaches.find((coach) => coach.id === id);
+  if (!previous) return;
+  const saveButton = $("coachSelfSaveBtn");
+  saveButton.disabled = true;
+  $("coachSelfSaveStatus").textContent = "저장 중...";
+  $("coachSelfSaveStatus").className = "save-status loading";
+  const next = {
+    ...previous,
+    manualCoachEdit: true,
+    name: $("coachSelfLessonName").value.trim(),
+    tagline: $("coachSelfTagline").value.trim(),
+    price: (updateCoachSelfPriceValue(), $("coachSelfPrice").value.trim() || "가격 상담"),
+    purpose: getCheckedValues("coachSelfPurposeChoice"),
+    roles: getCheckedValues("coachSelfRoleChoice"),
+    bio: $("coachSelfBio").value.trim(),
+  };
+  const previousIndex = state.coaches.findIndex((coach) => coach.id === id);
+  try {
+    const savedCoach = await runAdminRequest(() => saveCoachToApi(next, previousIndex));
+    state.coaches = state.coaches.map((coach) => coach.id === id ? migrateCoachImages([savedCoach])[0] : coach);
+    $("coachSelfSaveStatus").textContent = "저장 완료";
+    $("coachSelfSaveStatus").className = "save-status success";
+    renderCoachSelf();
+  } catch (error) {
+    $("coachSelfSaveStatus").textContent = "저장 실패";
+    $("coachSelfSaveStatus").className = "save-status error";
+    alert(`강의 정보를 저장하지 못했습니다.\n${error.message}`);
+  } finally {
+    saveButton.disabled = false;
+  }
 }
 
 function fillCoachForm(coach) {

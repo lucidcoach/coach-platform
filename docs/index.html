@@ -20,6 +20,7 @@
         <button class="nav-item active" data-view="market" id="navMarket"></button>
         <button class="nav-item" data-view="bookings" id="navBookings"></button>
         <button class="nav-item" data-view="admin" id="navAdmin"></button>
+        <button class="nav-item" data-view="coachSelf" id="navCoachSelf"></button>
       </nav>
       <section class="side-coaches" aria-label="코치 목록">
         <span class="label">코치 목록</span>
@@ -191,6 +192,31 @@
           </div>
         </form>
         <div class="admin-list" id="adminCoachList"></div>
+      </section>
+
+      <section class="view" id="coachSelfView">
+        <div class="section-head coach-self-head">
+          <div>
+            <p class="eyebrow">코치 개인 화면</p>
+            <h2>내 강의 관리</h2>
+          </div>
+          <div class="coach-self-tabs" id="coachSelfTabs"></div>
+        </div>
+        <div class="coach-self-layout">
+          <section class="coach-self-preview">
+            <div class="market-head">
+              <h2 id="coachSelfName">코치 선택</h2>
+              <span id="coachSelfHint">강의를 선택하면 오른쪽에서 수정합니다.</span>
+            </div>
+            <div class="coach-self-grid" id="coachSelfLessonGrid"></div>
+          </section>
+          <section class="coach-self-editor" id="coachSelfEditor">
+            <div class="detail-empty">
+              <strong>강의를 선택해주세요.</strong>
+              <span>선택한 코치의 강의만 여기에서 개별 수정할 수 있습니다.</span>
+            </div>
+          </section>
+        </div>
       </section>
     </main>
   </div>
