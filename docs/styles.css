@@ -1274,6 +1274,20 @@ textarea { resize: vertical; }
   margin-bottom: 16px;
 }
 .section-head h2 { margin: 5px 0 0; }
+.compact-head { margin-top: 26px; }
+#usersView .section-head {
+  margin-bottom: 10px;
+}
+#usersView .compact-head {
+  margin-top: 18px;
+}
+#usersView .table-wrap {
+  padding: 0;
+}
+#usersView th,
+#usersView td {
+  padding: 10px 12px;
+}
 .booking-tools {
   display: grid;
   grid-template-columns: 180px minmax(220px, 1fr);
@@ -1296,6 +1310,22 @@ th, td {
   border-bottom: 1px solid var(--line);
   font-size: 14px;
   vertical-align: top;
+}
+td small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.inline-save {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+}
+.inline-save .save-status {
+  min-width: 58px;
+  font-size: 12px;
 }
 th {
   background: var(--panel-2);

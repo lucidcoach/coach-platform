@@ -200,6 +200,10 @@ const state = {
   users: [],
   userLoadState: "idle",
   userLoadError: "",
+  userSaveStates: {},
+  coachRequests: [],
+  coachRequestLoadState: "idle",
+  coachRequestLoadError: "",
   cropSourceImage: "",
   cropTarget: null,
   currentUser: null,
@@ -222,7 +226,7 @@ function migrateCoachImages(coaches) {
 }
 
 function getPublicCatalogCoaches(coaches) {
-  const next = migrateCoachImages(coaches).filter((coach) => publicCoachIds.has(coach.id));
+  const next = migrateCoachImages(coaches);
   if (!next.length) return migrateCoachImages(structuredClone(samples));
   const byId = new Map(next.map((coach) => [coach.id, coach]));
   migrateCoachImages(structuredClone(samples)).forEach((coach) => {
@@ -232,7 +236,7 @@ function getPublicCatalogCoaches(coaches) {
 }
 
 function inferLeagueCoachKey(coach) {
-  if (coach.coachKey && leagueCoachProfiles[coach.coachKey]) return coach.coachKey;
+  if (coach.coachKey) return coach.coachKey;
   const id = String(coach.id || "");
   if (leagueLessonOverrides[id]?.coachKey) return leagueLessonOverrides[id].coachKey;
   const haystack = [coach.name, coach.tagline, coach.bio, ...(coach.roles || [])].join(" ").toLowerCase();
@@ -254,7 +258,14 @@ function normalizeCoachProfiles(coaches) {
     const override = leagueLessonOverrides[coach.id] || {};
     const lessonDefaults = coach.manualCoachEdit ? {} : override;
     const coachKey = override.coachKey || inferLeagueCoachKey(coach);
-    const profile = leagueCoachProfiles[coachKey] || leagueCoachProfiles.shineast;
+    const profile = leagueCoachProfiles[coachKey] || {
+      name: coach.coachProfileName || coach.name || "신규 코치",
+      tier: coach.coachTier || coach.tier || "일반",
+      tagline: coach.coachSummary || coach.tagline || "",
+      image: coach.image || "assets/logo.jpg",
+      imagePosition: coach.imagePosition || "center center",
+      featuredImagePosition: coach.featuredImagePosition || coach.imagePosition || "center center",
+    };
     const imagePath = imageMigration[coach.image] || coach.image || "";
     const shouldUseProfileImage = !coach.manualCoachEdit || !imagePath || imagePath === "assets/logo.jpg" || imagePath === "assets/logo.png" || imagePath === "assets/lollogo.png" || imagePath === "assets/shineast.png";
     return {
@@ -435,6 +446,7 @@ function bindEvents() {
     renderBookings();
   });
   $("reloadUsersBtn")?.addEventListener("click", () => loadUsers());
+  $("coachApplyForm")?.addEventListener("submit", submitCoachApplication);
 }
 
 function render() {
@@ -452,6 +464,7 @@ function render() {
   renderBookings();
   renderAdmin();
   renderUsers();
+  renderCoachRequests();
   renderCoachSelf();
 }
 
@@ -478,7 +491,7 @@ async function openAdminView(nextView) {
 }
 
 function hasCoachMenuAccess() {
-  return state.currentUser?.role === "admin" || (state.currentUser?.role === "coach" && state.currentUser?.coachKey);
+  return Boolean(state.currentUser);
 }
 
 function renderRoleMenu() {
@@ -489,14 +502,20 @@ function renderRoleMenu() {
     menu.innerHTML = "";
     return;
   }
+  const canManageLessons = state.currentUser?.role === "admin" || (state.currentUser?.role === "coach" && state.currentUser?.coachKey);
   menu.hidden = false;
   menu.innerHTML = `
-    <span class="label">코치 메뉴</span>
-    <button class="role-menu-button ${state.activeView === "coachSelf" ? "active" : ""}" id="openCoachSelfMenuBtn" type="button">내 강의 관리</button>
+    <span class="label">${canManageLessons ? "코치 메뉴" : "계정 메뉴"}</span>
+    ${canManageLessons ? `<button class="role-menu-button ${state.activeView === "coachSelf" ? "active" : ""}" id="openCoachSelfMenuBtn" type="button">내 강의 관리</button>` : ""}
+    ${state.currentUser?.role === "student" ? `<button class="role-menu-button ${state.activeView === "coachApply" ? "active" : ""}" id="openCoachApplyMenuBtn" type="button">코치 등록 요청</button>` : ""}
   `;
   $("openCoachSelfMenuBtn")?.addEventListener("click", () => {
     if (state.currentUser?.coachKey) state.coachSelfKey = state.currentUser.coachKey;
     state.activeView = "coachSelf";
+    render();
+  });
+  $("openCoachApplyMenuBtn")?.addEventListener("click", () => {
+    state.activeView = "coachApply";
     render();
   });
 }
@@ -1541,6 +1560,7 @@ function getAuthErrorMessage(error) {
     weak_password: "비밀번호는 8자 이상이어야 합니다.",
     missing_display_name: "닉네임을 입력해주세요.",
     email_already_exists: "이미 가입된 이메일입니다.",
+    display_name_already_exists: "이미 사용 중인 닉네임입니다.",
     missing_credentials: "이메일과 비밀번호를 입력해주세요.",
     invalid_credentials: "이메일 또는 비밀번호가 맞지 않습니다.",
   };
@@ -1816,16 +1836,29 @@ async function fetchUsers() {
 
 async function loadUsers() {
   state.userLoadState = "loading";
+  state.coachRequestLoadState = "loading";
   state.userLoadError = "";
+  state.coachRequestLoadError = "";
   renderUsers();
+  renderCoachRequests();
   try {
-    state.users = await runAdminRequest(fetchUsers);
+    const [users, requests] = await Promise.all([
+      runAdminRequest(fetchUsers),
+      runAdminRequest(fetchCoachRequests),
+    ]);
+    state.users = users;
+    state.coachRequests = requests;
     state.userLoadState = "loaded";
+    state.coachRequestLoadState = "loaded";
     renderUsers();
+    renderCoachRequests();
   } catch (error) {
     state.userLoadState = "error";
+    state.coachRequestLoadState = "error";
     state.userLoadError = "회원 목록을 불러오지 못했습니다.";
+    state.coachRequestLoadError = "코치 등록 요청을 불러오지 못했습니다.";
     renderUsers();
+    renderCoachRequests();
   }
 }
 
@@ -1847,14 +1880,154 @@ async function updateUserRole(id, payload) {
 
 async function saveUserRole(id) {
   const role = findUserRoleSelect(id)?.value || "student";
-  const coachKey = findUserCoachSelect(id)?.value || "";
+  const existing = state.users.find((item) => item.id === id);
+  state.userSaveStates = { ...state.userSaveStates, [id]: "저장 중..." };
+  renderUsers();
   try {
-    const user = await runAdminRequest(() => updateUserRole(id, { role, coachKey }));
+    const user = await runAdminRequest(() => updateUserRole(id, { role, coachKey: role === "coach" ? existing?.coachKey : "" }));
     state.users = state.users.map((item) => item.id === id ? user : item);
+    state.userSaveStates = { ...state.userSaveStates, [id]: "저장 완료" };
     renderUsers();
+    if (user.id === state.currentUser?.id) {
+      state.currentUser = user;
+      if (user.coachKey) state.coachSelfKey = user.coachKey;
+      renderRoleMenu();
+    }
   } catch (error) {
-    alert(`회원 권한을 저장하지 못했습니다.\n${error.message}`);
+    state.userSaveStates = { ...state.userSaveStates, [id]: "저장 실패" };
+    renderUsers();
   }
+}
+
+async function submitCoachApplication(event) {
+  event.preventDefault();
+  if (!state.currentUser) {
+    openAuthModal("login");
+    return;
+  }
+  const form = event.currentTarget;
+  const button = $("coachApplySubmitBtn");
+  const status = $("coachApplyStatus");
+  const originalText = button?.textContent || "요청 보내기";
+  const data = new FormData(form);
+  if (button) {
+    button.disabled = true;
+    button.textContent = "전송 중";
+  }
+  if (status) {
+    status.textContent = "";
+    status.className = "save-status loading";
+  }
+  try {
+    await createCoachRequest({
+      coachName: data.get("coachName"),
+      game: data.get("game"),
+      mainRole: data.get("mainRole"),
+      tier: data.get("tier"),
+      price: data.get("price"),
+      contact: data.get("contact"),
+      intro: data.get("intro"),
+      sample: data.get("sample"),
+    });
+    form.reset();
+    if (status) {
+      status.textContent = "요청이 접수되었습니다. 관리자가 확인 후 승인합니다.";
+      status.className = "save-status success";
+    }
+  } catch (error) {
+    if (status) {
+      status.textContent = getCoachRequestErrorMessage(error.message);
+      status.className = "save-status error";
+    }
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+}
+
+async function createCoachRequest(payload) {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach-requests`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return result.request;
+}
+
+async function fetchCoachRequests() {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach-requests`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+    credentials: "include",
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return result.requests || [];
+}
+
+async function decideCoachRequest(id, action) {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach-requests/${encodeURIComponent(id)}/${action}`, {
+    method: "POST",
+    headers: getAdminHeaders(true),
+    credentials: "include",
+    body: JSON.stringify({}),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return result;
+}
+
+async function approveCoachRequest(id) {
+  try {
+    const result = await runAdminRequest(() => decideCoachRequest(id, "approve"));
+    state.coachRequests = state.coachRequests.map((item) => item.id === id ? result.request : item);
+    if (result.user) state.users = state.users.map((item) => item.id === result.user.id ? result.user : item);
+    if (result.coach) {
+      state.coaches = getPublicCatalogCoaches([...state.coaches.filter((coach) => coach.id !== result.coach.id), result.coach]);
+    }
+    renderUsers();
+    renderCoachRequests();
+    renderMarket();
+  } catch (error) {
+    alert(`코치 등록 요청을 승인하지 못했습니다.\n${error.message}`);
+  }
+}
+
+async function rejectCoachRequest(id) {
+  try {
+    const result = await runAdminRequest(() => decideCoachRequest(id, "reject"));
+    state.coachRequests = state.coachRequests.map((item) => item.id === id ? result.request : item);
+    renderCoachRequests();
+  } catch (error) {
+    alert(`코치 등록 요청을 거절하지 못했습니다.\n${error.message}`);
+  }
+}
+
+function getCoachRequestErrorMessage(error) {
+  const messages = {
+    login_required: "로그인 후 코치 등록 요청을 보낼 수 있습니다.",
+    already_coach: "이미 코치 권한이 있는 계정입니다.",
+    missing_coach_name: "코치 이름을 입력해주세요.",
+    pending_request_exists: "이미 확인 대기 중인 코치 등록 요청이 있습니다.",
+  };
+  return messages[error] || "요청을 보내지 못했습니다. 잠시 후 다시 시도해주세요.";
 }
 
 async function changeReservationStatus(id, status) {
@@ -2114,46 +2287,99 @@ function renderUsers() {
   const target = $("userRows");
   if (!target) return;
   if (state.userLoadState === "idle") {
-    target.innerHTML = `<tr><td colspan="5">회원 목록을 불러오려면 새로고침을 눌러주세요.</td></tr>`;
+    target.innerHTML = `<tr><td colspan="4">회원 목록을 불러오려면 새로고침을 눌러주세요.</td></tr>`;
     return;
   }
   if (state.userLoadState === "loading") {
-    target.innerHTML = `<tr><td colspan="5">회원 목록을 불러오는 중입니다.</td></tr>`;
+    target.innerHTML = `<tr><td colspan="4">회원 목록을 불러오는 중입니다.</td></tr>`;
     return;
   }
   if (state.userLoadState === "error") {
-    target.innerHTML = `<tr><td colspan="5">${escapeHtml(state.userLoadError || "회원 목록을 불러오지 못했습니다.")}</td></tr>`;
+    target.innerHTML = `<tr><td colspan="4">${escapeHtml(state.userLoadError || "회원 목록을 불러오지 못했습니다.")}</td></tr>`;
     return;
   }
-  const coachOptions = getCoachIdentities("league");
   target.innerHTML = state.users.length ? state.users.map((user) => `
     <tr>
       <td>${escapeHtml(user.displayName || "-")}</td>
       <td>${escapeHtml(user.email || "-")}</td>
       <td>
         <select data-user-role="${escapeHtml(user.id)}">
-          ${["student", "coach", "admin"].map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${getRoleLabel(role)}</option>`).join("")}
+          ${[...(user.role === "coach" ? ["coach"] : []), "student", "admin"].filter((role, index, array) => array.indexOf(role) === index).map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${getRoleLabel(role)}</option>`).join("")}
         </select>
       </td>
       <td>
-        <select data-user-coach="${escapeHtml(user.id)}" ${user.role === "coach" ? "" : "disabled"}>
-          <option value="">담당 코치 없음</option>
-          ${coachOptions.map((coach) => `<option value="${escapeHtml(coach.key)}" ${coach.key === user.coachKey ? "selected" : ""}>${escapeHtml(coach.name)}</option>`).join("")}
-        </select>
+        <div class="inline-save">
+          <button class="mini primary-mini" type="button" data-user-save="${escapeHtml(user.id)}">저장</button>
+          <span class="save-status ${getUserSaveClass(user.id)}">${escapeHtml(state.userSaveStates[user.id] || "")}</span>
+        </div>
       </td>
-      <td><button class="mini primary-mini" type="button" data-user-save="${escapeHtml(user.id)}">저장</button></td>
     </tr>
-  `).join("") : `<tr><td colspan="5">가입한 회원이 없습니다.</td></tr>`;
+  `).join("") : `<tr><td colspan="4">가입한 회원이 없습니다.</td></tr>`;
 
-  document.querySelectorAll("[data-user-role]").forEach((select) => {
-    select.addEventListener("change", () => {
-      const coachSelect = findUserCoachSelect(select.dataset.userRole);
-      if (coachSelect) coachSelect.disabled = select.value !== "coach";
-    });
-  });
   document.querySelectorAll("[data-user-save]").forEach((button) => {
     button.addEventListener("click", () => saveUserRole(button.dataset.userSave));
   });
+}
+
+function renderCoachRequests() {
+  const target = $("coachRequestRows");
+  if (!target) return;
+  if (state.coachRequestLoadState === "idle") {
+    target.innerHTML = `<tr><td colspan="5">회원 목록 새로고침을 누르면 코치 등록 요청도 함께 불러옵니다.</td></tr>`;
+    return;
+  }
+  if (state.coachRequestLoadState === "loading") {
+    target.innerHTML = `<tr><td colspan="5">코치 등록 요청을 불러오는 중입니다.</td></tr>`;
+    return;
+  }
+  if (state.coachRequestLoadState === "error") {
+    target.innerHTML = `<tr><td colspan="5">${escapeHtml(state.coachRequestLoadError || "코치 등록 요청을 불러오지 못했습니다.")}</td></tr>`;
+    return;
+  }
+  target.innerHTML = state.coachRequests.length ? state.coachRequests.map((request) => `
+    <tr>
+      <td>
+        <strong>${escapeHtml(request.displayName || "-")}</strong>
+        <small>${escapeHtml(request.email || "")}</small>
+      </td>
+      <td>
+        <strong>${escapeHtml(request.coachName || "-")}</strong>
+        <small>${escapeHtml([request.game, request.mainRole, request.tier].filter(Boolean).join(" · "))}</small>
+      </td>
+      <td>
+        <span>${escapeHtml(request.intro || "-")}</span>
+        <small>${escapeHtml(request.price || "가격 미입력")} · ${escapeHtml(request.contact || "연락처 없음")}</small>
+      </td>
+      <td>${getCoachRequestStatusLabel(request.status)}</td>
+      <td>
+        ${request.status === "pending" ? `
+          <div class="booking-actions">
+            <button class="mini primary-mini" type="button" data-request-approve="${escapeHtml(request.id)}">승인</button>
+            <button class="mini danger-mini" type="button" data-request-reject="${escapeHtml(request.id)}">거절</button>
+          </div>
+        ` : `<span class="chip">${escapeHtml(request.coachKey || "-")}</span>`}
+      </td>
+    </tr>
+  `).join("") : `<tr><td colspan="5">접수된 코치 등록 요청이 없습니다.</td></tr>`;
+
+  document.querySelectorAll("[data-request-approve]").forEach((button) => {
+    button.addEventListener("click", () => approveCoachRequest(button.dataset.requestApprove));
+  });
+  document.querySelectorAll("[data-request-reject]").forEach((button) => {
+    button.addEventListener("click", () => rejectCoachRequest(button.dataset.requestReject));
+  });
+}
+
+function getCoachRequestStatusLabel(status) {
+  return { pending: "대기중", approved: "승인됨", rejected: "거절됨" }[status] || status;
+}
+
+function getUserSaveClass(id) {
+  const message = state.userSaveStates[id] || "";
+  if (message.includes("완료")) return "success";
+  if (message.includes("실패")) return "error";
+  if (message.includes("저장 중")) return "loading";
+  return "";
 }
 
 function getRoleLabel(role) {
