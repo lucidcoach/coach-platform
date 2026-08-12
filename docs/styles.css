@@ -1045,6 +1045,23 @@ button {
   cursor: not-allowed;
   opacity: 0.6;
 }
+.password-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 58px;
+  gap: 8px;
+}
+.password-field input {
+  min-width: 0;
+}
+.password-toggle {
+  min-height: 38px;
+  border-radius: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+}
 .auth-status {
   min-height: 18px;
   color: var(--danger);
@@ -2381,9 +2398,19 @@ body[data-theme="dark"] .explorer-coach-body small {
 
 @media (max-width: 980px) {
   .app-shell { grid-template-columns: 1fr; }
-  .sidebar { position: static; }
+  .sidebar {
+    position: static;
+    padding: 16px;
+    gap: 14px;
+  }
+  .main { padding: 16px; }
   .topbar, .toolbar { flex-direction: column; align-items: stretch; }
-  .topbar-actions { justify-items: stretch; }
+  .topbar-actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
   .metrics { grid-template-columns: repeat(3, 1fr); }
   .admin-menu { justify-self: end; }
   .layout { grid-template-columns: 1fr; }
@@ -2411,4 +2438,81 @@ body[data-theme="dark"] .explorer-coach-body small {
   .coach-explorer-head { grid-template-columns: 1fr; }
   .coach-explorer-grid { grid-template-columns: 1fr; }
   .coach-explorer-dialog { max-height: 90vh; }
+}
+
+@media (max-width: 640px) {
+  .brand img { width: 36px; height: 36px; }
+  .brand strong { font-size: 16px; }
+  .brand span { font-size: 12px; }
+  .nav,
+  .side-role-menu {
+    gap: 6px;
+  }
+  .nav-item,
+  .role-menu-button {
+    padding: 10px;
+  }
+  .main {
+    padding: 12px;
+  }
+  .topbar {
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .topbar h1 {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+  .topbar-actions button,
+  .admin-menu summary {
+    min-height: 38px;
+    padding: 8px 10px;
+  }
+  .market-grid,
+  .featured-grid,
+  .coach-list {
+    grid-template-columns: 1fr;
+  }
+  .coach-card {
+    grid-template-columns: 74px minmax(0, 1fr);
+    padding: 10px;
+  }
+  .avatar-frame {
+    width: 74px;
+    height: 74px;
+  }
+  .coach-main h3,
+  .coach-card h3 {
+    font-size: 17px;
+  }
+  .coach-main p {
+    font-size: 13px;
+  }
+  .auth-modal,
+  .lesson-detail-modal,
+  .coach-explorer-modal {
+    align-items: start;
+    padding: 10px;
+    overflow-y: auto;
+  }
+  .auth-dialog {
+    width: 100%;
+    max-width: none;
+  }
+  .auth-content {
+    padding: 16px;
+    gap: 10px;
+  }
+  .auth-content h2 {
+    font-size: 20px;
+  }
+  .password-field {
+    grid-template-columns: minmax(0, 1fr) 52px;
+  }
+  .table-wrap {
+    overflow-x: auto;
+  }
+  table {
+    min-width: 560px;
+  }
 }

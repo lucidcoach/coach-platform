@@ -7,6 +7,9 @@
 const API_BASE_URL = "https://lucid-chzzk-auth.onrender.com";
 const ADMIN_TOKEN_KEY = "coach-admin-token";
 const THEME_KEY = "coach-theme";
+const EMAIL_MAX_LENGTH = 254;
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MAX_LENGTH = 128;
 const RESERVATION_STATUSES = ["신규", "상담중", "예약확정", "완료", "취소"];
 const COACH_API_TIMEOUT_MS = 6500;
 
@@ -226,13 +229,10 @@ function migrateCoachImages(coaches) {
 }
 
 function getPublicCatalogCoaches(coaches) {
-  const next = migrateCoachImages(coaches);
-  if (!next.length) return migrateCoachImages(structuredClone(samples));
-  const byId = new Map(next.map((coach) => [coach.id, coach]));
-  migrateCoachImages(structuredClone(samples)).forEach((coach) => {
-    if (!byId.has(coach.id)) byId.set(coach.id, coach);
-  });
-  return [...byId.values()];
+  const base = migrateCoachImages(structuredClone(samples));
+  const sampleIds = new Set(samples.map((coach) => coach.id));
+  const extra = migrateCoachImages(coaches).filter((coach) => coach.id && !sampleIds.has(coach.id));
+  return [...base, ...extra];
 }
 
 function inferLeagueCoachKey(coach) {
@@ -494,6 +494,15 @@ function hasCoachMenuAccess() {
   return Boolean(state.currentUser);
 }
 
+function getFallbackCoachKey(user = state.currentUser) {
+  if (!user) return "";
+  return user.coachKey || String(user.displayName || user.email || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function renderRoleMenu() {
   const menu = $("sideRoleMenu");
   if (!menu) return;
@@ -502,7 +511,7 @@ function renderRoleMenu() {
     menu.innerHTML = "";
     return;
   }
-  const canManageLessons = state.currentUser?.role === "admin" || (state.currentUser?.role === "coach" && state.currentUser?.coachKey);
+  const canManageLessons = state.currentUser?.role === "admin" || state.currentUser?.role === "coach";
   menu.hidden = false;
   menu.innerHTML = `
     <span class="label">${canManageLessons ? "코치 메뉴" : "계정 메뉴"}</span>
@@ -510,7 +519,7 @@ function renderRoleMenu() {
     ${state.currentUser?.role === "student" ? `<button class="role-menu-button ${state.activeView === "coachApply" ? "active" : ""}" id="openCoachApplyMenuBtn" type="button">코치 등록 요청</button>` : ""}
   `;
   $("openCoachSelfMenuBtn")?.addEventListener("click", () => {
-    if (state.currentUser?.coachKey) state.coachSelfKey = state.currentUser.coachKey;
+    if (state.currentUser?.role === "coach") state.coachSelfKey = getFallbackCoachKey();
     state.activeView = "coachSelf";
     render();
   });
@@ -565,7 +574,22 @@ function openAuthModal(mode = "login") {
   });
   body.innerHTML = renderAuthMarkup(nextMode);
   bindAuthForm(nextMode);
+  bindPasswordToggles(body);
   modal.hidden = false;
+}
+
+function bindPasswordToggles(root = document) {
+  root.querySelectorAll("[data-toggle-password]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = button.closest(".password-field")?.querySelector("input");
+      if (!input) return;
+      const shouldShow = input.type === "password";
+      input.type = shouldShow ? "text" : "password";
+      button.textContent = shouldShow ? "숨김" : "보기";
+      button.setAttribute("aria-label", shouldShow ? "비밀번호 숨기기" : "비밀번호 보기");
+      button.title = shouldShow ? "비밀번호 숨기기" : "비밀번호 보기";
+    });
+  });
 }
 
 function renderAuthMarkup(mode) {
@@ -576,8 +600,13 @@ function renderAuthMarkup(mode) {
         <h2 id="authTitle">수강생 계정 만들기</h2>
         <p>강의 구매 내역, 예약 시간, 후기 작성 권한을 계정에 저장합니다.</p>
         <label>닉네임<input name="displayName" required placeholder="닉네임"></label>
-        <label>이메일<input name="email" type="email" required autocomplete="email" placeholder="example@email.com"></label>
-        <label>비밀번호<input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="8자 이상"></label>
+        <label>이메일<input name="email" type="email" required maxlength="${EMAIL_MAX_LENGTH}" autocomplete="email" placeholder="example@email.com"></label>
+        <label>비밀번호
+          <span class="password-field">
+            <input name="password" type="password" required minlength="${PASSWORD_MIN_LENGTH}" maxlength="${PASSWORD_MAX_LENGTH}" autocomplete="new-password" placeholder="8자 이상, 128자 이하">
+            <button class="password-toggle" type="button" data-toggle-password aria-label="비밀번호 보기" title="비밀번호 보기">보기</button>
+          </span>
+        </label>
         <button class="primary" type="submit">회원가입</button>
         <span class="auth-status" id="authStatus" aria-live="polite"></span>
       </form>
@@ -605,8 +634,13 @@ function renderAuthMarkup(mode) {
       <span class="eyebrow">로그인</span>
       <h2 id="authTitle">내 강의 이어보기</h2>
       <p>예약 내역과 후기 작성 가능 강의를 계정으로 이어서 확인합니다.</p>
-      <label>이메일<input name="email" type="email" required autocomplete="email" placeholder="example@email.com"></label>
-      <label>비밀번호<input name="password" type="password" required autocomplete="current-password" placeholder="비밀번호"></label>
+      <label>이메일<input name="email" type="email" required maxlength="${EMAIL_MAX_LENGTH}" autocomplete="email" placeholder="example@email.com"></label>
+      <label>비밀번호
+        <span class="password-field">
+          <input name="password" type="password" required minlength="${PASSWORD_MIN_LENGTH}" maxlength="${PASSWORD_MAX_LENGTH}" autocomplete="current-password" placeholder="비밀번호">
+          <button class="password-toggle" type="button" data-toggle-password aria-label="비밀번호 보기" title="비밀번호 보기">보기</button>
+        </span>
+      </label>
       <button class="primary" type="submit">로그인</button>
       <span class="auth-status" id="authStatus" aria-live="polite"></span>
     </form>
@@ -1558,6 +1592,7 @@ function getAuthErrorMessage(error) {
   const messages = {
     invalid_email: "이메일 형식을 확인해주세요.",
     weak_password: "비밀번호는 8자 이상이어야 합니다.",
+    password_too_long: "비밀번호는 128자 이하로 입력해주세요.",
     missing_display_name: "닉네임을 입력해주세요.",
     email_already_exists: "이미 가입된 이메일입니다.",
     display_name_already_exists: "이미 사용 중인 닉네임입니다.",
