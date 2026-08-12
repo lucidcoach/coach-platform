@@ -275,7 +275,7 @@ function boot() {
   $("navStudent").textContent = "내 정보";
   $("navCoachSearch").textContent = "맞춤 강의 검색";
   $("searchInput").placeholder = text.searchPlaceholder;
-  $("coachImagePosition").placeholder = "?? center 8%, 72% 12%";
+  $("coachImagePosition").placeholder = "예: center 8%, 72% 12%";
   state.coaches = migrateCoachImages(structuredClone(samples));
   state.coachLoadState = "loaded";
   render();
@@ -387,28 +387,28 @@ function bindEvents() {
   });
   $("coachImage")?.addEventListener("input", () => updateCoachImagePreview());
   $("coachImageFile").addEventListener("change", handleCoachImageFile);
-  $("coachFeaturedImageFile").addEventListener("change", (event) => handleWideCoachImageFile(event, "coachFeaturedImage", "coachFeaturedImagePreview", "?곷떒 異붿쿇 ?대?吏"));
-  $("coachDetailImageFile").addEventListener("change", (event) => handleWideCoachImageFile(event, "coachDetailImage", "coachDetailImagePreview", "?곸꽭 ?ㅻ챸 ?대?吏"));
+  $("coachFeaturedImageFile").addEventListener("change", (event) => handleWideCoachImageFile(event, "coachFeaturedImage", "coachFeaturedImagePreview", "상단 추천 이미지"));
+  $("coachDetailImageFile").addEventListener("change", (event) => handleWideCoachImageFile(event, "coachDetailImage", "coachDetailImagePreview", "상세 설명 이미지"));
   $("openFeaturedCropBtn").addEventListener("click", () => openCropModal({
     inputId: "coachFeaturedImage",
     previewId: "coachFeaturedImagePreview",
     width: 1200,
     height: 675,
-    label: "?곷떒 異붿쿇 ?대?吏",
+    label: "상단 추천 이미지",
   }));
   $("openCropBtn").addEventListener("click", () => openCropModal({
     inputId: "coachImage",
     previewId: "coachImagePreview",
     width: 520,
     height: 520,
-    label: "?쇰컲 紐⑸줉 ?대?吏",
+    label: "일반 목록 이미지",
   }));
   $("openDetailCropBtn").addEventListener("click", () => openCropModal({
     inputId: "coachDetailImage",
     previewId: "coachDetailImagePreview",
     width: 1200,
     height: 675,
-    label: "?곸꽭 ?ㅻ챸 ?대?吏",
+    label: "상세 설명 이미지",
   }));
   $("cropCloseBtn").addEventListener("click", closeCropModal);
   $("applyCropBtn").addEventListener("click", applyImageCrop);
@@ -587,8 +587,8 @@ function renderStudentHome() {
             </div>
           `).join("") || `
             <div class="student-empty">
-              <strong>?댁뿭???놁뒿?덈떎.</strong>
-              <span>援щℓ???덉빟???앷린硫???紐⑸줉?먯꽌 ?뺤씤?⑸땲??</span>
+              <strong>내역이 없습니다.</strong>
+              <span>구매나 예약이 생기면 이 목록에서 확인합니다.</span>
             </div>
           `}
         </div>
@@ -612,8 +612,8 @@ function renderStudentHome() {
           </div>
         ` : `
           <div class="student-empty">
-            <strong>?묒꽦 媛?ν븳 ?꾧린媛 ?놁뒿?덈떎.</strong>
-            <span>媛뺤쓽媛 ?꾨즺?섎㈃ ?꾧린 ?묒꽦 踰꾪듉???쒖떆?⑸땲??</span>
+            <strong>작성 가능한 후기가 없습니다.</strong>
+            <span>강의가 완료되면 후기 작성 버튼이 표시됩니다.</span>
           </div>
         `}
       </article>
@@ -630,9 +630,9 @@ function getCoachIdentityFromGroup(coachKey, coaches) {
   const profile = first.category === "league" ? leagueCoachProfiles[coachKey] : null;
   return {
     key: coachKey,
-    name: profile?.name || first.coachProfileName || first.name || "肄붿튂",
-    tier: profile?.tier || first.coachTier || first.tier || "?쇰컲",
-    tagline: profile?.tagline || first.coachSummary || first.tagline || "肄붿묶 ?곹뭹",
+    name: profile?.name || first.coachProfileName || first.name || "코치",
+    tier: profile?.tier || first.coachTier || first.tier || "일반",
+    tagline: profile?.tagline || first.coachSummary || first.tagline || "코칭 상품",
     roles: profile?.roles || first.roles || [],
     image: profile?.image || first.image || "assets/lollogo.png",
     imagePosition: profile?.imagePosition || first.imagePosition || "center 8%",
@@ -679,23 +679,23 @@ function renderSidebarCoaches() {
   target.innerHTML = `
     <button class="coach-explorer-open" id="openCoachExplorerBtn" type="button">
       <span>
-        <strong>肄붿튂 紐⑸줉 ?닿린</strong>
-        <small>${escapeHtml(categoryLabel(state.category))} ${identities.length}紐?쨌 ${state.coaches.filter((coach) => coach.category === state.category).length}媛?媛뺤쓽</small>
+        <strong>코치 목록 열기</strong>
+        <small>${escapeHtml(categoryLabel(state.category))} ${identities.length}명 · ${state.coaches.filter((coach) => coach.category === state.category).length}개 강의</small>
       </span>
-      <em>?좏깮</em>
+      <em>선택</em>
     </button>
     ${selected ? `
       <button class="selected-side-coach active" type="button" data-side-coach-key="${escapeHtml(selected.key)}">
         <img src="${selected.image}" alt="">
         <span>
           <strong>${escapeHtml(selected.name)}</strong>
-          <small>${escapeHtml(selected.lessons)}媛?媛뺤쓽 쨌 ${escapeHtml(selected.tier)}</small>
+          <small>${escapeHtml(selected.lessons)}개 강의 · ${escapeHtml(selected.tier)}</small>
         </span>
       </button>
-    ` : `<p class="side-empty">?꾩쭅 ?좏깮??肄붿튂媛 ?놁뒿?덈떎.</p>`}
+    ` : `<p class="side-empty">아직 선택한 코치가 없습니다.</p>`}
     ${recent.length ? `
       <div class="recent-side-coaches">
-        <span>理쒓렐 ?좏깮</span>
+        <span>최근 선택</span>
         ${recent.map((coach) => `
           <button class="recent-side-coach ${coach.key === state.selectedCoachKey ? "active" : ""}" type="button" data-side-coach-key="${escapeHtml(coach.key)}">
             <img src="${coach.image}" alt="">
@@ -763,14 +763,14 @@ function renderCoachExplorer() {
   if (state.coachExplorerTier !== "all" && !tierFilters.some((filter) => filter.id === state.coachExplorerTier)) {
     state.coachExplorerTier = "all";
   }
-  $("coachExplorerTitle").textContent = `${categoryLabel(state.category)} 肄붿튂 紐⑸줉`;
-  $("coachExplorerMeta").textContent = `${getCoachIdentities().length}紐?쨌 ${state.coaches.filter((coach) => coach.category === state.category).length}媛?媛뺤쓽`;
-  $("coachExplorerRoleFilters").innerHTML = [{ id: "all", label: "?꾩껜" }, ...roleFilters].map((filter) => `
+  $("coachExplorerTitle").textContent = `${categoryLabel(state.category)} 코치 목록`;
+  $("coachExplorerMeta").textContent = `${getCoachIdentities().length}명 · ${state.coaches.filter((coach) => coach.category === state.category).length}개 강의`;
+  $("coachExplorerRoleFilters").innerHTML = [{ id: "all", label: "전체" }, ...roleFilters].map((filter) => `
     <button class="explorer-filter ${state.coachExplorerRole === filter.id ? "active" : ""}" type="button" data-explorer-role="${escapeHtml(filter.id)}">
       ${escapeHtml(filter.label)}
     </button>
   `).join("");
-  $("coachExplorerTierFilters").innerHTML = [{ id: "all", label: "?꾩껜 ?깃툒" }, ...tierFilters].map((filter) => `
+  $("coachExplorerTierFilters").innerHTML = [{ id: "all", label: "전체 등급" }, ...tierFilters].map((filter) => `
     <button class="explorer-filter ${state.coachExplorerTier === filter.id ? "active" : ""}" type="button" data-explorer-tier="${escapeHtml(filter.id)}">
       ${escapeHtml(filter.label)}
     </button>
@@ -778,7 +778,7 @@ function renderCoachExplorer() {
 
   const visible = getVisibleExplorerCoaches();
   $("coachExplorerGrid").innerHTML = visible.length ? visible.map(renderCoachExplorerCard).join("") : `
-    <div class="empty">議곌굔??留욌뒗 肄붿튂媛 ?놁뒿?덈떎.</div>
+    <div class="empty">조건에 맞는 코치가 없습니다.</div>
   `;
   document.querySelectorAll("[data-explorer-role]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -805,8 +805,8 @@ function renderCoachExplorer() {
 
 function renderCoachExplorerCard(coach) {
   const productCount = coach.lessons || 0;
-  const roleText = (coach.roles || []).slice(0, 4).join(" 쨌 ");
-  const badges = ["異붿쿇", coach.tier].slice(0, 2).map((badge) => `<span>${escapeHtml(badge)}</span>`).join("");
+  const roleText = (coach.roles || []).slice(0, 4).join(" · ");
+  const badges = ["추천", coach.tier].slice(0, 2).map((badge) => `<span>${escapeHtml(badge)}</span>`).join("");
   return `
     <button class="explorer-coach-card ${coach.key === state.selectedCoachKey ? "active" : ""}" type="button" data-explorer-coach-key="${escapeHtml(coach.key)}">
       <img src="${coach.image}" alt="" style="object-position: ${coach.imagePosition};">
@@ -815,11 +815,11 @@ function renderCoachExplorerCard(coach) {
           <strong>${escapeHtml(coach.name)}</strong>
           <em>${escapeHtml(coach.tier)}</em>
         </span>
-        <small>${escapeHtml(coach.tagline || "肄붿묶 ?곹뭹")}</small>
-        <span class="explorer-card-meta">${escapeHtml(roleText || "媛뺤쓽")}</span>
+        <small>${escapeHtml(coach.tagline || "코칭 상품")}</small>
+        <span class="explorer-card-meta">${escapeHtml(roleText || "강의")}</span>
         <span class="explorer-card-foot">
           <span>${badges}</span>
-          <b>${productCount}媛?媛뺤쓽</b>
+          <b>${productCount}개 강의</b>
         </span>
       </span>
     </button>
@@ -898,7 +898,7 @@ function renderMarket() {
   if (state.coachLoadState === "idle" || state.coachLoadState === "loading") {
     $("featuredSection").hidden = true;
     $("featuredList").innerHTML = "";
-    $("coachList").innerHTML = `<div class="empty">肄붿튂 紐⑸줉??遺덈윭?ㅻ뒗 以묒엯?덈떎.</div>`;
+    $("coachList").innerHTML = `<div class="empty">코치 목록을 불러오는 중입니다.</div>`;
     state.selectedCoachId = null;
     renderDetail();
     return;
@@ -907,7 +907,7 @@ function renderMarket() {
   if (state.coachLoadState === "error") {
     $("featuredSection").hidden = true;
     $("featuredList").innerHTML = "";
-    $("coachList").innerHTML = `<div class="empty">肄붿튂 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲??</div>`;
+    $("coachList").innerHTML = `<div class="empty">코치 목록을 불러오지 못했습니다.</div>`;
     state.selectedCoachId = null;
     renderDetail();
     return;
@@ -928,7 +928,7 @@ function renderMarket() {
   );
   const listed = visible.filter((coach) => !featuredIds.has(coach.id));
   $("coachList").innerHTML = listed.length ? listed.map(renderCoachCard).join("") : `
-    <div class="empty">寃??寃곌낵媛 ?놁뒿?덈떎.</div>
+    <div class="empty">검색 결과가 없습니다.</div>
   `;
   document.querySelectorAll("[data-coach-id]").forEach((card) => {
     card.addEventListener("click", (event) => {
@@ -991,12 +991,12 @@ function getFeaturedCoachSlots(visible) {
 function renderFeaturedCard(coach) {
   const originalPrice = getOriginalPrice(coach.price);
   const featuredImage = getFeaturedImage(coach);
-  const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" 쨌 ");
+  const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
   return `
     <article class="featured-card ${getTierClass(coach)}" data-coach-id="${coach.id}">
       <div class="featured-image">
         <img src="${featuredImage}" alt="" style="${getWideImageStyle(coach, "featuredImagePosition")}">
-        <span class="ad-label">異붿쿇</span>
+        <span class="ad-label">추천</span>
         <span class="tier-ribbon">${coach.tier}</span>
       </div>
       <div class="featured-body">
@@ -1004,12 +1004,12 @@ function renderFeaturedCard(coach) {
         <p class="coach-owner">${escapeHtml(coach.coachProfileName || coach.name)}</p>
         <p class="purpose-label">${purposeText}</p>
         <p class="featured-summary">${coach.tagline}</p>
-        <div class="featured-rating">??${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></div>
+        <div class="featured-rating">★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></div>
         <div class="featured-price">
           <strong>${coach.price}</strong>
           ${originalPrice ? `<del>${originalPrice}</del>` : ""}
         </div>
-        <button class="detail-link" type="button" data-detail-id="${escapeHtml(coach.id)}">?곸꽭蹂닿린</button>
+        <button class="detail-link" type="button" data-detail-id="${escapeHtml(coach.id)}">상세보기</button>
       </div>
     </article>
   `;
@@ -1024,7 +1024,7 @@ function getOriginalPrice(price) {
 function renderCoachCard(coach) {
   const badges = getCoachBadges(coach);
   const imageStyle = getImageStyle(coach);
-  const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" 쨌 ");
+  const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
   return `
     <article class="coach-card ${coach.id === state.selectedCoachId ? "active" : ""} ${getTierClass(coach)}" data-coach-id="${coach.id}">
       <div class="avatar-frame"><img class="avatar" src="${coach.image}" alt="" style="${imageStyle}"></div>
@@ -1037,10 +1037,10 @@ function renderCoachCard(coach) {
         <div class="chips">${(coach.roles || []).map((role) => `<span class="chip">${role}</span>`).join("")}</div>
       </div>
       <div class="card-foot">
-        <span>??${coach.rating.toFixed(1)} 쨌 ?꾧린 ${coach.reviews?.length || 0}</span>
+        <span>★ ${coach.rating.toFixed(1)} · 후기 ${coach.reviews?.length || 0}</span>
         <span class="price">${coach.price}</span>
       </div>
-      <button class="detail-link card-detail-link" type="button" data-detail-id="${escapeHtml(coach.id)}">?곸꽭蹂닿린</button>
+      <button class="detail-link card-detail-link" type="button" data-detail-id="${escapeHtml(coach.id)}">상세보기</button>
     </article>
   `;
 }
@@ -1097,8 +1097,8 @@ function renderDetail() {
   if (!coach) {
     $("coachDetail").innerHTML = `
       <div class="detail-empty">
-        <strong>?곹뭹???좏깮?섎㈃ 誘몃━蹂닿린媛 ?쒖떆?⑸땲??</strong>
-        <span>?곸꽭蹂닿린?먯꽌 ?ㅻ챸, ?꾧린, ?덉빟 ?좎껌????踰덉뿉 ?뺤씤?????덉뒿?덈떎.</span>
+        <strong>상품을 선택하면 미리보기가 표시됩니다.</strong>
+        <span>상세보기에서 설명, 후기, 예약 신청을 한 번에 확인할 수 있습니다.</span>
       </div>
     `;
     return;
@@ -1110,17 +1110,17 @@ function renderDetail() {
     <div class="detail-body">
       <div class="rank-badges">${getCoachBadges(coach).map(renderBadge).join("")}</div>
       <h2>${coach.name}</h2>
-      <p class="detail-owner">${escapeHtml(coach.coachProfileName || coach.name)} 쨌 ${escapeHtml(coach.coachSummary || coach.tier || "肄붿튂")}</p>
+      <p class="detail-owner">${escapeHtml(coach.coachProfileName || coach.name)} · ${escapeHtml(coach.coachSummary || coach.tier || "코치")}</p>
       <div class="detail-trust">
-        <strong>??${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></strong>
-        <em>${reviews.length}媛??꾧린</em>
+        <strong>★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></strong>
+        <em>${reviews.length}개 후기</em>
       </div>
       <p>${coach.tagline || coach.bio}</p>
       <div class="detail-summary">
-        <div><span>媛寃?/span><strong>${coach.price}</strong></div>
-        <div><span>?꾨Ц 遺꾩빞</span><strong>${(coach.roles || []).slice(0, 4).join(", ")}</strong></div>
+        <div><span>가격</span><strong>${coach.price}</strong></div>
+        <div><span>전문 분야</span><strong>${(coach.roles || []).slice(0, 4).join(", ")}</strong></div>
       </div>
-      <button class="primary detail-panel-button" type="button" data-detail-id="${escapeHtml(coach.id)}">?곸꽭蹂닿린</button>
+      <button class="primary detail-panel-button" type="button" data-detail-id="${escapeHtml(coach.id)}">상세보기</button>
     </div>
   `;
   $("coachDetail").querySelector("[data-detail-id]")?.addEventListener("click", () => openLessonDetail(coach.id));
@@ -1144,7 +1144,7 @@ function closeLessonDetail() {
 function getLessonFocusItems(coach) {
   const roles = (coach.roles || []).slice(0, 4);
   const purposeLabels = getPurposeLabels(coach.purpose).slice(0, 3);
-  const fallback = ["由ы뵆?덉씠 ?듭떖 ?λ㈃ ?먭?", "?쇱씤???듦? 援먯젙", "?ㅼ쓬 寃뚯엫 ?곸슜 怨쇱젣 ?뺣━"];
+  const fallback = ["리플레이 핵심 장면 점검", "라인전 습관 교정", "다음 게임 적용 과제 정리"];
   return [...roles, ...purposeLabels, ...fallback]
     .map((item) => String(item).trim())
     .filter(Boolean)
@@ -1154,11 +1154,11 @@ function getLessonFocusItems(coach) {
 
 function getCoachDetailTone(coach) {
   const key = getCoachKey(coach);
-  if (key === "shineast") return "?꾨줈? ?댁쁺 愿?먯쑝濡??쇱씤?? ?ㅻ뜑, ?寃뚯엫 ?먮떒源뚯? ?볤쾶 遊낅땲??";
-  if (key === "mephi") return "?꾪봽濡?諛뷀? ?쇱씠??愿?먯쑝濡????쇱씤 ?쇰뱶諛깃낵 ?寃뚯엫 由щ럭源뚯? 媛?ν빀?덈떎.";
-  if (key === "mireu") return "??곗뼱? ?쇰컲 ?섍컯?앹씠 諛붾줈 ?곕씪 ?????덇쾶 ?숈꽑怨??먮떒 湲곗????쎄쾶 ?뺣━?⑸땲??";
-  if (key === "persona") return "???쇱씤 以묒떖???대줎怨?留ㅼ튂???댄빐?꾨? 李⑤텇?섍쾶 ?뺣━?⑸땲??";
-  return "?꾩옱 ?뚮젅?댁뿉??諛붾줈 怨좎튌 ???덈뒗 ?듦?怨??ㅼ쓬 ?곗뒿 怨쇱젣瑜??뺣━?⑸땲??";
+  if (key === "shineast") return "프로팀 운영 관점으로 라인전, 오더, 팀게임 판단까지 넓게 봅니다.";
+  if (key === "mephi") return "전프로 바텀 라이너 관점으로 전 라인 피드백과 팀게임 리뷰까지 가능합니다.";
+  if (key === "mireu") return "저티어와 일반 수강생이 바로 따라 할 수 있게 동선과 판단 기준을 쉽게 정리합니다.";
+  if (key === "persona") return "탑 라인 중심의 이론과 매치업 이해도를 차분하게 정리합니다.";
+  return "현재 플레이에서 바로 고칠 수 있는 습관과 다음 연습 과제를 정리합니다.";
 }
 
 function renderLessonInfoBlocks(coach) {
@@ -1167,21 +1167,21 @@ function renderLessonInfoBlocks(coach) {
   return `
     <section class="lesson-info-grid">
       <article>
-        <span>??媛뺤쓽?먯꽌 蹂대뒗 寃?/span>
+        <span>이 강의에서 보는 것</span>
         <ul>${focusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
       </article>
       <article>
-        <span>吏꾪뻾 諛⑹떇</span>
+        <span>진행 방식</span>
         <ul>
-          <li>?붿뒪肄붾뱶 ?붾㈃怨듭쑀 ?먮뒗 由ы뵆?덉씠 由щ럭</li>
-          <li>?듭떖 ?λ㈃ ?꾩＜濡??먯씤怨???덉쓣 ?뺣━</li>
-          <li>?앸굹湲????ㅼ쓬 ?곗뒿 怨쇱젣 ?뺤씤</li>
+          <li>디스코드 화면공유 또는 리플레이 리뷰</li>
+          <li>핵심 장면 위주로 원인과 대안을 정리</li>
+          <li>끝나기 전 다음 연습 과제 확인</li>
         </ul>
       </article>
       <article>
-        <span>異붿쿇 ???/span>
+        <span>추천 대상</span>
         <p>${escapeHtml(getCoachDetailTone(coach))}</p>
-        <small>?먮ℓ ${coach.lessons || 0}??쨌 ?꾧린 ${reviewCount}媛?쨌 ?됱젏 ${coach.rating.toFixed(1)}</small>
+        <small>판매 ${coach.lessons || 0}회 · 후기 ${reviewCount}개 · 평점 ${coach.rating.toFixed(1)}</small>
       </article>
     </section>
   `;
@@ -1194,22 +1194,22 @@ function renderLessonDetailMarkup(coach) {
     <div class="lesson-detail-body">
       <div class="rank-badges">${getCoachBadges(coach).map(renderBadge).join("")}</div>
       <h2 id="lessonDetailTitle">${escapeHtml(coach.name)}</h2>
-      <p class="detail-owner">${escapeHtml(coach.coachProfileName || coach.name)} 쨌 ${escapeHtml(coach.coachSummary || coach.tier || "肄붿튂")}</p>
+      <p class="detail-owner">${escapeHtml(coach.coachProfileName || coach.name)} · ${escapeHtml(coach.coachSummary || coach.tier || "코치")}</p>
       <div class="detail-trust">
-        <strong>??${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></strong>
-        <em>${reviews.length}媛??꾧린</em>
+        <strong>★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></strong>
+        <em>${reviews.length}개 후기</em>
       </div>
       <p>${escapeHtml(coach.bio || coach.tagline || "")}</p>
       <div class="detail-summary">
-        <div><span>媛寃?/span><strong>${escapeHtml(coach.price)}</strong></div>
-        <div><span>?꾨Ц 遺꾩빞</span><strong>${escapeHtml((coach.roles || []).slice(0, 5).join(", "))}</strong></div>
+        <div><span>가격</span><strong>${escapeHtml(coach.price)}</strong></div>
+        <div><span>전문 분야</span><strong>${escapeHtml((coach.roles || []).slice(0, 5).join(", "))}</strong></div>
       </div>
       ${renderLessonInfoBlocks(coach)}
       ${reviews.length ? `
         <section class="review-preview full">
           <div>
-            <strong>?꾧린</strong>
-            <span>${reviews.length}媛?/span>
+            <strong>후기</strong>
+            <span>${reviews.length}개</span>
           </div>
           ${reviews.slice(0, 3).map(([name, body]) => `<p><b>${escapeHtml(name)}</b> ${escapeHtml(body)}</p>`).join("")}
         </section>
@@ -1217,17 +1217,17 @@ function renderLessonDetailMarkup(coach) {
       <section class="booking-panel">
         <div class="booking-panel-head">
           <div>
-            <strong>?덉빟 ?좎껌</strong>
-            <span>Riot ID? ?щ쭩 ?쒓컙???④린硫??댁쁺吏꾩씠 ?뺤씤?⑸땲??</span>
+            <strong>예약 신청</strong>
+            <span>Riot ID와 희망 시간을 남기면 운영진이 확인합니다.</span>
           </div>
           <em>${escapeHtml(coach.price)}</em>
         </div>
         <div class="booking-note">
-          ?붿뒪肄붾뱶 ?붾㈃怨듭쑀 ?먮뒗 由ы뵆?덉씠 由щ럭濡?吏꾪뻾?⑸땲??
+          디스코드 화면공유 또는 리플레이 리뷰로 진행됩니다.
         </div>
         <div class="booking-route">
-          <button class="secondary" type="button" onclick="openAuthModal('login')">?뚯썝?쇰줈 ?덉빟</button>
-          <button class="secondary" type="button" onclick="openAuthModal('guest')">鍮꾪쉶??援щℓ</button>
+          <button class="secondary" type="button" onclick="openAuthModal('login')">회원으로 예약</button>
+          <button class="secondary" type="button" onclick="openAuthModal('guest')">비회원 구매</button>
         </div>
         <div id="lessonBookingMount"></div>
       </section>
@@ -1245,10 +1245,10 @@ function mountBookingForm(mountId, coach) {
   $("bookingTimeLabel").textContent = text.bookingTimeLabel;
   $("bookingMemoLabel").textContent = text.bookingMemoLabel;
   $("bookingSubmitBtn").textContent = text.bookingSubmitBtn;
-  $("bookingForm").student.placeholder = "?? ?됰꽕??KR1";
-  $("bookingForm").contact.placeholder = "?? Discord ID";
-  $("bookingForm").time.placeholder = "?? 8/10 21:00";
-  $("bookingForm").memo.placeholder = "?쇱씤, 梨뷀뵾?? 怨좊????곸뼱二쇱꽭??";
+  $("bookingForm").student.placeholder = "예: 닉네임#KR1";
+  $("bookingForm").contact.placeholder = "예: Discord ID";
+  $("bookingForm").time.placeholder = "예: 8/10 21:00";
+  $("bookingForm").memo.placeholder = "라인, 챔피언, 고민을 적어주세요.";
   $("bookingForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const submitButton = $("bookingSubmitBtn");
@@ -1271,10 +1271,10 @@ function mountBookingForm(mountId, coach) {
       await submitReservation(reservation);
       await loadReservations({ promptForLogin: false, silent: true });
       event.target.reset();
-      alert("?덉빟 ?좎껌???묒닔?먯뒿?덈떎. ?댁쁺吏꾩씠 ?곕씫?쒕┫寃뚯슂.");
+      alert("예약 신청이 접수되었습니다. 운영진이 연락드릴게요.");
       render();
     } catch (error) {
-      alert(`?덉빟 ?좎껌????ν븯吏 紐삵뻽?듬땲??\n${error.message}`);
+      alert(`예약 신청을 저장하지 못했습니다.\n${error.message}`);
     } finally {
       submitButton.disabled = false;
       submitButton.textContent = originalText;
@@ -1284,7 +1284,7 @@ function mountBookingForm(mountId, coach) {
 
 async function submitReservation(reservation) {
   if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) {
-    throw new Error("?덉빟 API 二쇱냼媛 ?꾩쭅 ?ㅼ젙?섏? ?딆븯?듬땲??");
+    throw new Error("예약 API 주소가 아직 설정되지 않았습니다.");
   }
   const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/reservations`, {
     method: "POST",
@@ -1305,7 +1305,7 @@ async function ensureAdminAccess() {
 }
 
 async function loginForReservations() {
-  const password = window.prompt("愿由ъ옄 鍮꾨?踰덊샇瑜??낅젰?섏꽭??");
+  const password = window.prompt("관리자 비밀번호를 입력하세요.");
   if (!password) return false;
 
   const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/admin/login`, {
@@ -1361,7 +1361,7 @@ async function loadReservations(options = {}) {
     }
     if (!silent) {
       state.bookingLoadState = "error";
-      state.bookingLoadError = "?덉빟 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲??";
+      state.bookingLoadError = "예약 목록을 불러오지 못했습니다.";
       renderBookings();
     }
   }
@@ -1442,7 +1442,7 @@ async function loadCoachesFromApi() {
     }
   } catch (error) {
     state.coachLoadState = hasFallbackCoaches ? "loaded" : "error";
-    console.warn("肄붿튂 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲??", error);
+    console.warn("코치 목록을 불러오지 못했습니다.", error);
     render();
   } finally {
     clearTimeout(timeoutId);
@@ -1501,7 +1501,7 @@ async function resetCoachesToSamples() {
     state.selectedCoachId = null;
     render();
   } catch (error) {
-    alert(`肄붿튂 ?섑뵆??DB????ν븯吏 紐삵뻽?듬땲??\n${error.message}`);
+    alert(`코치 샘플을 DB에 저장하지 못했습니다.\n${error.message}`);
   }
 }
 
@@ -1551,7 +1551,7 @@ async function changeReservationStatus(id, status) {
       const loggedIn = await loginForReservations();
       if (loggedIn) return changeReservationStatus(id, status);
     }
-    alert(`?덉빟 ?곹깭瑜?蹂寃쏀븯吏 紐삵뻽?듬땲??\n${error.message}`);
+    alert(`예약 상태를 변경하지 못했습니다.\n${error.message}`);
   }
 }
 
@@ -1563,7 +1563,7 @@ async function completeReservation(id) {
 }
 
 async function removeReservation(id) {
-  if (!window.confirm("???덉빟???꾩쟾????젣?좉퉴?? ??젣?섎㈃ 紐⑸줉?먯꽌 ?щ씪吏묐땲??")) return;
+  if (!window.confirm("이 예약을 완전히 삭제할까요? 삭제하면 목록에서 사라집니다.")) return;
   try {
     await runAdminRequest(() => deleteReservation(id));
     state.bookings = state.bookings.filter((booking) => booking.id !== id);
@@ -1571,7 +1571,7 @@ async function removeReservation(id) {
     renderMetrics();
     renderBookings();
   } catch (error) {
-    alert(`?덉빟????젣?섏? 紐삵뻽?듬땲??\n${error.message}`);
+    alert(`예약을 삭제하지 못했습니다.\n${error.message}`);
   }
 }
 
@@ -1601,34 +1601,34 @@ function renderBookingDetail() {
     const attachment = booking.feedback?.attachment || {};
     panel.hidden = false;
     panel.innerHTML = `
-      <h3>Discord /?쇰뱶諛??묒닔</h3>
+      <h3>Discord / ROFL 접수</h3>
       <div class="booking-detail-grid">
-        ${renderDetailItem("?좎껌 ?쒓컙", booking.createdAtText)}
-        ${renderDetailItem("?섍컯??Riot ID", booking.studentName)}
-        ${renderDetailItem("梨뷀뵾??諛?K/D/A", booking.coachPrice)}
-        ${renderDetailItem("?꾩옱 ?곹깭", booking.status)}
+        ${renderDetailItem("요청 시간", booking.createdAtText)}
+        ${renderDetailItem("수강생 / Riot ID", booking.studentName)}
+        ${renderDetailItem("챔피언 및 K/D/A", booking.coachPrice)}
+        ${renderDetailItem("현재 상태", booking.status)}
         ${renderDetailItem("Discord 요청자", `${booking.feedback?.discord_display_name || "-"} (${booking.feedback?.discord_user_id || "-"})`)}
-        ${renderDetailItem("?쒕쾭 / 梨꾨꼸", `${booking.feedback?.guild_name || "-"} / ${booking.feedback?.channel_name || "-"}`)}
-        ${renderDetailLink("ROFL ?뚯씪", attachment.filename, attachment.url)}
-        ${renderDetailItem("臾몄쓽?ы빆", booking.feedback?.inquiry || booking.memo, true)}
+        ${renderDetailItem("서버 / 채널", `${booking.feedback?.guild_name || "-"} / ${booking.feedback?.channel_name || "-"}`)}
+        ${renderDetailLink("ROFL 파일", attachment.filename, attachment.url)}
+        ${renderDetailItem("문의사항", booking.feedback?.inquiry || booking.memo, true)}
       </div>
     `;
     return;
   }
   panel.hidden = false;
   panel.innerHTML = `
-    <h3>?덉빟 ?곸꽭</h3>
+    <h3>예약 상세</h3>
     <div class="booking-detail-grid">
-      ${renderDetailItem("?덉빟 ID", booking.id)}
-      ${renderDetailItem("?좎껌 ?쒓컙", booking.createdAtText)}
+      ${renderDetailItem("예약 ID", booking.id)}
+      ${renderDetailItem("요청 시간", booking.createdAtText)}
       ${renderDetailItem("코치명", booking.coachName)}
       ${renderDetailItem("상품 가격", booking.coachPrice)}
-      ${renderDetailItem("?묒닔 寃쎈줈", booking.source)}
-      ${renderDetailItem("?섍컯??Riot ID", booking.studentName)}
+      ${renderDetailItem("접수 경로", booking.source)}
+      ${renderDetailItem("수강생 / Riot ID", booking.studentName)}
       ${renderDetailItem("연락처", booking.contact)}
-      ${renderDetailItem("?щ쭩 ?쒓컙", booking.preferredTime)}
-      ${renderDetailItem("?꾩옱 ?곹깭", booking.status)}
-      ${renderDetailItem("?붿껌?ы빆", booking.memo, true)}
+      ${renderDetailItem("희망 시간", booking.preferredTime)}
+      ${renderDetailItem("현재 상태", booking.status)}
+      ${renderDetailItem("요청사항", booking.memo, true)}
     </div>
   `;
 }
@@ -1643,7 +1643,7 @@ function renderDetailItem(label, value, wide = false) {
 }
 
 function renderDetailLink(label, text, url) {
-  const link = url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(text || "?ㅼ슫濡쒕뱶")}</a>` : "-";
+  const link = url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(text || "다운로드")}</a>` : "-";
   return `
     <div class="booking-detail-item">
       <span>${label}</span>
@@ -1670,19 +1670,19 @@ function escapeHtml(value) {
 
 function renderBookings() {
   $("bookingStatusFilter").innerHTML = `
-    <option value="all">?꾩껜 ?곹깭</option>
+    <option value="all">전체 상태</option>
     ${renderStatusOptions(state.bookingFilterStatus)}
   `;
   $("bookingStatusFilter").value = state.bookingFilterStatus;
   $("bookingSearchInput").value = state.bookingQuery;
 
   if (state.bookingLoadState === "loading") {
-    $("bookingRows").innerHTML = `<tr><td colspan="7">?덉빟 紐⑸줉??遺덈윭?ㅻ뒗 以묒엯?덈떎.</td></tr>`;
+    $("bookingRows").innerHTML = `<tr><td colspan="7">예약 목록을 불러오는 중입니다.</td></tr>`;
     renderBookingDetail();
     return;
   }
   if (state.bookingLoadState === "error") {
-    $("bookingRows").innerHTML = `<tr><td colspan="7">${state.bookingLoadError || "?덉빟 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲??"}</td></tr>`;
+    $("bookingRows").innerHTML = `<tr><td colspan="7">${state.bookingLoadError || "예약 목록을 불러오지 못했습니다."}</td></tr>`;
     renderBookingDetail();
     return;
   }
@@ -1705,12 +1705,12 @@ function renderBookings() {
       <td>${escapeHtml(booking.memo)}</td>
       <td>
         <div class="booking-actions">
-          <button type="button" class="mini primary-mini" data-booking-complete="${escapeHtml(booking.id)}">?꾨즺</button>
-          <button type="button" class="mini danger-mini" data-booking-delete="${escapeHtml(booking.id)}">??젣</button>
+          <button type="button" class="mini primary-mini" data-booking-complete="${escapeHtml(booking.id)}">완료</button>
+          <button type="button" class="mini danger-mini" data-booking-delete="${escapeHtml(booking.id)}">삭제</button>
         </div>
       </td>
     </tr>
-  `).join("") : `<tr><td colspan="7">?덉빟???놁뒿?덈떎.</td></tr>`;
+  `).join("") : `<tr><td colspan="7">예약이 없습니다.</td></tr>`;
 
   document.querySelectorAll("[data-booking-id]").forEach((row) => {
     row.addEventListener("click", () => {
@@ -1751,20 +1751,20 @@ function renderAdmin() {
     <section class="admin-coach-group">
       <div class="admin-coach-head">
         <strong>${name}</strong>
-        <span>${coaches.length}媛?媛뺤쓽</span>
+        <span>${coaches.length}개 강의</span>
       </div>
       ${coaches.map((coach) => `
         <button class="admin-row" type="button" data-id="${coach.id}">
           <img src="${coach.image}" alt="">
           <span>
             <h4>${coach.tagline || coach.name}</h4>
-            <p>${categoryLabel(coach.category)} 쨌 ${coach.price}</p>
+            <p>${categoryLabel(coach.category)} · ${coach.price}</p>
           </span>
           <span class="chip">?섏젙</span>
         </button>
       `).join("")}
     </section>
-  `).join("") : `<div class="empty">?깅줉??媛뺤쓽媛 ?놁뒿?덈떎.</div>`;
+  `).join("") : `<div class="empty">등록된 강의가 없습니다.</div>`;
 
   document.querySelectorAll(".admin-row").forEach((row) => {
     row.addEventListener("click", () => fillCoachForm(state.coaches.find((coach) => coach.id === row.dataset.id)));
@@ -1787,8 +1787,8 @@ function renderCoachSelf() {
       ${escapeHtml(coach.name)}
     </button>
   `).join("");
-  $("coachSelfName").textContent = current ? current.name : "肄붿튂 ?좏깮";
-  $("coachSelfHint").textContent = current ? `${current.tier} 쨌 ${current.lessons}媛?媛뺤쓽` : "媛뺤쓽瑜??좏깮?섎㈃ ?ㅻⅨ履쎌뿉???섏젙?⑸땲??";
+  $("coachSelfName").textContent = current ? current.name : "코치 선택";
+  $("coachSelfHint").textContent = current ? `${current.tier} · ${current.lessons}개 강의` : "강의를 선택하면 오른쪽에서 수정할 수 있습니다.";
 
   const lessons = getCoachSelfLessons();
   if (state.coachSelfLessonId && !lessons.some((lesson) => lesson.id === state.coachSelfLessonId)) {
@@ -1799,11 +1799,11 @@ function renderCoachSelf() {
       <img src="${lesson.image}" alt="" style="${getImageStyle(lesson)}">
       <span>
         <strong>${escapeHtml(lesson.name)}</strong>
-        <small>${escapeHtml(lesson.tagline || "媛뺤쓽 ?ㅻ챸 ?놁쓬")}</small>
-        <em>${escapeHtml(lesson.price || "媛寃??곷떞")}</em>
+        <small>${escapeHtml(lesson.tagline || "강의 설명 없음")}</small>
+        <em>${escapeHtml(lesson.price || "가격 상담")}</em>
       </span>
     </button>
-  `).join("") : `<div class="empty">??肄붿튂?먭쾶 ?곌껐??媛뺤쓽媛 ?놁뒿?덈떎.</div>`;
+  `).join("") : `<div class="empty">이 코치에게 연결된 강의가 없습니다.</div>`;
 
   document.querySelectorAll("[data-self-coach-key]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1827,15 +1827,15 @@ function renderCoachSelfEditor() {
   if (!lesson) {
     editor.innerHTML = `
       <div class="detail-empty">
-        <strong>媛뺤쓽瑜??좏깮?댁＜?몄슂.</strong>
-        <span>?좏깮??肄붿튂??媛뺤쓽留??ш린?먯꽌 媛쒕퀎 ?섏젙?????덉뒿?덈떎.</span>
+        <strong>강의를 선택해주세요.</strong>
+        <span>선택한 코치의 강의만 여기에서 개별 수정할 수 있습니다.</span>
       </div>
     `;
     return;
   }
   const amount = String(lesson.price || "").match(/[\d,]+/)?.[0]?.replace(/[^\d]/g, "") || "";
-  const unitType = String(lesson.price || "").includes("寃뚯엫") ? "game" : "time";
-  const unit = String(lesson.price || "").split("/")[1]?.trim() || (unitType === "game" ? "1寃뚯엫" : "1?쒓컙");
+  const unitType = String(lesson.price || "").includes("게임") ? "game" : "time";
+  const unit = String(lesson.price || "").split("/")[1]?.trim() || (unitType === "game" ? "1게임" : "1시간");
   const filters = filterSets.league;
   const purposeOptions = filters.type.filter((item) => item.id !== "all");
   const selectedPurposes = getCoachPurposes(lesson);
@@ -1845,45 +1845,45 @@ function renderCoachSelfEditor() {
       <input type="hidden" id="coachSelfLessonId" value="${escapeHtml(lesson.id)}">
       <div class="coach-self-editor-head">
         <div>
-          <span>${escapeHtml(lesson.coachProfileName || "肄붿튂")}</span>
+          <span>${escapeHtml(lesson.coachProfileName || "코치")}</span>
           <h3>${escapeHtml(lesson.name)}</h3>
         </div>
-        <button type="submit" class="primary" id="coachSelfSaveBtn">???/button>
+        <button type="submit" class="primary" id="coachSelfSaveBtn">저장</button>
       </div>
-      <label>媛뺤쓽紐?input id="coachSelfLessonName" required value="${escapeHtml(lesson.name)}"></label>
-      <label>??以??뚭컻<input id="coachSelfTagline" required value="${escapeHtml(lesson.tagline || "")}"></label>
+      <label>강의명<input id="coachSelfLessonName" required value="${escapeHtml(lesson.name)}"></label>
+      <label>한 줄 소개<input id="coachSelfTagline" required value="${escapeHtml(lesson.tagline || "")}"></label>
       <div class="price-builder">
-        <label><span>媛寃?/span><input id="coachSelfPriceAmount" inputmode="numeric" value="${escapeHtml(amount)}"></label>
-        <label><span>湲곗?</span>
+        <label><span>가격</span><input id="coachSelfPriceAmount" inputmode="numeric" value="${escapeHtml(amount)}"></label>
+        <label><span>기준</span>
           <select id="coachSelfPriceUnitType">
-            <option value="time" ${unitType === "time" ? "selected" : ""}>?쒓컙</option>
-            <option value="game" ${unitType === "game" ? "selected" : ""}>寃뚯엫</option>
+            <option value="time" ${unitType === "time" ? "selected" : ""}>시간</option>
+            <option value="game" ${unitType === "game" ? "selected" : ""}>게임</option>
           </select>
         </label>
-        <label><span>?⑥쐞</span><select id="coachSelfPriceUnit"></select></label>
+        <label><span>단위</span><select id="coachSelfPriceUnit"></select></label>
         <input id="coachSelfPrice" type="hidden">
       </div>
       ${["엠버서더", "최우수"].includes(lesson.tier) ? `
         <label class="toggle-line">
           <input id="coachSelfFeaturedAd" type="checkbox" ${lesson.featuredAd ? "checked" : ""}>
-          <span>??媛뺤쓽瑜??곷떒 異붿쿇 愿묎퀬濡??몄텧</span>
+          <span>이 강의를 상단 추천 광고로 노출</span>
         </label>
       ` : ""}
       <fieldset class="choice-field">
-        <legend>遺꾨쪟</legend>
+        <legend>분류</legend>
         <div class="choice-grid">
           ${purposeOptions.map((item) => `<label><input type="checkbox" name="coachSelfPurposeChoice" value="${item.id}" ${selectedPurposes.includes(item.id) ? "checked" : ""}> ${item.label}</label>`).join("")}
         </div>
       </fieldset>
       <fieldset class="choice-field">
-        <legend>?꾨Ц 遺꾩빞</legend>
+        <legend>전문 분야</legend>
         <div class="choice-grid">
           ${[...adminLineOptions.league, ...adminFieldOptions.league].map((role) => `<label><input type="checkbox" name="coachSelfRoleChoice" value="${role}" ${selectedRoles.includes(role) ? "checked" : ""}> ${role}</label>`).join("")}
         </div>
       </fieldset>
-      <label>?곸꽭 ?ㅻ챸<textarea id="coachSelfBio" rows="7">${escapeHtml(lesson.bio || "")}</textarea></label>
+      <label>상세 설명<textarea id="coachSelfBio" rows="7">${escapeHtml(lesson.bio || "")}</textarea></label>
       <div class="form-actions">
-        <button type="button" class="secondary" id="coachSelfOpenFullEditBtn">?꾩껜 ?몄쭛 ?붾㈃?먯꽌 ?닿린</button>
+        <button type="button" class="secondary" id="coachSelfOpenFullEditBtn">전체 편집 화면에서 열기</button>
         <span class="save-status" id="coachSelfSaveStatus" aria-live="polite"></span>
       </div>
     </form>
@@ -1922,14 +1922,14 @@ async function saveCoachSelfLesson(event) {
   if (!previous) return;
   const saveButton = $("coachSelfSaveBtn");
   saveButton.disabled = true;
-  $("coachSelfSaveStatus").textContent = "???以?..";
+  $("coachSelfSaveStatus").textContent = "저장 중...";
   $("coachSelfSaveStatus").className = "save-status loading";
   const next = {
     ...previous,
     manualCoachEdit: true,
     name: $("coachSelfLessonName").value.trim(),
     tagline: $("coachSelfTagline").value.trim(),
-    price: (updateCoachSelfPriceValue(), $("coachSelfPrice").value.trim() || "媛寃??곷떞"),
+    price: (updateCoachSelfPriceValue(), $("coachSelfPrice").value.trim() || "가격 상담"),
     featuredAd: Boolean($("coachSelfFeaturedAd")?.checked),
     featuredAdUpdatedAt: $("coachSelfFeaturedAd")?.checked ? new Date().toISOString() : "",
     purpose: getCheckedValues("coachSelfPurposeChoice"),
@@ -1940,13 +1940,13 @@ async function saveCoachSelfLesson(event) {
   try {
     const savedCoach = await runAdminRequest(() => saveCoachToApi(next, previousIndex));
     state.coaches = state.coaches.map((coach) => coach.id === id ? migrateCoachImages([savedCoach])[0] : coach);
-    $("coachSelfSaveStatus").textContent = "????꾨즺";
+    $("coachSelfSaveStatus").textContent = "저장 완료";
     $("coachSelfSaveStatus").className = "save-status success";
     renderCoachSelf();
   } catch (error) {
-    $("coachSelfSaveStatus").textContent = "????ㅽ뙣";
+    $("coachSelfSaveStatus").textContent = "저장 실패";
     $("coachSelfSaveStatus").className = "save-status error";
-    alert(`媛뺤쓽 ?뺣낫瑜???ν븯吏 紐삵뻽?듬땲??\n${error.message}`);
+    alert(`강의 정보를 저장하지 못했습니다.\n${error.message}`);
   } finally {
     saveButton.disabled = false;
   }
@@ -1984,13 +1984,13 @@ function renderAdminChoiceControls(selectedPurposes = [], selectedRoles = [], se
   const fieldOptions = adminFieldOptions[category] || adminFieldOptions.league;
   if ($("coachRoleChoices")) $("coachRoleChoices").innerHTML = `
     <div class="choice-subgroup">
-      <span>?쇱씤</span>
+      <span>라인</span>
       <div class="choice-grid">
         ${lineOptions.map((role) => `<label><input type="checkbox" name="coachRoleChoice" value="${role}" ${selectedRoles.includes(role) ? "checked" : ""}> ${role}</label>`).join("")}
       </div>
     </div>
     <div class="choice-subgroup">
-      <span>遺꾩빞</span>
+      <span>분야</span>
       <div class="choice-grid">
         ${fieldOptions.map((role) => `<label><input type="checkbox" name="coachRoleChoice" value="${role}" ${selectedRoles.includes(role) ? "checked" : ""}> ${role}</label>`).join("")}
       </div>
@@ -2008,7 +2008,7 @@ function renderBadgePicker(selectedBadges = []) {
   const selected = [...new Set(selectedBadges.filter(Boolean))];
   if (!$("coachBadgeSelect") || !$("coachBadgeChoices")) return;
   $("coachBadgeSelect").innerHTML = `
-    <option value="">諛곗? ?좏깮</option>
+    <option value="">배지 선택</option>
     ${badgeOptions
       .filter((badge) => !selected.includes(badge))
       .map((badge) => `<option value="${badge}">${badge}</option>`)
@@ -2016,7 +2016,7 @@ function renderBadgePicker(selectedBadges = []) {
   `;
   $("coachBadgeChoices").innerHTML = selected.length ? selected.map((badge) => `
     <label><input type="checkbox" name="coachBadgeChoice" value="${badge}" checked> ${badge}</label>
-  `).join("") : `<span class="choice-empty">?좏깮??諛곗? ?놁쓬</span>`;
+  `).join("") : `<span class="choice-empty">선택한 배지 없음</span>`;
 }
 
 function addSelectedBadge() {
@@ -2053,8 +2053,8 @@ function renderPriceUnitOptions(type, selected = "") {
 function setPriceFields(price) {
   const textPrice = String(price || "");
   const amount = textPrice.match(/[\d,]+/)?.[0]?.replace(/[^\d]/g, "") || "";
-  const unit = textPrice.includes("寃뚯엫") ? "game" : "time";
-  const unitText = textPrice.split("/")[1]?.trim() || (unit === "game" ? "1寃뚯엫" : "1?쒓컙");
+  const unit = textPrice.includes("게임") ? "game" : "time";
+  const unitText = textPrice.split("/")[1]?.trim() || (unit === "game" ? "1게임" : "1시간");
   $("coachPriceAmount").value = amount;
   $("coachPriceUnitType").value = unit;
   renderPriceUnitOptions(unit, unitText);
@@ -2087,12 +2087,12 @@ function handleCoachImageFile(event) {
   const file = event.target.files?.[0];
   if (!file) return;
   if (!file.type.startsWith("image/")) {
-    alert("?대?吏 ?뚯씪留??좏깮?????덉뒿?덈떎.");
+    alert("이미지 파일만 선택할 수 있습니다.");
     event.target.value = "";
     return;
   }
   if (file.size > 1024 * 1024) {
-    alert("?대?吏??1MB ?댄븯濡??щ젮二쇱꽭?? ???대?吏???덊럹?댁? ???怨듦컙??湲덈갑 梨꾩썎?덈떎.");
+    alert("이미지는 1MB 이하로 올려주세요. 큰 이미지는 저장 공간을 빠르게 채울 수 있습니다.");
     event.target.value = "";
     return;
   }
@@ -2106,7 +2106,7 @@ function handleCoachImageFile(event) {
       previewId: "coachImagePreview",
       width: 520,
       height: 520,
-      label: "?쇰컲 紐⑸줉 ?대?吏",
+      label: "일반 목록 이미지",
     });
   });
   reader.readAsDataURL(file);
@@ -2116,12 +2116,12 @@ function handleWideCoachImageFile(event, inputId, previewId, label) {
   const file = event.target.files?.[0];
   if (!file) return;
   if (!file.type.startsWith("image/")) {
-    alert("?대?吏 ?뚯씪留??좏깮?????덉뒿?덈떎.");
+    alert("이미지 파일만 선택할 수 있습니다.");
     event.target.value = "";
     return;
   }
   if (file.size > 3 * 1024 * 1024) {
-    alert(`${label}??3MB ?댄븯濡??щ젮二쇱꽭??`);
+    alert(`${label}는 3MB 이하로 올려주세요.`);
     event.target.value = "";
     return;
   }
@@ -2141,7 +2141,7 @@ function openCropModal(target = null) {
     previewId: "coachImagePreview",
     width: 520,
     height: 520,
-    label: "?쇰컲 紐⑸줉 ?대?吏",
+    label: "일반 목록 이미지",
   };
   const image = state.cropSourceImage || $(state.cropTarget.inputId).value.trim();
   if (!image) return;
@@ -2258,7 +2258,7 @@ function applyImageCrop() {
 async function saveCoachFromForm() {
   const saveButton = $("saveCoachBtn");
   saveButton.disabled = true;
-  setCoachSaveStatus("???以?..", "loading");
+  setCoachSaveStatus("저장 중...", "loading");
   const id = $("coachId").value || `coach-${Date.now()}`;
   const previous = state.coaches.find((coach) => coach.id === id);
   const previousIndex = state.coaches.findIndex((coach) => coach.id === id);
@@ -2274,7 +2274,7 @@ async function saveCoachFromForm() {
     tagline: $("coachTagline").value.trim(),
     purpose: selectedPurposes.length ? selectedPurposes : ["value"],
     roles: getCheckedValues("coachRoleChoice"),
-    price: (updateCoachPriceValue(), $("coachPrice").value.trim() || "媛寃??곷떞"),
+    price: (updateCoachPriceValue(), $("coachPrice").value.trim() || "가격 상담"),
     image: $("coachImage").value.trim() || "assets/lollogo.png",
     featuredImage: $("coachFeaturedImage").value.trim(),
     featuredImagePosition: "center center",
@@ -2289,7 +2289,7 @@ async function saveCoachFromForm() {
     rating: previous?.rating || 4.8,
     lessons: previous?.lessons || 0,
     bio: $("coachBio").value.trim(),
-    reviews: previous?.reviews || [["泥??꾧린", "愿由ъ옄媛 ?낅젰???섑뵆 ?꾧린?낅땲??"]],
+    reviews: previous?.reviews || [["첫 후기", "관리자가 입력한 샘플 후기입니다."]],
   };
   try {
     const savedCoach = await runAdminRequest(() => saveCoachToApi(next, previousIndex >= 0 ? previousIndex : state.coaches.length));
@@ -2301,13 +2301,13 @@ async function saveCoachFromForm() {
     state.selectedCoachId = savedCoach.id;
     render();
     fillCoachForm(savedCoach);
-    setCoachSaveStatus("????꾨즺", "success");
+    setCoachSaveStatus("저장 완료", "success");
     setTimeout(() => {
-      if ($("coachSaveStatus")?.textContent === "????꾨즺") setCoachSaveStatus();
+      if ($("coachSaveStatus")?.textContent === "저장 완료") setCoachSaveStatus();
     }, 2200);
   } catch (error) {
-    setCoachSaveStatus("????ㅽ뙣", "error");
-    alert(`肄붿튂 ?뺣낫瑜???ν븯吏 紐삵뻽?듬땲??\n${error.message}`);
+    setCoachSaveStatus("저장 실패", "error");
+    alert(`코치 정보를 저장하지 못했습니다.\n${error.message}`);
   } finally {
     saveButton.disabled = false;
   }
@@ -2323,7 +2323,7 @@ async function deleteSelectedCoach() {
     fillCoachForm();
     render();
   } catch (error) {
-    alert(`肄붿튂 ?뺣낫瑜???젣?섏? 紐삵뻽?듬땲??\n${error.message}`);
+    alert(`코치 정보를 삭제하지 못했습니다.\n${error.message}`);
   }
 }
 
