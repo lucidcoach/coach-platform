@@ -164,13 +164,6 @@ const imageMigration = {
 };
 const tierRank = { "엠버서더": 0, "최우수": 1, "우수": 2, "일반": 3 };
 
-const leagueCoachProfiles = {
-  shineast: { name: "샤이니스트 코치", tier: "최우수", tagline: "프로팀 출신 · 모든 라인 피드백 · 팀게임 운영까지 가능", roles: ["탑", "정글", "미드", "원딜", "서폿", "팀게임"], image: "assets/shineast.png", imagePosition: "center center", featuredImagePosition: "center center" },
-  mireu: { name: "정미르 코치", tier: "우수", tagline: "저티어와 일반 수강생에게 쉬운 정글/팀게임 피드백", roles: ["정글", "저티어", "팀게임", "입문"], image: "assets/mireu.png", imagePosition: "center center", featuredImagePosition: "center center" },
-  persona: { name: "페르소나 코치", tier: "우수", tagline: "탑 라인 중심의 이론과 매치업 이해도 피드백", roles: ["탑", "이론", "고티어", "라인전"], image: "assets/persona2.png", imagePosition: "center center", featuredImagePosition: "center center" },
-  mephi: { name: "메피 코치", tier: "엠버서더", tagline: "전프로 바텀 라이너 · 전 라인 피드백 · 팀게임 리뷰 가능", roles: ["바텀", "전 라인", "팀게임", "전프로"], image: "assets/mephi.png", imagePosition: "center center", featuredImagePosition: "center center" },
-};
-
 const leagueLessonOverrides = {
   "coach-shineast": { coachKey: "shineast", purpose: ["value", "team", "high", "mid"] },
   "coach-mireu": { coachKey: "mireu" },
@@ -213,6 +206,9 @@ const state = {
   coachRequestLoadError: "",
   cropSourceImage: "",
   cropTarget: null,
+  coachProfile: null,
+  coachProfileLoadState: "idle",
+  coachProfileLoadError: "",
   currentUser: null,
   authLoadState: "idle",
   authRequestId: 0,
@@ -254,35 +250,27 @@ function normalizeCoachProfiles(coaches) {
       };
     }
     const override = leagueLessonOverrides[coach.id] || {};
-    const lessonDefaults = coach.manualCoachEdit ? {} : override;
-    const coachKey = override.coachKey || inferLeagueCoachKey(coach);
-    const profile = leagueCoachProfiles[coachKey] || {
-      name: coach.coachProfileName || coach.name || "신규 코치",
-      tier: coach.coachTier || coach.tier || "일반",
-      tagline: coach.coachSummary || coach.tagline || "",
-      image: coach.image || "assets/logo.jpg",
-      imagePosition: coach.imagePosition || "center center",
-      featuredImagePosition: coach.featuredImagePosition || coach.imagePosition || "center center",
-    };
+    const common = coach.coachProfile || coach.profile || {};
+    const coachKey = coach.coachKey || override.coachKey || inferLeagueCoachKey(coach);
+    const profileName = coach.coachProfileName || coach.coachNickname || coach.nickname || common.nickname || common.name || coach.name || "신규 코치";
+    const profileTier = coach.coachTier || coach.profileTier || common.tier || coach.tier || "일반";
+    const profileSummary = coach.coachSummary || coach.coachIntro || coach.intro || common.intro || common.tagline || coach.tagline || "";
     const imagePath = imageMigration[coach.image] || coach.image || "";
-    const shouldUseProfileImage = !coach.manualCoachEdit || !imagePath || imagePath === "assets/logo.jpg" || imagePath === "assets/logo.png" || imagePath === "assets/lollogo.png" || imagePath === "assets/shineast.png";
+    const fallbackPurpose = Array.isArray(coach.purpose) && coach.purpose.length ? coach.purpose : override.purpose;
     return {
       ...coach,
-      ...lessonDefaults,
       coachKey,
-      coachProfileName: profile.name,
-      coachTier: profile.tier,
-      coachSummary: profile.tagline,
-      tier: profile.tier,
-      image: shouldUseProfileImage ? profile.image : imagePath,
-      imagePosition: shouldUseProfileImage ? profile.imagePosition : (coach.imagePosition || profile.imagePosition),
-      featuredImagePosition: (coach.featuredImage || coach.manualCoachEdit)
-        ? (coach.featuredImagePosition || profile.featuredImagePosition || profile.imagePosition)
-        : (profile.featuredImagePosition || profile.imagePosition),
-      detailImagePosition: (coach.detailImage || coach.manualCoachEdit)
-        ? (coach.detailImagePosition || profile.featuredImagePosition || profile.imagePosition)
-        : (profile.featuredImagePosition || profile.imagePosition),
-      badges: [profile.tier, ...(coach.badges || []).filter((badge) => badge !== profile.tier)].slice(0, 3),
+      coachProfileName: profileName,
+      coachTier: profileTier,
+      coachSummary: profileSummary,
+      coachRoles: Array.isArray(common.roles) ? common.roles : coach.coachRoles,
+      tier: coach.tier || profileTier,
+      purpose: fallbackPurpose || [],
+      image: imagePath || common.image || common.profileImage || "assets/logo.jpg",
+      imagePosition: coach.imagePosition || "center 8%",
+      featuredImagePosition: coach.featuredImagePosition || coach.imagePosition || "center center",
+      detailImagePosition: coach.detailImagePosition || coach.imagePosition || "center center",
+      badges: [profileTier, ...(coach.badges || []).filter((badge) => badge !== profileTier)].slice(0, 3),
     };
   });
 }
@@ -299,8 +287,8 @@ function boot() {
   $("navCoachSearch").textContent = "맞춤 강의 검색";
   $("searchInput").placeholder = text.searchPlaceholder;
   $("coachImagePosition").placeholder = "예: center 8%, 72% 12%";
-  state.coaches = getPublicCatalogCoaches(structuredClone(samples));
-  state.coachLoadState = "loaded";
+  state.coaches = [];
+  state.coachLoadState = "loading";
   render();
   bindEvents();
   showOAuthResult();
@@ -500,7 +488,9 @@ function renderMetrics() {
 
 async function openAdminView(nextView) {
   if (!["bookings", "admin", "users", "coachSelf"].includes(nextView)) return;
-  const allowed = await ensureAdminAccess();
+  const allowed = nextView === "coachSelf" && state.currentUser?.role === "coach"
+    ? true
+    : await ensureAdminAccess();
   if (!allowed) return;
   if (nextView === "coachSelf" && state.currentUser?.role !== "admin") {
     state.coachSelfKey = getFallbackCoachKey();
@@ -732,6 +722,7 @@ function bindAuthForm(mode) {
       state.bookings = [];
       closeAuthModal();
       render();
+      if (state.currentUser?.role === "coach") await loadCoachProfile();
       await handlePaymentReturn();
     } catch (error) {
       if (status) status.textContent = getAuthErrorMessage(error.message);
@@ -992,25 +983,24 @@ function getCoachKey(coach) {
 
 function getCoachIdentityFromGroup(coachKey, coaches) {
   const first = coaches[0] || {};
-  const profile = first.category === "league" ? leagueCoachProfiles[coachKey] : null;
   return {
     key: coachKey,
-    name: profile?.name || first.coachProfileName || first.name || "코치",
-    tier: profile?.tier || first.coachTier || first.tier || "일반",
-    tagline: profile?.tagline || first.coachSummary || first.tagline || "코칭 상품",
-    roles: profile?.roles || first.roles || [],
-    image: profile?.image || first.image || "assets/logo.jpg",
-    imagePosition: profile?.imagePosition || first.imagePosition || "center 8%",
+    name: first.coachProfileName || first.coachNickname || first.nickname || first.name || "코치",
+    tier: first.coachTier || first.profileTier || first.tier || "일반",
+    tagline: first.coachSummary || first.coachIntro || first.intro || first.tagline || "코칭 상품",
+    roles: first.coachRoles || first.roles || [],
+    image: first.coachImage || first.profileImage || first.image || "assets/logo.jpg",
+    imagePosition: first.coachImagePosition || first.imagePosition || "center 8%",
     lessons: coaches.length,
     rating: coaches.reduce((sum, coach) => sum + Number(coach.rating || 0), 0) / Math.max(coaches.length, 1),
     products: coaches,
   };
 }
 
-function getCoachIdentities(category = state.category) {
+function getCoachIdentities(category = state.category, includeInactive = false) {
   const grouped = new Map();
   state.coaches
-    .filter((coach) => coach.category === category)
+    .filter((coach) => coach.category === category && (includeInactive || coach.active !== false))
     .forEach((coach) => {
       const key = getCoachKey(coach);
       if (!grouped.has(key)) grouped.set(key, []);
@@ -1193,13 +1183,14 @@ function renderCoachExplorerCard(coach) {
 
 function getVisibleCoaches() {
   return state.coaches.filter((coach) => {
+    if (coach.active === false) return false;
     const inCategory = coach.category === state.category;
     const inSelectedCoach = !state.selectedCoachKey || getCoachKey(coach) === state.selectedCoachKey;
     const coachPurposes = getCoachPurposes(coach);
     const inType = state.type === "all" || coachPurposes.includes(state.type);
     const inSegment = state.segment === "all" || coachPurposes.includes(state.segment);
     const purposeLabel = getPurposeLabels(coach.purpose).join(" ");
-    const haystack = [coach.name, coach.coachProfileName, coach.tier, coach.tagline, coach.bio, purposeLabel, ...(coach.roles || []), ...(coach.badges || [])]
+    const haystack = [coach.name, coach.coachProfileName, coach.tier, coach.tagline, coach.coachSummary, coach.bio, purposeLabel, ...(coach.coachRoles || []), ...(coach.roles || []), ...(coach.badges || [])]
       .join(" ")
       .toLowerCase();
     return inCategory && inSelectedCoach && inType && inSegment && (!state.query || haystack.includes(state.query));
@@ -1725,6 +1716,7 @@ async function loadCurrentUser() {
     state.bookings = [];
     state.authLoadState = "loaded";
     render();
+    if (state.currentUser?.role === "coach") await loadCoachProfile();
     await handlePaymentReturn();
   } catch {
     if (requestId !== state.authRequestId) return;
@@ -1770,6 +1762,9 @@ async function logoutUser() {
     state.studentReservationLoadState = "idle";
     state.studentReservationLoadError = "";
     state.bookings = [];
+    state.coachProfile = null;
+    state.coachProfileLoadState = "idle";
+    state.coachProfileLoadError = "";
     render();
   }
 }
@@ -2083,13 +2078,13 @@ async function runAdminRequest(callback) {
 
 async function loadCoachesFromApi() {
   if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) {
-    state.coaches = getPublicCatalogCoaches(structuredClone(samples));
-    state.coachLoadState = "loaded";
+    state.coaches = [];
+    state.coachLoadState = "error";
     render();
     return;
   }
-  const hasFallbackCoaches = state.coaches.length > 0;
-  if (!hasFallbackCoaches) {
+  const hasLoadedCoaches = state.coaches.length > 0;
+  if (!hasLoadedCoaches) {
     state.coachLoadState = "loading";
     render();
   }
@@ -2101,24 +2096,102 @@ async function loadCoachesFromApi() {
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
-    if (Array.isArray(result.coaches) && result.coaches.length) {
+    if (Array.isArray(result.coaches)) {
       state.coaches = getPublicCatalogCoaches(result.coaches);
       if (state.selectedCoachId && !state.coaches.some((coach) => coach.id === state.selectedCoachId)) {
         state.selectedCoachId = null;
       }
-      state.coachLoadState = "loaded";
-      render();
-    } else {
-      state.coachLoadState = hasFallbackCoaches ? "loaded" : "empty";
+      state.coachLoadState = state.coaches.length ? "loaded" : "empty";
       render();
     }
   } catch (error) {
-    state.coachLoadState = hasFallbackCoaches ? "loaded" : "error";
+    state.coachLoadState = hasLoadedCoaches ? "loaded" : "error";
     console.warn("코치 목록을 불러오지 못했습니다.", error);
     render();
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+function applyCoachProfileToCatalog(profile) {
+  if (!profile) return;
+  const coachKey = String(profile.coachKey || profile.coach_key || state.currentUser?.coachKey || getFallbackCoachKey());
+  if (!coachKey) return;
+  const hasRoles = Array.isArray(profile.roles);
+  state.coaches = migrateCoachImages(state.coaches.map((coach) => {
+    if (getCoachKey(coach) !== coachKey) return coach;
+    return {
+      ...coach,
+      coachKey,
+      coachProfileName: profile.nickname || profile.name || profile.displayName || coach.coachProfileName,
+      coachSummary: profile.intro || profile.tagline || coach.coachSummary,
+      coachTier: profile.tier || coach.coachTier,
+      tier: profile.tier || coach.tier,
+      coachRoles: hasRoles ? profile.roles : coach.coachRoles,
+      image: profile.image || profile.profileImage || coach.image,
+      active: profile.active !== undefined ? Boolean(profile.active) : coach.active,
+    };
+  }));
+}
+
+async function loadCoachProfile() {
+  if (!state.currentUser || state.currentUser.role !== "coach" || !API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) return;
+  state.coachProfile = null;
+  state.coachProfileLoadState = "loading";
+  state.coachProfileLoadError = "";
+  renderCoachSelf();
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/profile`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) {
+      const error = new Error(result.error || `HTTP ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+    state.coachProfile = result.profile || null;
+    applyCoachProfileToCatalog(state.coachProfile);
+    state.coachProfileLoadState = "loaded";
+  } catch (error) {
+    state.coachProfileLoadState = "error";
+    state.coachProfileLoadError = error.message || "프로필을 불러오지 못했습니다.";
+    console.warn("코치 프로필을 불러오지 못했습니다.", error);
+  }
+  render();
+}
+
+async function saveCoachProfileApi(payload) {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/profile`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return result.profile || payload;
+}
+
+async function saveCoachLessonToApi(lesson) {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/lessons/${encodeURIComponent(lesson.id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(lesson),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return result.lesson || result.coach || lesson;
 }
 
 async function saveCoachToApi(coach, sortOrder) {
@@ -2839,10 +2912,76 @@ function getCoachSelfLessons() {
   return state.coaches.filter((coach) => coach.category === "league" && getCoachKey(coach) === allowedKey);
 }
 
+function getCoachProfileFormValue(current) {
+  const profile = state.coachProfile || {};
+  return {
+    nickname: profile.nickname || profile.name || profile.displayName || current?.name || "",
+    image: profile.image || profile.profileImage || current?.image || "assets/logo.jpg",
+    intro: profile.intro || profile.tagline || current?.tagline || "",
+    tier: profile.tier || current?.tier || "일반",
+    roles: Array.isArray(profile.roles) ? profile.roles : (current?.coachRoles || current?.roles || []),
+    active: profile.active !== undefined ? Boolean(profile.active) : current?.active !== false,
+  };
+}
+
+function renderCoachSelfProfile(current) {
+  const target = $("coachSelfProfile");
+  if (!target) return;
+  if (state.currentUser?.role !== "coach") {
+    target.innerHTML = "";
+    return;
+  }
+  const profile = getCoachProfileFormValue(current);
+  const roleOptions = [...new Set([...(adminLineOptions.league || []), ...(adminFieldOptions.league || [])])];
+  const loading = state.coachProfileLoadState === "loading" ? "<small>프로필을 불러오는 중입니다...</small>" : "";
+  const loadError = state.coachProfileLoadState === "error" ? `<small class="profile-load-error">${escapeHtml(state.coachProfileLoadError || "프로필을 불러오지 못했습니다.")}</small>` : "";
+  target.innerHTML = `
+    <form class="coach-self-profile-form" id="coachSelfProfileForm">
+      <div class="coach-self-profile-head">
+        <div><strong>내 코치 프로필</strong>${loading}${loadError}</div>
+        <button type="submit" class="secondary" id="coachSelfProfileSaveBtn">저장</button>
+      </div>
+      <div class="coach-self-profile-grid">
+        <div>
+          <label>닉네임<input id="coachSelfProfileNickname" required value="${escapeHtml(profile.nickname)}"></label>
+          <label>한 줄 소개<textarea id="coachSelfProfileIntro" rows="3" required>${escapeHtml(profile.intro)}</textarea></label>
+          <label>티어<select id="coachSelfProfileTier">
+            ${["일반", "우수", "최우수", "엠버서더"].map((tier) => `<option value="${tier}" ${tier === profile.tier ? "selected" : ""}>${tier}</option>`).join("")}
+          </select></label>
+        </div>
+        <div>
+          <label>프로필 이미지<input id="coachSelfProfileImageFile" type="file" accept="image/*"></label>
+          <input id="coachSelfProfileImage" type="hidden" value="${escapeHtml(profile.image)}">
+          <div class="image-preview thumbnail-preview"><div class="image-preview-frame" id="coachSelfProfileImagePreview"></div></div>
+          <button type="button" class="secondary image-crop-button" id="openCoachSelfProfileCropBtn">이미지 범위 지정</button>
+        </div>
+      </div>
+      <fieldset class="choice-field">
+        <legend>전문 분야</legend>
+        <div class="choice-grid">
+          ${roleOptions.map((role) => `<label><input type="checkbox" name="coachSelfProfileRole" value="${escapeHtml(role)}" ${profile.roles.includes(role) ? "checked" : ""}> ${escapeHtml(role)}</label>`).join("")}
+        </div>
+      </fieldset>
+      <label class="toggle-line"><input id="coachSelfProfileActive" type="checkbox" ${profile.active ? "checked" : ""}><span>홈페이지에 코치와 강의를 공개합니다</span></label>
+      <span class="save-status" id="coachSelfProfileStatus" aria-live="polite"></span>
+    </form>
+  `;
+  updateWideImagePreview("coachSelfProfileImage", "coachSelfProfileImagePreview");
+  $("coachSelfProfileImageFile")?.addEventListener("change", handleCoachSelfProfileImageFile);
+  $("openCoachSelfProfileCropBtn")?.addEventListener("click", () => openCropModal({
+    inputId: "coachSelfProfileImage",
+    previewId: "coachSelfProfileImagePreview",
+    width: 520,
+    height: 520,
+    label: "프로필 이미지",
+  }));
+  $("coachSelfProfileForm")?.addEventListener("submit", saveCoachSelfProfile);
+}
+
 function renderCoachSelf() {
   if (!$("coachSelfTabs") || !$("coachSelfLessonGrid") || !$("coachSelfEditor")) return;
   const currentCoachKey = getFallbackCoachKey();
-  const identities = getCoachIdentities("league").filter((coach) => (
+  const identities = getCoachIdentities("league", true).filter((coach) => (
     state.currentUser?.role === "admin" || coach.key === currentCoachKey
   ));
   if (!identities.some((coach) => coach.key === state.coachSelfKey)) {
@@ -2858,6 +2997,7 @@ function renderCoachSelf() {
   `).join("") : "";
   $("coachSelfName").textContent = current ? current.name : "코치 선택";
   $("coachSelfHint").textContent = current ? `${current.tier} · ${current.lessons}개 강의` : "강의를 선택하면 오른쪽에서 수정할 수 있습니다.";
+  renderCoachSelfProfile(current);
 
   const lessons = getCoachSelfLessons();
   if (state.coachSelfLessonId && !lessons.some((lesson) => lesson.id === state.coachSelfLessonId)) {
@@ -2952,7 +3092,7 @@ function renderCoachSelfEditor() {
       </fieldset>
       <label>상세 설명<textarea id="coachSelfBio" rows="7">${escapeHtml(lesson.bio || "")}</textarea></label>
       <div class="form-actions">
-        <button type="button" class="secondary" id="coachSelfOpenFullEditBtn">전체 편집 화면에서 열기</button>
+        ${state.currentUser?.role === "admin" ? `<button type="button" class="secondary" id="coachSelfOpenFullEditBtn">전체 편집 화면에서 열기</button>` : ""}
         <span class="save-status" id="coachSelfSaveStatus" aria-live="polite"></span>
       </div>
     </form>
@@ -2966,7 +3106,7 @@ function renderCoachSelfEditor() {
   $("coachSelfPriceAmount").addEventListener("input", updateCoachSelfPriceValue);
   $("coachSelfPriceUnit").addEventListener("change", updateCoachSelfPriceValue);
   $("coachSelfForm").addEventListener("submit", saveCoachSelfLesson);
-  $("coachSelfOpenFullEditBtn").addEventListener("click", () => {
+  $("coachSelfOpenFullEditBtn")?.addEventListener("click", () => {
     state.activeView = "admin";
     render();
     fillCoachForm(lesson);
@@ -2982,6 +3122,43 @@ function updateCoachSelfPriceValue() {
   const amount = Number(String($("coachSelfPriceAmount")?.value || "").replace(/[^\d]/g, ""));
   const amountText = amount ? `${amount.toLocaleString("ko-KR")}원` : "가격 상담";
   if ($("coachSelfPrice")) $("coachSelfPrice").value = `${amountText} / ${$("coachSelfPriceUnit").value}`;
+}
+
+async function saveCoachSelfProfile(event) {
+  event.preventDefault();
+  const button = $("coachSelfProfileSaveBtn");
+  const status = $("coachSelfProfileStatus");
+  if (!button || !status) return;
+  button.disabled = true;
+  status.textContent = "저장 중...";
+  status.className = "save-status loading";
+  const payload = {
+    nickname: $("coachSelfProfileNickname").value.trim(),
+    image: $("coachSelfProfileImage").value.trim(),
+    intro: $("coachSelfProfileIntro").value.trim(),
+    tier: $("coachSelfProfileTier").value,
+    roles: getCheckedValues("coachSelfProfileRole"),
+    active: Boolean($("coachSelfProfileActive").checked),
+  };
+  try {
+    const profile = await saveCoachProfileApi(payload);
+    state.coachProfile = profile;
+    applyCoachProfileToCatalog(profile);
+    if (profile.active !== false) await loadCoachesFromApi();
+    state.coachProfileLoadState = "loaded";
+    render();
+    const refreshedStatus = $("coachSelfProfileStatus");
+    if (refreshedStatus) {
+      refreshedStatus.textContent = "저장 완료";
+      refreshedStatus.className = "save-status success";
+    }
+  } catch (error) {
+    status.textContent = "저장 실패";
+    status.className = "save-status error";
+    alert(`프로필 정보를 저장하지 못했습니다.\n${error.message}`);
+  } finally {
+    button.disabled = false;
+  }
 }
 
 async function saveCoachSelfLesson(event) {
@@ -3007,7 +3184,9 @@ async function saveCoachSelfLesson(event) {
   };
   const previousIndex = state.coaches.findIndex((coach) => coach.id === id);
   try {
-    const savedCoach = await runAdminRequest(() => saveCoachToApi(next, previousIndex));
+    const savedCoach = state.currentUser?.role === "admin"
+      ? await runAdminRequest(() => saveCoachToApi(next, previousIndex))
+      : await saveCoachLessonToApi(next);
     state.coaches = state.coaches.map((coach) => coach.id === id ? migrateCoachImages([savedCoach])[0] : coach);
     $("coachSelfSaveStatus").textContent = "저장 완료";
     $("coachSelfSaveStatus").className = "save-status success";
@@ -3176,6 +3355,35 @@ function handleCoachImageFile(event) {
       width: 520,
       height: 520,
       label: "일반 목록 이미지",
+    });
+  });
+  reader.readAsDataURL(file);
+}
+
+function handleCoachSelfProfileImageFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    alert("이미지 파일만 선택할 수 있습니다.");
+    event.target.value = "";
+    return;
+  }
+  if (file.size > 1024 * 1024) {
+    alert("이미지는 1MB 이하로 올려주세요.");
+    event.target.value = "";
+    return;
+  }
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    state.cropSourceImage = String(reader.result || "");
+    $("coachSelfProfileImage").value = state.cropSourceImage;
+    updateWideImagePreview("coachSelfProfileImage", "coachSelfProfileImagePreview");
+    openCropModal({
+      inputId: "coachSelfProfileImage",
+      previewId: "coachSelfProfileImagePreview",
+      width: 520,
+      height: 520,
+      label: "프로필 이미지",
     });
   });
   reader.readAsDataURL(file);
