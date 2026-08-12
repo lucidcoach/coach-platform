@@ -88,7 +88,7 @@ const text = {
   navMarket: "강의 목록",
   navBookings: "예약 관리",
   navAdmin: "코치 관리",
-  navCoachSelf: "코치 개인 관리",
+  navUsers: "회원 관리",
   sideLabel: "예약 안내",
   sideCopy: "코치 목록에서 원하는 상품을 고르면 상세 정보와 예약 신청을 바로 확인할 수 있습니다.",
   heroEyebrow: "LoL 리플레이 분석 · 라인전 교정 · 팀 피드백",
@@ -197,6 +197,9 @@ const state = {
   bookingFilterStatus: "all",
   bookingQuery: "",
   selectedBookingId: null,
+  users: [],
+  userLoadState: "idle",
+  userLoadError: "",
   cropSourceImage: "",
   cropTarget: null,
   currentUser: null,
@@ -431,6 +434,7 @@ function bindEvents() {
     state.bookingQuery = event.target.value.trim().toLowerCase();
     renderBookings();
   });
+  $("reloadUsersBtn")?.addEventListener("click", () => loadUsers());
 }
 
 function render() {
@@ -441,11 +445,13 @@ function render() {
   $(`${state.activeView}View`).classList.add("active");
   renderMetrics();
   renderUserActions();
+  renderRoleMenu();
   renderSidebarCoaches();
   renderMarket();
   renderStudentHome();
   renderBookings();
   renderAdmin();
+  renderUsers();
   renderCoachSelf();
 }
 
@@ -458,7 +464,7 @@ function renderMetrics() {
 }
 
 async function openAdminView(nextView) {
-  if (!["bookings", "admin", "coachSelf"].includes(nextView)) return;
+  if (!["bookings", "admin", "users"].includes(nextView)) return;
   const allowed = await ensureAdminAccess();
   if (!allowed) return;
   state.activeView = nextView;
@@ -466,7 +472,33 @@ async function openAdminView(nextView) {
   render();
   if (nextView === "bookings") {
     loadReservations({ promptForLogin: false });
+  } else if (nextView === "users") {
+    loadUsers();
   }
+}
+
+function hasCoachMenuAccess() {
+  return state.currentUser?.role === "admin" || (state.currentUser?.role === "coach" && state.currentUser?.coachKey);
+}
+
+function renderRoleMenu() {
+  const menu = $("sideRoleMenu");
+  if (!menu) return;
+  if (!hasCoachMenuAccess()) {
+    menu.hidden = true;
+    menu.innerHTML = "";
+    return;
+  }
+  menu.hidden = false;
+  menu.innerHTML = `
+    <span class="label">코치 메뉴</span>
+    <button class="role-menu-button ${state.activeView === "coachSelf" ? "active" : ""}" id="openCoachSelfMenuBtn" type="button">내 강의 관리</button>
+  `;
+  $("openCoachSelfMenuBtn")?.addEventListener("click", () => {
+    if (state.currentUser?.coachKey) state.coachSelfKey = state.currentUser.coachKey;
+    state.activeView = "coachSelf";
+    render();
+  });
 }
 
 function renderUserActions() {
@@ -590,6 +622,7 @@ function bindAuthForm(mode) {
             password: data.get("password"),
           });
       state.currentUser = user;
+      if (state.currentUser?.coachKey) state.coachSelfKey = state.currentUser.coachKey;
       closeAuthModal();
       render();
     } catch (error) {
@@ -1458,6 +1491,7 @@ async function loadCurrentUser() {
     });
     const result = await response.json().catch(() => ({}));
     state.currentUser = response.ok && result.ok ? result.user : null;
+    if (state.currentUser?.coachKey) state.coachSelfKey = state.currentUser.coachKey;
     state.authLoadState = "loaded";
     renderUserActions();
   } catch {
@@ -1599,7 +1633,7 @@ function mapReservationFromApi(reservation) {
   const feedback = reservation.feedback_metadata || {};
   return {
     id: reservation.id || "",
-    status: reservation.status || "?좉퇋",
+    status: reservation.status || "신규",
     createdAt: reservation.created_at || "",
     createdAtText: formatDateTime(reservation.created_at),
     coachName: reservation.coach_name || "-",
@@ -1765,6 +1799,64 @@ async function deleteReservation(id) {
   }
 }
 
+async function fetchUsers() {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/users`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+    credentials: "include",
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return result.users || [];
+}
+
+async function loadUsers() {
+  state.userLoadState = "loading";
+  state.userLoadError = "";
+  renderUsers();
+  try {
+    state.users = await runAdminRequest(fetchUsers);
+    state.userLoadState = "loaded";
+    renderUsers();
+  } catch (error) {
+    state.userLoadState = "error";
+    state.userLoadError = "회원 목록을 불러오지 못했습니다.";
+    renderUsers();
+  }
+}
+
+async function updateUserRole(id, payload) {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/users/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: getAdminHeaders(true),
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return result.user;
+}
+
+async function saveUserRole(id) {
+  const role = findUserRoleSelect(id)?.value || "student";
+  const coachKey = findUserCoachSelect(id)?.value || "";
+  try {
+    const user = await runAdminRequest(() => updateUserRole(id, { role, coachKey }));
+    state.users = state.users.map((item) => item.id === id ? user : item);
+    renderUsers();
+  } catch (error) {
+    alert(`회원 권한을 저장하지 못했습니다.\n${error.message}`);
+  }
+}
+
 async function changeReservationStatus(id, status) {
   const previousBookings = structuredClone(state.bookings);
   state.bookings = state.bookings.map((booking) => booking.id === id ? { ...booking, status } : booking);
@@ -1786,8 +1878,8 @@ async function changeReservationStatus(id, status) {
 }
 
 async function completeReservation(id) {
-  await changeReservationStatus(id, "?꾨즺");
-  if (state.bookingFilterStatus !== "all" && state.bookingFilterStatus !== "?꾨즺") {
+  await changeReservationStatus(id, "완료");
+  if (state.bookingFilterStatus !== "all" && state.bookingFilterStatus !== "완료") {
     renderBookings();
   }
 }
@@ -2007,7 +2099,7 @@ function renderAdmin() {
             <h4>${coach.tagline || coach.name}</h4>
             <p>${categoryLabel(coach.category)} · ${coach.price}</p>
           </span>
-          <span class="chip">?섏젙</span>
+          <span class="chip">수정</span>
         </button>
       `).join("")}
     </section>
@@ -2018,13 +2110,74 @@ function renderAdmin() {
   });
 }
 
+function renderUsers() {
+  const target = $("userRows");
+  if (!target) return;
+  if (state.userLoadState === "idle") {
+    target.innerHTML = `<tr><td colspan="5">회원 목록을 불러오려면 새로고침을 눌러주세요.</td></tr>`;
+    return;
+  }
+  if (state.userLoadState === "loading") {
+    target.innerHTML = `<tr><td colspan="5">회원 목록을 불러오는 중입니다.</td></tr>`;
+    return;
+  }
+  if (state.userLoadState === "error") {
+    target.innerHTML = `<tr><td colspan="5">${escapeHtml(state.userLoadError || "회원 목록을 불러오지 못했습니다.")}</td></tr>`;
+    return;
+  }
+  const coachOptions = getCoachIdentities("league");
+  target.innerHTML = state.users.length ? state.users.map((user) => `
+    <tr>
+      <td>${escapeHtml(user.displayName || "-")}</td>
+      <td>${escapeHtml(user.email || "-")}</td>
+      <td>
+        <select data-user-role="${escapeHtml(user.id)}">
+          ${["student", "coach", "admin"].map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${getRoleLabel(role)}</option>`).join("")}
+        </select>
+      </td>
+      <td>
+        <select data-user-coach="${escapeHtml(user.id)}" ${user.role === "coach" ? "" : "disabled"}>
+          <option value="">담당 코치 없음</option>
+          ${coachOptions.map((coach) => `<option value="${escapeHtml(coach.key)}" ${coach.key === user.coachKey ? "selected" : ""}>${escapeHtml(coach.name)}</option>`).join("")}
+        </select>
+      </td>
+      <td><button class="mini primary-mini" type="button" data-user-save="${escapeHtml(user.id)}">저장</button></td>
+    </tr>
+  `).join("") : `<tr><td colspan="5">가입한 회원이 없습니다.</td></tr>`;
+
+  document.querySelectorAll("[data-user-role]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const coachSelect = findUserCoachSelect(select.dataset.userRole);
+      if (coachSelect) coachSelect.disabled = select.value !== "coach";
+    });
+  });
+  document.querySelectorAll("[data-user-save]").forEach((button) => {
+    button.addEventListener("click", () => saveUserRole(button.dataset.userSave));
+  });
+}
+
+function getRoleLabel(role) {
+  return { student: "수강생", coach: "코치", admin: "관리자" }[role] || role;
+}
+
+function findUserRoleSelect(id) {
+  return [...document.querySelectorAll("[data-user-role]")].find((select) => select.dataset.userRole === id);
+}
+
+function findUserCoachSelect(id) {
+  return [...document.querySelectorAll("[data-user-coach]")].find((select) => select.dataset.userCoach === id);
+}
+
 function getCoachSelfLessons() {
-  return state.coaches.filter((coach) => coach.category === "league" && getCoachKey(coach) === state.coachSelfKey);
+  const allowedKey = state.currentUser?.role === "coach" ? state.currentUser.coachKey : state.coachSelfKey;
+  return state.coaches.filter((coach) => coach.category === "league" && getCoachKey(coach) === allowedKey);
 }
 
 function renderCoachSelf() {
   if (!$("coachSelfTabs") || !$("coachSelfLessonGrid") || !$("coachSelfEditor")) return;
-  const identities = getCoachIdentities("league");
+  const identities = getCoachIdentities("league").filter((coach) => (
+    state.currentUser?.role !== "coach" || coach.key === state.currentUser.coachKey
+  ));
   if (!identities.some((coach) => coach.key === state.coachSelfKey)) {
     state.coachSelfKey = identities[0]?.key || "shineast";
   }

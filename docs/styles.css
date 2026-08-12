@@ -97,6 +97,27 @@ button {
   background: #1f2937;
   color: #ffffff;
 }
+.side-role-menu {
+  display: grid;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+.role-menu-button {
+  width: 100%;
+  text-align: left;
+  color: #cbd5e1;
+  background: transparent;
+  padding: 11px 12px;
+  border-radius: 8px;
+  font-weight: 800;
+}
+.role-menu-button.active,
+.role-menu-button:hover {
+  background: #1f2937;
+  color: #ffffff;
+}
 .side-coaches {
   display: grid;
   gap: 8px;
