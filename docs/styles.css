@@ -283,6 +283,11 @@ button {
   background: var(--panel);
   color: var(--text);
 }
+.user-action.active-user {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--brand-dark);
+}
 .theme-toggle[aria-pressed="true"] {
   border-color: #475569;
   background: #172033;
@@ -1018,6 +1023,12 @@ button {
 .auth-content button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+.auth-status {
+  min-height: 18px;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 800;
 }
 .guest-selected {
   display: grid;

@@ -195,6 +195,8 @@ const state = {
   selectedBookingId: null,
   cropSourceImage: "",
   cropTarget: null,
+  currentUser: null,
+  authLoadState: "idle",
 };
 
 function $(id) {
@@ -280,6 +282,7 @@ function boot() {
   state.coachLoadState = "loaded";
   render();
   bindEvents();
+  loadCurrentUser();
   loadCoachesFromApi();
 }
 
@@ -348,7 +351,10 @@ function bindEvents() {
   });
   $("themeToggleBtn")?.addEventListener("click", toggleTheme);
   $("loginOpenBtn")?.addEventListener("click", () => openAuthModal("login"));
-  $("guestBuyOpenBtn")?.addEventListener("click", () => openAuthModal("guest"));
+  $("guestBuyOpenBtn")?.addEventListener("click", () => {
+    if (state.currentUser) logoutUser();
+    else openAuthModal("guest");
+  });
   $("authCloseBtn")?.addEventListener("click", closeAuthModal);
   $("authModal")?.addEventListener("click", (event) => {
     if (event.target.id === "authModal") closeAuthModal();
@@ -433,6 +439,7 @@ function render() {
   document.querySelectorAll(".view").forEach((view) => view.classList.remove("active"));
   $(`${state.activeView}View`).classList.add("active");
   renderMetrics();
+  renderUserActions();
   renderSidebarCoaches();
   renderMarket();
   renderStudentHome();
@@ -447,6 +454,21 @@ function renderMetrics() {
   if ($("metricCoaches")) $("metricCoaches").textContent = state.coaches.length;
   if ($("metricBookings")) $("metricBookings").textContent = state.bookings.length;
   if ($("metricRating")) $("metricRating").textContent = average.toFixed(1);
+}
+
+function renderUserActions() {
+  const loginButton = $("loginOpenBtn");
+  const guestButton = $("guestBuyOpenBtn");
+  if (!loginButton || !guestButton) return;
+  if (state.currentUser) {
+    loginButton.textContent = state.currentUser.displayName || state.currentUser.email || "내 계정";
+    loginButton.classList.add("active-user");
+    guestButton.textContent = "로그아웃";
+  } else {
+    loginButton.textContent = "로그인";
+    loginButton.classList.remove("active-user");
+    guestButton.textContent = "비회원 구매";
+  }
 }
 
 function applyTheme(theme) {
@@ -478,21 +500,23 @@ function openAuthModal(mode = "login") {
     button.classList.toggle("active", button.dataset.authMode === nextMode);
   });
   body.innerHTML = renderAuthMarkup(nextMode);
+  bindAuthForm(nextMode);
   modal.hidden = false;
 }
 
 function renderAuthMarkup(mode) {
   if (mode === "signup") {
     return `
-      <div class="auth-content">
+      <form class="auth-content" id="authForm">
         <span class="eyebrow">회원가입</span>
         <h2 id="authTitle">수강생 계정 만들기</h2>
-        <p>강의 구매 내역, 예약 시간, 후기 작성 권한을 계정에 저장하는 화면입니다.</p>
-        <label>닉네임<input placeholder="예: 닉네임#KR1"></label>
-        <label>이메일<input placeholder="example@email.com"></label>
-        <label>비밀번호<input type="password" placeholder="비밀번호"></label>
-        <button class="primary" type="button" disabled>회원가입 준비중</button>
-      </div>
+        <p>강의 구매 내역, 예약 시간, 후기 작성 권한을 계정에 저장합니다.</p>
+        <label>닉네임<input name="displayName" required placeholder="예: 닉네임#KR1"></label>
+        <label>이메일<input name="email" type="email" required autocomplete="email" placeholder="example@email.com"></label>
+        <label>비밀번호<input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="8자 이상"></label>
+        <button class="primary" type="submit">회원가입</button>
+        <span class="auth-status" id="authStatus" aria-live="polite"></span>
+      </form>
     `;
   }
   if (mode === "guest") {
@@ -511,15 +535,51 @@ function renderAuthMarkup(mode) {
     `;
   }
   return `
-    <div class="auth-content">
+    <form class="auth-content" id="authForm">
       <span class="eyebrow">로그인</span>
       <h2 id="authTitle">내 강의 이어보기</h2>
-      <p>충전 금액, 강의 구매 내역, 예약 시간, 후기 작성 가능 강의를 확인하는 수강생 로그인 화면입니다.</p>
-      <label>이메일 또는 Discord ID<input placeholder="example@email.com"></label>
-      <label>비밀번호<input type="password" placeholder="비밀번호"></label>
-      <button class="primary" type="button" disabled>로그인 준비중</button>
-    </div>
+      <p>예약 내역과 후기 작성 가능 강의를 계정으로 이어서 확인합니다.</p>
+      <label>이메일<input name="email" type="email" required autocomplete="email" placeholder="example@email.com"></label>
+      <label>비밀번호<input name="password" type="password" required autocomplete="current-password" placeholder="비밀번호"></label>
+      <button class="primary" type="submit">로그인</button>
+      <span class="auth-status" id="authStatus" aria-live="polite"></span>
+    </form>
   `;
+}
+
+function bindAuthForm(mode) {
+  const form = $("authForm");
+  if (!form) return;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = form.querySelector("button[type='submit']");
+    const status = $("authStatus");
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = mode === "signup" ? "가입 중" : "로그인 중";
+    if (status) status.textContent = "";
+    const data = new FormData(form);
+    try {
+      const user = mode === "signup"
+        ? await signupUser({
+            displayName: data.get("displayName"),
+            email: data.get("email"),
+            password: data.get("password"),
+          })
+        : await loginUser({
+            email: data.get("email"),
+            password: data.get("password"),
+          });
+      state.currentUser = user;
+      closeAuthModal();
+      render();
+    } catch (error) {
+      if (status) status.textContent = getAuthErrorMessage(error.message);
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  });
 }
 
 function renderStudentHome() {
@@ -1250,6 +1310,10 @@ function mountBookingForm(mountId, coach) {
   $("bookingForm").contact.placeholder = "예: Discord ID";
   $("bookingForm").time.placeholder = "예: 8/10 21:00";
   $("bookingForm").memo.placeholder = "라인, 챔피언, 고민을 적어주세요.";
+  if (state.currentUser) {
+    $("bookingForm").student.value = state.currentUser.displayName || "";
+    $("bookingForm").contact.value = state.currentUser.email || "";
+  }
   $("bookingForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const submitButton = $("bookingSubmitBtn");
@@ -1289,6 +1353,7 @@ async function submitReservation(reservation) {
   }
   const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/reservations`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(reservation),
   });
@@ -1298,6 +1363,71 @@ async function submitReservation(reservation) {
     throw new Error(detail);
   }
   return result.reservation || {};
+}
+
+async function loadCurrentUser() {
+  if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) return;
+  state.authLoadState = "loading";
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/auth/me`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const result = await response.json().catch(() => ({}));
+    state.currentUser = response.ok && result.ok ? result.user : null;
+    state.authLoadState = "loaded";
+    renderUserActions();
+  } catch {
+    state.currentUser = null;
+    state.authLoadState = "error";
+    renderUserActions();
+  }
+}
+
+async function signupUser(payload) {
+  return requestAuth("/api/auth/signup", payload);
+}
+
+async function loginUser(payload) {
+  return requestAuth("/api/auth/login", payload);
+}
+
+async function requestAuth(path, payload) {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}${path}`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok || !result.user) {
+    throw new Error(result.error || `HTTP ${response.status}`);
+  }
+  return result.user;
+}
+
+async function logoutUser() {
+  try {
+    await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } finally {
+    state.currentUser = null;
+    render();
+  }
+}
+
+function getAuthErrorMessage(error) {
+  const messages = {
+    invalid_email: "이메일 형식을 확인해주세요.",
+    weak_password: "비밀번호는 8자 이상이어야 합니다.",
+    missing_display_name: "닉네임을 입력해주세요.",
+    email_already_exists: "이미 가입된 이메일입니다.",
+    missing_credentials: "이메일과 비밀번호를 입력해주세요.",
+    invalid_credentials: "이메일 또는 비밀번호가 맞지 않습니다.",
+  };
+  return messages[error] || "처리하지 못했습니다. 잠시 후 다시 시도해주세요.";
 }
 
 async function ensureAdminAccess() {
