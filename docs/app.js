@@ -213,6 +213,7 @@ const state = {
   cropTarget: null,
   currentUser: null,
   authLoadState: "idle",
+  authRequestId: 0,
 };
 
 function $(id) {
@@ -1686,6 +1687,7 @@ async function submitGuestConsultation({ selectedCoach, riotId, contact, feedbac
 
 async function loadCurrentUser() {
   if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) return;
+  const requestId = ++state.authRequestId;
   state.authLoadState = "loading";
   try {
     const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/auth/me`, {
@@ -1693,6 +1695,7 @@ async function loadCurrentUser() {
       credentials: "include",
     });
     const result = await response.json().catch(() => ({}));
+    if (requestId !== state.authRequestId) return;
     state.currentUser = response.ok && result.ok ? result.user : null;
     if (state.currentUser?.coachKey) state.coachSelfKey = state.currentUser.coachKey;
     state.coachDashboardLoadState = "idle";
@@ -1701,6 +1704,7 @@ async function loadCurrentUser() {
     state.authLoadState = "loaded";
     render();
   } catch {
+    if (requestId !== state.authRequestId) return;
     state.currentUser = null;
     state.authLoadState = "error";
     render();
@@ -1730,6 +1734,7 @@ async function requestAuth(path, payload) {
 }
 
 async function logoutUser() {
+  state.authRequestId += 1;
   try {
     await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/auth/logout`, {
       method: "POST",
