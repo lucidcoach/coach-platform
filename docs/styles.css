@@ -1708,7 +1708,7 @@ th {
 }
 .student-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: 96px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   padding: 14px;
@@ -1716,6 +1716,7 @@ th {
   border-radius: 8px;
   background: linear-gradient(90deg, #ffffff 0%, #f8fafc 100%);
 }
+.student-row .mini { align-self: center; }
 .student-row span {
   min-width: 0;
   display: grid;
@@ -2470,7 +2471,8 @@ body[data-theme="dark"] .explorer-coach-body small {
   .student-grid,
   .student-grid.lower,
   .coach-summary-grid,
-  .coach-history-row { grid-template-columns: 1fr; }
+  .coach-history-row,
+  .student-row { grid-template-columns: 1fr; }
   .student-head { align-items: stretch; }
   .student-balance { text-align: left; }
   .coach-self-layout { grid-template-columns: 1fr; }

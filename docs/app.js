@@ -199,6 +199,8 @@ const state = {
   bookingLoadError: "",
   coachDashboardLoadState: "idle",
   coachDashboardLoadError: "",
+  studentReservationLoadState: "idle",
+  studentReservationLoadError: "",
   bookingFilterStatus: "all",
   bookingQuery: "",
   selectedBookingId: null,
@@ -485,6 +487,7 @@ function render() {
   renderCoachRequests();
   renderCoachSelf();
   maybeLoadCoachDashboardReservations();
+  maybeLoadStudentReservations();
 }
 
 function renderMetrics() {
@@ -724,9 +727,12 @@ function bindAuthForm(mode) {
       if (state.currentUser?.coachKey) state.coachSelfKey = state.currentUser.coachKey;
       state.coachDashboardLoadState = "idle";
       state.coachDashboardLoadError = "";
+      state.studentReservationLoadState = "idle";
+      state.studentReservationLoadError = "";
       state.bookings = [];
       closeAuthModal();
       render();
+      await handlePaymentReturn();
     } catch (error) {
       if (status) status.textContent = getAuthErrorMessage(error.message);
     } finally {
@@ -777,29 +783,32 @@ function renderStudentHome() {
     return;
   }
   setStudentHeader(false);
-  const leagueLessons = state.coaches.filter((coach) => coach.category === "league");
-  const recommended = leagueLessons.slice(0, 3);
-  const nextLesson = state.bookings[0];
-  const historyRows = recommended.map((coach, index) => ({
-    lesson: coach.name,
-    coach: coach.coachProfileName || coach.name,
-    price: coach.price,
-    status: ["예약 확정", "수강 완료", "후기 완료"][index] || "구매 완료",
-    time: ["8/14 21:00", "8/10 20:00", "8/02 22:00"][index] || "시간 조율 중",
-    reviewStatus: ["후기 작성 가능 +1,000P", "후기 작성 가능 +1,000P", "후기 작성 완료"][index] || "후기 대기",
-  }));
-  const reviewRows = historyRows.filter((row) => row.status.includes("완료"));
+  if (!state.currentUser) {
+    container.innerHTML = `<div class="student-empty"><strong>로그인이 필요합니다.</strong><span>로그인하면 실제 예약과 결제 내역을 확인할 수 있습니다.</span><button class="primary" id="studentLoginBtn" type="button">로그인</button></div>`;
+    $("studentLoginBtn")?.addEventListener("click", () => openAuthModal("login"));
+    return;
+  }
+  if (state.studentReservationLoadState === "loading" || state.studentReservationLoadState === "idle") {
+    container.innerHTML = `<div class="student-empty"><strong>예약 내역을 불러오는 중입니다.</strong></div>`;
+    return;
+  }
+  if (state.studentReservationLoadState === "error") {
+    container.innerHTML = `<div class="student-empty"><strong>예약 내역을 불러오지 못했습니다.</strong><span>${escapeHtml(state.studentReservationLoadError)}</span></div>`;
+    return;
+  }
+  const historyRows = state.bookings;
+  const paidRows = historyRows.filter((row) => ["PAID", "PARTIALLY_REFUNDED"].includes(paymentStatus(row)));
+  const payableRows = historyRows.filter((row) => row.status === "예약확정" && !["PAID", "PARTIALLY_REFUNDED", "CANCELED", "REFUNDED"].includes(paymentStatus(row)));
+  const nextLesson = historyRows.find((row) => !["완료", "취소"].includes(row.status));
+  const paidAmount = paidRows.reduce((sum, row) => sum + Number(row.payment?.amount || 0), 0);
 
   container.innerHTML = `
     <section class="student-hero">
       <article class="student-hero-card">
-        <span>내 지갑</span>
-        <strong>0원</strong>
-        <p>강의 결제와 포인트 보상이 여기에 쌓입니다.</p>
-        <div class="student-actions">
-          <button class="primary" type="button" disabled>포인트 충전</button>
-          <button class="secondary" type="button" disabled>결제수단</button>
-        </div>
+        <span>결제 완료</span>
+        <strong>${formatWon(paidAmount)}</strong>
+        <p>토스페이먼츠 승인이 완료된 실제 결제 합계입니다.</p>
+        <em>${paidRows.length}건 결제 완료</em>
       </article>
       <article class="student-hero-card highlight">
         <span>다음 일정</span>
@@ -808,17 +817,17 @@ function renderStudentHome() {
         <em>${nextLesson ? escapeHtml(nextLesson.status || "접수") : "예약된 강의 없음"}</em>
       </article>
       <article class="student-hero-card reward">
-        <span>후기 보상</span>
-        <strong>+1,000P</strong>
-        <p>수강 완료 강의에 후기를 남기면 포인트를 받을 수 있습니다.</p>
-        <em>${reviewRows.length}개 작성 가능</em>
+        <span>결제 대기</span>
+        <strong>${payableRows.length}건</strong>
+        <p>운영진이 예약 시간을 확정하면 안전하게 결제할 수 있습니다.</p>
+        <em>현재는 테스트 결제만 가능</em>
       </article>
     </section>
 
     <section class="student-flow">
       <div><span>1</span><strong>강의 선택</strong><p>목록이나 맞춤 검색에서 코치를 고릅니다.</p></div>
-      <div><span>2</span><strong>예약 신청</strong><p>희망 시간과 연락처를 남깁니다.</p></div>
-      <div><span>3</span><strong>수강 후 후기</strong><p>후기 작성 시 포인트 보상이 표시됩니다.</p></div>
+      <div><span>2</span><strong>일정 확정</strong><p>운영진과 가능한 시간을 먼저 확정합니다.</p></div>
+      <div><span>3</span><strong>안전 결제</strong><p>확정된 예약만 토스 결제창으로 결제합니다.</p></div>
     </section>
 
     <section class="student-main-grid">
@@ -833,9 +842,10 @@ function renderStudentHome() {
               <em>${escapeHtml(row.status)}</em>
               <span>
                 <strong>${escapeHtml(row.lesson)}</strong>
-                <small>${escapeHtml(row.coach)} · ${escapeHtml(row.price)} · ${escapeHtml(row.time)}</small>
-                <small class="student-review-state">${escapeHtml(row.reviewStatus)}</small>
+                <small>${escapeHtml(row.coachName)} · ${escapeHtml(row.coachPrice)} · ${escapeHtml(row.time)}</small>
+                <small class="student-review-state">${escapeHtml(paymentStatusLabel(row))}</small>
               </span>
+              ${row.status === "예약확정" && !["PAID", "PARTIALLY_REFUNDED", "CANCELED", "REFUNDED"].includes(paymentStatus(row)) ? `<button class="primary mini" type="button" data-pay-reservation="${escapeHtml(row.id)}">결제하기</button>` : ""}
             </div>
           `).join("") || `
             <div class="student-empty">
@@ -849,28 +859,40 @@ function renderStudentHome() {
       <article class="student-panel student-review-panel">
         <div class="student-panel-head">
           <span>후기</span>
-          <strong>후기 작성 보상</strong>
+          <strong>결제 안내</strong>
         </div>
-        ${reviewRows.length ? `
+        ${payableRows.length ? `
           <div class="student-review-list">
-            ${reviewRows.map((row, index) => `
+            ${payableRows.map((row) => `
               <div class="student-review-card">
                 <strong>${escapeHtml(row.lesson)}</strong>
-                <span>${escapeHtml(row.coach)} · ${escapeHtml(row.time)}</span>
-                <p>${index === 0 ? "수강 완료 후 별점과 후기를 남기면 포인트 보상이 지급되는 예시입니다." : "이미 후기를 작성한 강의는 완료 상태로 표시됩니다."}</p>
-                <button class="${index === 0 ? "primary" : "secondary"}" type="button" disabled>${index === 0 ? "후기 작성 + 1,000P" : "후기 작성 완료"}</button>
+                <span>${escapeHtml(row.coachPrice)} · ${escapeHtml(row.time)}</span>
+                <p>서버에 저장된 상품 가격으로 주문을 만들며, 브라우저에서 보낸 금액은 사용하지 않습니다.</p>
+                <button class="primary" type="button" data-pay-reservation="${escapeHtml(row.id)}">토스로 결제하기</button>
               </div>
             `).join("")}
           </div>
         ` : `
           <div class="student-empty">
-            <strong>작성 가능한 후기가 없습니다.</strong>
-            <span>강의가 완료되면 후기 작성 버튼이 표시됩니다.</span>
+            <strong>결제할 예약이 없습니다.</strong>
+            <span>예약이 확정되면 결제 버튼이 표시됩니다.</span>
           </div>
         `}
       </article>
     </section>
   `;
+  document.querySelectorAll("[data-pay-reservation]").forEach((button) => {
+    button.addEventListener("click", () => startTossPayment(button.dataset.payReservation, button));
+  });
+}
+
+function paymentStatus(booking) {
+  return String(booking.payment?.status || "").toUpperCase();
+}
+
+function paymentStatusLabel(booking) {
+  return ({ PAID: "결제 완료", PARTIALLY_REFUNDED: "부분 환불", CANCELED: "결제 취소", REFUNDED: "환불 완료" })[paymentStatus(booking)]
+    || (booking.status === "예약확정" ? "결제 가능" : "일정 확인 후 결제");
 }
 
 function setStudentHeader(isCoach) {
@@ -1599,6 +1621,10 @@ function mountBookingForm(mountId, coach) {
   }
   $("bookingForm").addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (!state.currentUser) {
+      openAuthModal("login");
+      return;
+    }
     const submitButton = $("bookingSubmitBtn");
     const originalText = submitButton.textContent;
     submitButton.disabled = true;
@@ -1617,7 +1643,7 @@ function mountBookingForm(mountId, coach) {
 
     try {
       await submitReservation(reservation);
-      await loadReservations({ promptForLogin: false, silent: true });
+      await loadStudentReservations();
       event.target.reset();
       alert("예약 신청이 접수되었습니다. 운영진이 연락드릴게요.");
       render();
@@ -1694,9 +1720,12 @@ async function loadCurrentUser() {
     if (state.currentUser?.coachKey) state.coachSelfKey = state.currentUser.coachKey;
     state.coachDashboardLoadState = "idle";
     state.coachDashboardLoadError = "";
+    state.studentReservationLoadState = "idle";
+    state.studentReservationLoadError = "";
     state.bookings = [];
     state.authLoadState = "loaded";
     render();
+    await handlePaymentReturn();
   } catch {
     if (requestId !== state.authRequestId) return;
     state.currentUser = null;
@@ -1738,6 +1767,8 @@ async function logoutUser() {
     state.currentUser = null;
     state.coachDashboardLoadState = "idle";
     state.coachDashboardLoadError = "";
+    state.studentReservationLoadState = "idle";
+    state.studentReservationLoadError = "";
     state.bookings = [];
     render();
   }
@@ -1823,6 +1854,125 @@ async function fetchCoachReservations() {
   return (result.reservations || []).map(mapReservationFromApi);
 }
 
+async function fetchMyReservations() {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/my/reservations`, { credentials: "include" });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+  return (result.reservations || []).map(mapReservationFromApi);
+}
+
+function maybeLoadStudentReservations() {
+  if (state.activeView !== "student" || !state.currentUser || state.currentUser.role === "coach" || state.studentReservationLoadState !== "idle") return;
+  loadStudentReservations();
+}
+
+async function loadStudentReservations() {
+  if (!state.currentUser || state.currentUser.role === "coach") return;
+  state.studentReservationLoadState = "loading";
+  state.studentReservationLoadError = "";
+  renderStudentHome();
+  try {
+    state.bookings = await fetchMyReservations();
+    state.studentReservationLoadState = "loaded";
+  } catch (error) {
+    state.bookings = [];
+    state.studentReservationLoadState = "error";
+    state.studentReservationLoadError = error.message || "예약 API를 사용할 수 없습니다.";
+  }
+  renderStudentHome();
+}
+
+async function startTossPayment(reservationId, button) {
+  if (!state.currentUser || typeof window.TossPayments !== "function") {
+    alert("결제 모듈을 불러오지 못했습니다. 페이지를 새로고침해주세요.");
+    return;
+  }
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = "결제 준비 중";
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/payments/orders`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reservationId }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    const order = result.order || {};
+    const returnUrl = new URL(window.location.href);
+    ["payment", "paymentKey", "orderId", "amount", "code", "message"].forEach((key) => returnUrl.searchParams.delete(key));
+    returnUrl.hash = "";
+    const separator = returnUrl.search ? "&" : "?";
+    const payment = window.TossPayments(result.clientKey).payment({ customerKey: state.currentUser.id });
+    await payment.requestPayment({
+      method: "CARD",
+      amount: { currency: "KRW", value: Number(order.amount) },
+      orderId: order.orderId,
+      orderName: order.orderName,
+      successUrl: `${returnUrl.href}${separator}payment=success`,
+      failUrl: `${returnUrl.href}${separator}payment=fail`,
+      customerEmail: state.currentUser.email,
+      customerName: state.currentUser.displayName,
+    });
+  } catch (error) {
+    alert(`결제를 시작하지 못했습니다.\n${getPaymentErrorMessage(error.message)}`);
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
+async function handlePaymentReturn() {
+  const url = new URL(window.location.href);
+  const outcome = url.searchParams.get("payment");
+  if (!outcome) return;
+  if (outcome === "fail") {
+    const code = url.searchParams.get("code") || "payment_failed";
+    clearPaymentQuery(url);
+    alert(getPaymentErrorMessage(code));
+    return;
+  }
+  if (!state.currentUser) return;
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/payments/confirm`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paymentKey: url.searchParams.get("paymentKey"),
+        orderId: url.searchParams.get("orderId"),
+        amount: Number(url.searchParams.get("amount")),
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    clearPaymentQuery(url);
+    state.activeView = "student";
+    state.studentReservationLoadState = "idle";
+    render();
+    alert("결제가 완료되었습니다.");
+  } catch (error) {
+    alert(`결제 승인을 완료하지 못했습니다. 페이지를 새로고침하면 다시 확인합니다.\n${getPaymentErrorMessage(error.message)}`);
+  }
+}
+
+function clearPaymentQuery(url) {
+  ["payment", "paymentKey", "orderId", "amount", "code", "message"].forEach((key) => url.searchParams.delete(key));
+  history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function getPaymentErrorMessage(code) {
+  return ({
+    payment_not_configured: "토스 결제 키가 설정되지 않았습니다.",
+    live_payments_disabled: "사업자 심사 전에는 테스트 키만 사용할 수 있습니다.",
+    reservation_not_confirmed: "일정이 확정된 예약만 결제할 수 있습니다.",
+    invalid_payment_amount: "서버 상품 가격을 확인해주세요.",
+    amount_mismatch: "결제 금액이 서버 주문과 일치하지 않습니다.",
+    PAY_PROCESS_CANCELED: "결제가 취소되었습니다.",
+    PAY_PROCESS_ABORTED: "결제 인증에 실패했습니다.",
+  })[code] || code || "결제 처리 중 오류가 발생했습니다.";
+}
+
 function maybeLoadCoachDashboardReservations() {
   if (state.activeView !== "student" || state.currentUser?.role !== "coach" || state.coachDashboardLoadState !== "idle") return;
   loadCoachReservations();
@@ -1906,6 +2056,7 @@ function mapReservationFromApi(reservation) {
     time: reservation.preferred_time || "-",
     contact: reservation.contact || "-",
     memo: reservation.memo || "-",
+    payment: reservation.payment || null,
   };
 }
 
@@ -2382,9 +2533,38 @@ function renderBookingDetail() {
       ${renderDetailItem("연락처", booking.contact)}
       ${renderDetailItem("희망 시간", booking.preferredTime)}
       ${renderDetailItem("현재 상태", booking.status)}
+      ${renderDetailItem("결제 상태", paymentStatusLabel(booking))}
       ${renderDetailItem("요청사항", booking.memo, true)}
     </div>
+    ${paymentStatus(booking) === "PAID" ? `<button class="danger" type="button" id="refundPaymentBtn">전액 환불</button>` : ""}
   `;
+  $("refundPaymentBtn")?.addEventListener("click", () => refundPayment(booking));
+}
+
+async function refundPayment(booking) {
+  if (!booking.payment?.orderId || !window.confirm("이 결제를 전액 환불할까요? 토스 승인 취소 후 예약도 취소됩니다.")) return;
+  const reason = window.prompt("환불 사유를 입력하세요.", "관리자 전액 환불");
+  if (!reason) return;
+  try {
+    await runAdminRequest(async () => {
+      const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/payments/${encodeURIComponent(booking.payment.orderId)}/cancel`, {
+        method: "POST",
+        credentials: "include",
+        headers: getAdminHeaders(true),
+        body: JSON.stringify({ reason }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) {
+        const error = new Error(result.error || `HTTP ${response.status}`);
+        error.status = response.status;
+        throw error;
+      }
+    });
+    await loadReservations({ promptForLogin: false });
+    alert("전액 환불이 완료되었습니다.");
+  } catch (error) {
+    alert(`환불하지 못했습니다.\n${getPaymentErrorMessage(error.message)}`);
+  }
 }
 
 function renderDetailItem(label, value, wide = false) {
