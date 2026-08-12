@@ -158,14 +158,18 @@ const initialBookings = [
   { id: "booking-1", status: "상담중", student: "테스트 수강생", lesson: "신규 코치 베이직 4주", coach: "아카데미", time: "8/12 20:00", contact: "Discord ID", memo: "샘플 예약입니다." },
 ];
 
-const imageMigration = { "assets/logo.png": "assets/lollogo.png", "assets/lol-logo.png": "assets/lollogo.png" };
+const imageMigration = {
+  "assets/logo.png": "assets/lollogo.png",
+  "assets/lol-logo.png": "assets/lollogo.png",
+  "assets/shineast.png": "assets/NSshineast.jpg",
+};
 const tierRank = { "엠버서더": 0, "최우수": 1, "우수": 2, "일반": 3 };
 
 const leagueCoachProfiles = {
-  shineast: { name: "샤이니스트 코치", tier: "최우수", tagline: "프로팀 출신 · 모든 라인 피드백 · 팀게임 운영까지 가능", roles: ["탑", "정글", "미드", "원딜", "서폿", "팀게임"], image: "assets/shineast.png", imagePosition: "center 12%", featuredImagePosition: "center 16%" },
-  mireu: { name: "정미르 코치", tier: "우수", tagline: "저티어와 일반 수강생에게 쉬운 정글/팀게임 피드백", roles: ["정글", "저티어", "팀게임", "입문"], image: "assets/lollogo.png", imagePosition: "center 8%" },
-  persona: { name: "페르소나 코치", tier: "우수", tagline: "탑 라인 중심의 이론과 매치업 이해도 피드백", roles: ["탑", "이론", "고티어", "라인전"], image: "assets/lollogo.png", imagePosition: "center 8%" },
-  mephi: { name: "메피 코치", tier: "엠버서더", tagline: "전프로 바텀 라이너 · 전 라인 피드백 · 팀게임 리뷰 가능", roles: ["바텀", "전 라인", "팀게임", "전프로"], image: "assets/lollogo.png", imagePosition: "center 8%" },
+  shineast: { name: "샤이니스트 코치", tier: "최우수", tagline: "프로팀 출신 · 모든 라인 피드백 · 팀게임 운영까지 가능", roles: ["탑", "정글", "미드", "원딜", "서폿", "팀게임"], image: "assets/NSshineast.jpg", imagePosition: "center 58%", featuredImagePosition: "center 58%" },
+  mireu: { name: "정미르 코치", tier: "우수", tagline: "저티어와 일반 수강생에게 쉬운 정글/팀게임 피드백", roles: ["정글", "저티어", "팀게임", "입문"], image: "assets/mireucoach.png", imagePosition: "center 54%" },
+  persona: { name: "페르소나 코치", tier: "우수", tagline: "탑 라인 중심의 이론과 매치업 이해도 피드백", roles: ["탑", "이론", "고티어", "라인전"], image: "assets/personacoach.png", imagePosition: "center 48%" },
+  mephi: { name: "메피 코치", tier: "엠버서더", tagline: "전프로 바텀 라이너 · 전 라인 피드백 · 팀게임 리뷰 가능", roles: ["바텀", "전 라인", "팀게임", "전프로"], image: "assets/mephicoach.png", imagePosition: "center 45%" },
 };
 
 const leagueLessonOverrides = {
@@ -237,6 +241,8 @@ function normalizeCoachProfiles(coaches) {
     const lessonDefaults = coach.manualCoachEdit ? {} : override;
     const coachKey = override.coachKey || inferLeagueCoachKey(coach);
     const profile = leagueCoachProfiles[coachKey] || leagueCoachProfiles.shineast;
+    const imagePath = imageMigration[coach.image] || coach.image || "";
+    const shouldUseProfileImage = !coach.manualCoachEdit || !imagePath || imagePath === "assets/lollogo.png" || imagePath === "assets/shineast.png";
     return {
       ...coach,
       ...lessonDefaults,
@@ -245,8 +251,8 @@ function normalizeCoachProfiles(coaches) {
       coachTier: profile.tier,
       coachSummary: profile.tagline,
       tier: profile.tier,
-      image: coach.image && coach.manualCoachEdit ? coach.image : profile.image,
-      imagePosition: profile.imagePosition,
+      image: shouldUseProfileImage ? profile.image : imagePath,
+      imagePosition: shouldUseProfileImage ? profile.imagePosition : (coach.imagePosition || profile.imagePosition),
       featuredImagePosition: (coach.featuredImage || coach.manualCoachEdit)
         ? (coach.featuredImagePosition || profile.featuredImagePosition || profile.imagePosition)
         : (profile.featuredImagePosition || profile.imagePosition),
