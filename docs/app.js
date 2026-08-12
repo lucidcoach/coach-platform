@@ -11,7 +11,7 @@ const EMAIL_MAX_LENGTH = 254;
 const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_MAX_LENGTH = 128;
 const RESERVATION_STATUSES = ["신규", "상담중", "예약확정", "완료", "취소"];
-const COACH_API_TIMEOUT_MS = 6500;
+const COACH_API_TIMEOUT_MS = 60000;
 
 const filterSets = {
   league: {
@@ -212,6 +212,17 @@ const state = {
   currentUser: null,
   authLoadState: "idle",
   authRequestId: 0,
+  availabilityByCoach: {},
+  availabilityLoadStates: {},
+  coachAvailability: [],
+  coachAvailabilityLoadState: "idle",
+  coachAvailabilityLoadError: "",
+  refundRequests: [],
+  adminRefundRequests: [],
+  refundAdminLoadState: "idle",
+  refundAdminLoadError: "",
+  reviewsByCoach: {},
+  submittedReviewIds: [],
 };
 
 function $(id) {
@@ -308,6 +319,8 @@ function showOAuthResult() {
     openAuthModal("login");
     const messages = {
       account_link_required: "같은 이메일의 기존 계정이 있습니다. 기존 방식으로 로그인해 주세요.",
+      discord_already_linked: "이 사이트 계정 또는 Discord 계정은 이미 연결되어 있습니다.",
+      login_required: "기존 계정으로 다시 로그인한 뒤 Discord를 연결해 주세요.",
       oauth_cancelled: "소셜 로그인이 취소되었습니다.",
       invalid_oauth_state: "로그인 요청이 만료되었습니다. 다시 시도해 주세요.",
     };
@@ -345,6 +358,7 @@ function bindEvents() {
       render();
       if (state.activeView === "bookings") {
         loadReservations({ promptForLogin: false });
+        loadAdminRefundRequests();
       }
     });
   });
@@ -373,6 +387,7 @@ function bindEvents() {
   });
   $("themeToggleBtn")?.addEventListener("click", toggleTheme);
   $("loginOpenBtn")?.addEventListener("click", () => openAuthModal("login"));
+  $("discordConnectBtn")?.addEventListener("click", startDiscordOAuth);
   $("guestBuyOpenBtn")?.addEventListener("click", () => {
     if (state.currentUser) logoutUser();
     else openAuthModal("guest");
@@ -500,6 +515,7 @@ async function openAdminView(nextView) {
   render();
   if (nextView === "bookings") {
     loadReservations({ promptForLogin: false });
+    loadAdminRefundRequests();
   } else if (nextView === "users") {
     loadUsers();
   }
@@ -562,16 +578,32 @@ function renderRoleMenu() {
 function renderUserActions() {
   const loginButton = $("loginOpenBtn");
   const guestButton = $("guestBuyOpenBtn");
+  const discordButton = $("discordConnectBtn");
   if (!loginButton || !guestButton) return;
   if (state.currentUser) {
     loginButton.textContent = state.currentUser.displayName || state.currentUser.email || "내 계정";
     loginButton.classList.add("active-user");
     guestButton.textContent = "로그아웃";
+    if (discordButton) {
+      discordButton.hidden = false;
+      const connected = Boolean(state.currentUser.discordConnected || state.currentUser.discord_connected || state.currentUser.discordDisplayName || state.currentUser.discord_display_name);
+      discordButton.textContent = connected ? `Discord · ${state.currentUser.discordDisplayName || state.currentUser.discord_display_name || "연결됨"}` : "Discord 연결";
+      discordButton.classList.toggle("active-user", connected);
+    }
   } else {
     loginButton.textContent = "로그인";
     loginButton.classList.remove("active-user");
     guestButton.textContent = "비회원 상담";
+    if (discordButton) {
+      discordButton.hidden = false;
+      discordButton.textContent = "Discord로 계속하기";
+      discordButton.classList.remove("active-user");
+    }
   }
+}
+
+function startDiscordOAuth() {
+  window.location.assign(`${API_BASE_URL.replace(/\/$/, "")}/api/auth/oauth/discord/start`);
 }
 
 function applyTheme(theme) {
@@ -665,8 +697,9 @@ function renderAuthMarkup(mode) {
       <h2 id="authTitle">내 강의 이어보기</h2>
       <p>예약 내역과 후기 작성 가능 강의를 계정으로 이어서 확인합니다.</p>
       <div class="social-auth" aria-label="소셜 로그인">
-        <button class="google" type="button" data-oauth-provider="google">Google로 계속하기</button>
-        <button class="naver" type="button" data-oauth-provider="naver">네이버로 계속하기</button>
+        <button class="google" type="button" data-oauth-provider="google"><img src="assets/google-logo.jpg" alt="">Google로 계속하기</button>
+        <button class="naver" type="button" data-oauth-provider="naver"><img src="assets/naver.jpg" alt="">네이버로 계속하기</button>
+        <button class="discord" type="button" data-oauth-provider="discord"><img src="assets/discord-login.png" alt="">Discord로 계속하기</button>
       </div>
       <label>이메일<input name="email" type="email" required maxlength="${EMAIL_MAX_LENGTH}" autocomplete="email" placeholder="example@email.com"></label>
       <label>비밀번호
@@ -720,6 +753,8 @@ function bindAuthForm(mode) {
       state.studentReservationLoadState = "idle";
       state.studentReservationLoadError = "";
       state.bookings = [];
+      state.refundRequests = [];
+      state.submittedReviewIds = [];
       closeAuthModal();
       render();
       if (state.currentUser?.role === "coach") await loadCoachProfile();
@@ -790,6 +825,7 @@ function renderStudentHome() {
   const historyRows = state.bookings;
   const paidRows = historyRows.filter((row) => ["PAID", "PARTIALLY_REFUNDED"].includes(paymentStatus(row)));
   const payableRows = historyRows.filter((row) => row.status === "예약확정" && !["PAID", "PARTIALLY_REFUNDED", "CANCELED", "REFUNDED"].includes(paymentStatus(row)));
+  const reviewableRows = historyRows.filter((row) => row.status === "완료" && paymentStatus(row) === "PAID" && !row.review && !state.submittedReviewIds.includes(row.id));
   const nextLesson = historyRows.find((row) => !["완료", "취소"].includes(row.status));
   const paidAmount = paidRows.reduce((sum, row) => sum + Number(row.payment?.amount || 0), 0);
 
@@ -836,7 +872,11 @@ function renderStudentHome() {
                 <small>${escapeHtml(row.coachName)} · ${escapeHtml(row.coachPrice)} · ${escapeHtml(row.time)}</small>
                 <small class="student-review-state">${escapeHtml(paymentStatusLabel(row))}</small>
               </span>
-              ${row.status === "예약확정" && !["PAID", "PARTIALLY_REFUNDED", "CANCELED", "REFUNDED"].includes(paymentStatus(row)) ? `<button class="primary mini" type="button" data-pay-reservation="${escapeHtml(row.id)}">결제하기</button>` : ""}
+              <div class="student-actions">
+                ${row.status === "예약확정" && !["PAID", "PARTIALLY_REFUNDED", "CANCELED", "REFUNDED"].includes(paymentStatus(row)) ? `<button class="primary mini" type="button" data-pay-reservation="${escapeHtml(row.id)}">결제하기</button>` : ""}
+                ${!['완료', '취소'].includes(row.status) && !getRefundRequestFor(row) ? `<button class="secondary mini" type="button" data-cancel-request="${escapeHtml(row.id)}">취소·환불 요청</button>` : ""}
+                ${getRefundRequestFor(row) ? `<small class="student-review-state">${escapeHtml(refundRequestLabel(getRefundRequestFor(row)))}</small>` : ""}
+              </div>
             </div>
           `).join("") || `
             <div class="student-empty">
@@ -850,8 +890,21 @@ function renderStudentHome() {
       <article class="student-panel student-review-panel">
         <div class="student-panel-head">
           <span>후기</span>
-          <strong>결제 안내</strong>
+          <strong>후기 / 결제 안내</strong>
         </div>
+        ${reviewableRows.length ? `
+          <div class="student-review-list">
+            ${reviewableRows.map((row) => `
+              <form class="student-review-card" data-review-form="${escapeHtml(row.id)}">
+                <strong>${escapeHtml(row.lesson)}</strong>
+                <span>수업 완료 · 후기 작성</span>
+                <label>별점<select name="rating"><option value="5">5점</option><option value="4">4점</option><option value="3">3점</option><option value="2">2점</option><option value="1">1점</option></select></label>
+                <label>후기<textarea name="content" rows="3" required placeholder="수업에서 도움받은 점을 남겨주세요."></textarea></label>
+                <button class="primary" type="submit">후기 등록</button>
+              </form>
+            `).join("")}
+          </div>
+        ` : ""}
         ${payableRows.length ? `
           <div class="student-review-list">
             ${payableRows.map((row) => `
@@ -863,17 +916,27 @@ function renderStudentHome() {
               </div>
             `).join("")}
           </div>
-        ` : `
+        ` : ""}
+        ${!reviewableRows.length && !payableRows.length ? `
           <div class="student-empty">
             <strong>결제할 예약이 없습니다.</strong>
             <span>예약이 확정되면 결제 버튼이 표시됩니다.</span>
           </div>
-        `}
+        ` : ""}
       </article>
     </section>
   `;
   document.querySelectorAll("[data-pay-reservation]").forEach((button) => {
     button.addEventListener("click", () => startTossPayment(button.dataset.payReservation, button));
+  });
+  document.querySelectorAll("[data-cancel-request]").forEach((button) => {
+    button.addEventListener("click", () => requestReservationCancel(button.dataset.cancelRequest));
+  });
+  document.querySelectorAll("[data-review-form]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitReservationReview(form.dataset.reviewForm, form);
+    });
   });
 }
 
@@ -1263,7 +1326,7 @@ function renderMarket() {
   if (state.coachLoadState === "error") {
     $("featuredSection").hidden = true;
     $("featuredList").innerHTML = "";
-    $("coachList").innerHTML = `<div class="empty">코치 목록을 불러오지 못했습니다.</div>`;
+    $("coachList").innerHTML = `<div class="empty">코치 목록을 불러오지 못했습니다.<br><button class="secondary" type="button" onclick="loadCoachesFromApi()">다시 불러오기</button></div>`;
     state.selectedCoachId = null;
     renderDetail();
     return;
@@ -1490,6 +1553,8 @@ function openLessonDetail(coachId) {
   state.selectedCoachId = coach.id;
   $("lessonDetailBody").innerHTML = renderLessonDetailMarkup(coach);
   mountBookingForm("lessonBookingMount", coach);
+  loadPublicAvailability(coach.id);
+  loadCoachReviews(coach.id);
   modal.hidden = false;
 }
 
@@ -1516,6 +1581,89 @@ function getCoachDetailTone(coach) {
   if (key === "mireu") return "저티어와 일반 수강생이 바로 따라 할 수 있게 동선과 판단 기준을 쉽게 정리합니다.";
   if (key === "persona") return "탑 라인 중심의 이론과 매치업 이해도를 차분하게 정리합니다.";
   return "현재 플레이에서 바로 고칠 수 있는 습관과 다음 연습 과제를 정리합니다.";
+}
+
+function normalizeAvailabilitySlot(slot) {
+  const startsAt = slot.startsAt || slot.starts_at || slot.start || slot.startAt || "";
+  const endsAt = slot.endsAt || slot.ends_at || slot.end || slot.endAt || "";
+  return {
+    id: String(slot.id || slot.slotId || slot.slot_id || ""),
+    startsAt,
+    endsAt,
+    status: String(slot.status || "open").toLowerCase(),
+    label: slot.label || formatDateTime(startsAt) + (endsAt ? ` ~ ${formatDateTime(endsAt)}` : ""),
+    available: slot.available !== false && slot.isAvailable !== false && !["cancelled", "canceled"].includes(String(slot.status || "").toLowerCase()),
+  };
+}
+
+async function loadPublicAvailability(coachId) {
+  const key = String(coachId || "");
+  if (!key || state.availabilityLoadStates[key] === "loading") return;
+  state.availabilityLoadStates[key] = "loading";
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches/${encodeURIComponent(key)}/availability`, { credentials: "include" });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    const raw = result.availability || result.slots || result.items || [];
+    state.availabilityByCoach[key] = Array.isArray(raw) ? raw.map(normalizeAvailabilitySlot).filter((slot) => slot.id && slot.available && slot.status === "open") : [];
+    state.availabilityLoadStates[key] = "loaded";
+  } catch (error) {
+    state.availabilityByCoach[key] = [];
+    state.availabilityLoadStates[key] = "error";
+  }
+  renderAvailabilityPicker(state.coaches.find((coach) => String(coach.id) === key));
+}
+
+function renderAvailabilityPicker(coach) {
+  const picker = $("bookingAvailabilityPicker");
+  const select = $("bookingAvailabilitySlot");
+  const timeInput = $("bookingForm")?.elements?.time;
+  if (!picker || !select || !coach) return;
+  const slots = state.availabilityByCoach[String(coach.id)] || [];
+  if (!slots.length) {
+    picker.hidden = true;
+    select.required = false;
+    if (timeInput) {
+      timeInput.readOnly = false;
+      timeInput.required = true;
+      timeInput.placeholder = "예: 2026-08-20 21:00 (코치와 협의)";
+    }
+    return;
+  }
+  picker.hidden = false;
+  select.required = true;
+  select.innerHTML = `<option value="">가능한 시간을 선택하세요</option>${slots.map((slot) => `<option value="${escapeHtml(slot.id)}" data-time="${escapeHtml(slot.label)}">${escapeHtml(slot.label)}</option>`).join("")}`;
+  if (timeInput) {
+    timeInput.readOnly = true;
+    timeInput.required = false;
+    timeInput.value = "";
+    select.addEventListener("change", () => {
+      const option = select.selectedOptions[0];
+      timeInput.value = option?.dataset.time || "";
+    });
+  }
+}
+
+async function loadCoachReviews(coachId) {
+  const key = String(coachId || "");
+  if (!key || state.reviewsByCoach[key]) return;
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches/${encodeURIComponent(key)}/reviews`, { credentials: "include" });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) return;
+    const reviews = result.reviews || result.items || [];
+    state.reviewsByCoach[key] = Array.isArray(reviews) ? reviews : [];
+    const coach = state.coaches.find((item) => String(item.id) === key);
+    if (coach) {
+      coach.reviews = state.reviewsByCoach[key].map((review) => [review.author || review.displayName || review.studentName || "수강생", review.content || review.body || ""]);
+      if ($("lessonDetailModal") && !$("lessonDetailModal").hidden) {
+        $("lessonDetailBody").innerHTML = renderLessonDetailMarkup(coach);
+        mountBookingForm("lessonBookingMount", coach);
+      }
+    }
+  } catch {
+    // Public reviews are optional; keep the catalog fallback.
+  }
 }
 
 function renderLessonInfoBlocks(coach) {
@@ -1610,6 +1758,7 @@ function mountBookingForm(mountId, coach) {
     $("bookingForm").student.value = state.currentUser.displayName || "";
     $("bookingForm").contact.value = state.currentUser.email || "";
   }
+  renderAvailabilityPicker(coach);
   $("bookingForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!state.currentUser) {
@@ -1631,6 +1780,11 @@ function mountBookingForm(mountId, coach) {
       time: data.get("time"),
       memo: data.get("memo") || "",
     };
+    const availabilitySlotId = data.get("availabilitySlotId");
+    if (availabilitySlotId) {
+      reservation.availabilitySlotId = availabilitySlotId;
+      reservation.slotId = availabilitySlotId;
+    }
 
     try {
       await submitReservation(reservation);
@@ -1714,6 +1868,8 @@ async function loadCurrentUser() {
     state.studentReservationLoadState = "idle";
     state.studentReservationLoadError = "";
     state.bookings = [];
+    state.refundRequests = [];
+    state.submittedReviewIds = [];
     state.authLoadState = "loaded";
     render();
     if (state.currentUser?.role === "coach") await loadCoachProfile();
@@ -1762,6 +1918,8 @@ async function logoutUser() {
     state.studentReservationLoadState = "idle";
     state.studentReservationLoadError = "";
     state.bookings = [];
+    state.refundRequests = [];
+    state.submittedReviewIds = [];
     state.coachProfile = null;
     state.coachProfileLoadState = "idle";
     state.coachProfileLoadError = "";
@@ -1856,6 +2014,13 @@ async function fetchMyReservations() {
   return (result.reservations || []).map(mapReservationFromApi);
 }
 
+async function fetchMyRefundRequests() {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/my/refund-requests`, { credentials: "include" });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+  return result.requests || result.refundRequests || [];
+}
+
 function maybeLoadStudentReservations() {
   if (state.activeView !== "student" || !state.currentUser || state.currentUser.role === "coach" || state.studentReservationLoadState !== "idle") return;
   loadStudentReservations();
@@ -1867,14 +2032,76 @@ async function loadStudentReservations() {
   state.studentReservationLoadError = "";
   renderStudentHome();
   try {
-    state.bookings = await fetchMyReservations();
+    const [reservations, refundRequests] = await Promise.all([
+      fetchMyReservations(),
+      fetchMyRefundRequests().catch(() => []),
+    ]);
+    state.bookings = reservations;
+    state.refundRequests = refundRequests;
     state.studentReservationLoadState = "loaded";
   } catch (error) {
     state.bookings = [];
+    state.refundRequests = [];
     state.studentReservationLoadState = "error";
     state.studentReservationLoadError = error.message || "예약 API를 사용할 수 없습니다.";
   }
   renderStudentHome();
+}
+
+function getRefundRequestFor(booking) {
+  return booking.refundRequest || state.refundRequests.find((request) => String(request.reservationId || request.reservation_id || request.reservation?.id || "") === String(booking.id)) || null;
+}
+
+function refundRequestLabel(request) {
+  const status = String(request?.status || "").toLowerCase();
+  return { pending: "환불 요청 검토 중", approved: "환불 승인", rejected: "환불 요청 거절" }[status] || "";
+}
+
+async function requestReservationCancel(reservationId) {
+  const reason = window.prompt("취소·환불 사유를 입력해주세요.", "일정 변경");
+  if (!reason) return;
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/my/reservations/${encodeURIComponent(reservationId)}/cancel-request`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    await loadStudentReservations();
+    alert("취소·환불 요청이 접수되었습니다.");
+  } catch (error) {
+    alert(`취소·환불 요청을 보내지 못했습니다.\n${error.message}`);
+  }
+}
+
+async function submitReservationReview(reservationId, form) {
+  const rating = Number(form.querySelector("[name='rating']")?.value || 0);
+  const content = String(form.querySelector("[name='content']")?.value || "").trim();
+  if (!rating || !content) {
+    alert("별점과 후기를 입력해주세요.");
+    return;
+  }
+  const button = form.querySelector("button[type='submit']");
+  if (button) button.disabled = true;
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/reservations/${encodeURIComponent(reservationId)}/review`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rating, content }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    if (!state.submittedReviewIds.includes(reservationId)) state.submittedReviewIds.push(reservationId);
+    await loadStudentReservations();
+    alert("후기가 등록되었습니다.");
+  } catch (error) {
+    alert(`후기를 등록하지 못했습니다.\n${error.message}`);
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 
 async function startTossPayment(reservationId, button) {
@@ -2052,7 +2279,120 @@ function mapReservationFromApi(reservation) {
     contact: reservation.contact || "-",
     memo: reservation.memo || "-",
     payment: reservation.payment || null,
+    review: reservation.review || reservation.review_data || reservation.review_metadata || null,
+    refundRequest: reservation.refundRequest || reservation.refund_request || null,
   };
+}
+
+function normalizeRefundRequest(request) {
+  const reservation = request.reservation || {};
+  return {
+    id: String(request.id || request.requestId || request.request_id || ""),
+    reservationId: String(request.reservationId || request.reservation_id || reservation.id || ""),
+    status: String(request.status || "pending").toLowerCase(),
+    reason: request.reason || request.cancelReason || request.cancel_reason || "-",
+    note: request.note || request.adminNote || request.admin_note || "",
+    createdAt: request.createdAt || request.created_at || "",
+    studentName: request.studentName || request.student_name || reservation.studentName || reservation.student_name || `예약 ${String(request.reservationId || request.reservation_id || reservation.id || "").slice(0, 8)}`,
+    coachName: request.coachName || request.coach_name || reservation.coachName || reservation.coach_name || "-",
+    preferredTime: request.preferredTime || request.preferred_time || reservation.preferredTime || reservation.preferred_time || "-",
+    amount: request.amount || request.refundAmount || request.refund_amount || reservation.payment?.amount || "",
+  };
+}
+
+async function fetchAdminRefundRequests() {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/refund-requests`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+    credentials: "include",
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  const rows = result.requests || result.refundRequests || result.items || [];
+  return Array.isArray(rows) ? rows.map(normalizeRefundRequest).filter((request) => request.id) : [];
+}
+
+async function loadAdminRefundRequests() {
+  if (state.activeView !== "bookings") return;
+  state.refundAdminLoadState = "loading";
+  state.refundAdminLoadError = "";
+  renderRefundAdminPanel();
+  try {
+    state.adminRefundRequests = await runAdminRequest(() => fetchAdminRefundRequests());
+    state.refundAdminLoadState = "loaded";
+  } catch (error) {
+    state.adminRefundRequests = [];
+    state.refundAdminLoadState = "error";
+    state.refundAdminLoadError = error.message || "환불 요청을 불러오지 못했습니다.";
+  }
+  renderRefundAdminPanel();
+}
+
+function refundAdminStatusLabel(status) {
+  return { pending: "대기중", approved: "승인", rejected: "거절" }[String(status || "").toLowerCase()] || status || "-";
+}
+
+function renderRefundAdminPanel() {
+  const panel = $("refundAdminPanel");
+  if (!panel) return;
+  if (state.refundAdminLoadState === "idle") {
+    panel.innerHTML = `<div class="refund-admin-empty">환불 요청을 불러오려면 새로고침을 눌러주세요.</div>`;
+    return;
+  }
+  if (state.refundAdminLoadState === "loading") {
+    panel.innerHTML = `<div class="refund-admin-empty">환불 요청을 불러오는 중입니다.</div>`;
+    return;
+  }
+  if (state.refundAdminLoadState === "error") {
+    panel.innerHTML = `<div class="refund-admin-empty error">${escapeHtml(state.refundAdminLoadError || "환불 요청을 불러오지 못했습니다.")} <button type="button" class="secondary mini" id="reloadRefundRequestsBtn">다시 시도</button></div>`;
+    $("reloadRefundRequestsBtn")?.addEventListener("click", loadAdminRefundRequests);
+    return;
+  }
+  const requests = state.adminRefundRequests || [];
+  panel.innerHTML = `
+    <div class="refund-admin-head"><div><span>환불 관리</span><strong>수강생 취소·환불 요청</strong></div><button type="button" class="secondary" id="reloadRefundRequestsBtn">새로고침</button></div>
+    ${requests.length ? `<div class="refund-admin-list">${requests.map((request) => `
+      <article class="refund-admin-row">
+        <div><strong>${escapeHtml(request.studentName)} · ${escapeHtml(request.coachName)}</strong><small>${escapeHtml(request.preferredTime)} · ${escapeHtml(request.createdAt ? formatDateTime(request.createdAt) : "접수 시간 미상")}</small></div>
+        <div><span class="chip">${escapeHtml(refundAdminStatusLabel(request.status))}</span><small>${escapeHtml(request.reason)}</small></div>
+        ${request.status === "pending" ? `<div class="booking-actions"><button type="button" class="mini primary-mini" data-refund-approve="${escapeHtml(request.id)}">승인</button><button type="button" class="mini danger-mini" data-refund-reject="${escapeHtml(request.id)}">거절</button></div>` : `<small>${escapeHtml(request.note || "처리 메모 없음")}</small>`}
+      </article>
+    `).join("")}</div>` : `<div class="refund-admin-empty">환불 요청이 없습니다.</div>`}
+  `;
+  $("reloadRefundRequestsBtn")?.addEventListener("click", loadAdminRefundRequests);
+  document.querySelectorAll("[data-refund-approve]").forEach((button) => button.addEventListener("click", () => decideRefundRequest(button.dataset.refundApprove, "approved")));
+  document.querySelectorAll("[data-refund-reject]").forEach((button) => button.addEventListener("click", () => decideRefundRequest(button.dataset.refundReject, "rejected")));
+}
+
+async function decideRefundRequest(requestId, status) {
+  const label = status === "approved" ? "승인" : "거절";
+  if (!window.confirm(`이 환불 요청을 ${label} 처리할까요?`)) return;
+  const note = window.prompt("처리 메모(선택)", status === "approved" ? "환불 승인" : "환불 정책에 따른 거절");
+  if (note === null) return;
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/refund-requests/${encodeURIComponent(requestId)}`, {
+      method: "PATCH",
+      headers: getAdminHeaders(true),
+      credentials: "include",
+      body: JSON.stringify({ status, note }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    const updated = normalizeRefundRequest(result.request || result.refundRequest || { id: requestId, status, note });
+    state.adminRefundRequests = state.adminRefundRequests.map((request) => request.id === requestId ? { ...request, ...updated } : request);
+    renderRefundAdminPanel();
+    await loadReservations({ promptForLogin: false, silent: true });
+  } catch (error) {
+    if (error.status === 401) {
+      const loggedIn = await loginForReservations();
+      if (loggedIn) return decideRefundRequest(requestId, status);
+    }
+    alert(`환불 요청을 처리하지 못했습니다.\n${error.message}`);
+  }
 }
 
 function getAdminHeaders(includeJson = false) {
@@ -2088,29 +2428,34 @@ async function loadCoachesFromApi() {
     state.coachLoadState = "loading";
     render();
   }
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), COACH_API_TIMEOUT_MS);
-  try {
-    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches`, {
-      signal: controller.signal,
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
-    if (Array.isArray(result.coaches)) {
-      state.coaches = getPublicCatalogCoaches(result.coaches);
-      if (state.selectedCoachId && !state.coaches.some((coach) => coach.id === state.selectedCoachId)) {
-        state.selectedCoachId = null;
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), COACH_API_TIMEOUT_MS);
+    try {
+      const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches`, {
+        signal: controller.signal,
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+      if (Array.isArray(result.coaches)) {
+        state.coaches = getPublicCatalogCoaches(result.coaches);
+        if (state.selectedCoachId && !state.coaches.some((coach) => coach.id === state.selectedCoachId)) {
+          state.selectedCoachId = null;
+        }
+        state.coachLoadState = state.coaches.length ? "loaded" : "empty";
+        render();
+        return;
       }
-      state.coachLoadState = state.coaches.length ? "loaded" : "empty";
-      render();
+    } catch (error) {
+      lastError = error;
+    } finally {
+      clearTimeout(timeoutId);
     }
-  } catch (error) {
-    state.coachLoadState = hasLoadedCoaches ? "loaded" : "error";
-    console.warn("코치 목록을 불러오지 못했습니다.", error);
-    render();
-  } finally {
-    clearTimeout(timeoutId);
   }
+  state.coachLoadState = hasLoadedCoaches ? "loaded" : "error";
+  console.warn("코치 목록을 불러오지 못했습니다.", lastError);
+  render();
 }
 
 function applyCoachProfileToCatalog(profile) {
@@ -2686,11 +3031,13 @@ function renderBookings() {
   if (state.bookingLoadState === "loading") {
     $("bookingRows").innerHTML = `<tr><td colspan="7">예약 목록을 불러오는 중입니다.</td></tr>`;
     renderBookingDetail();
+    renderRefundAdminPanel();
     return;
   }
   if (state.bookingLoadState === "error") {
     $("bookingRows").innerHTML = `<tr><td colspan="7">${state.bookingLoadError || "예약 목록을 불러오지 못했습니다."}</td></tr>`;
     renderBookingDetail();
+    renderRefundAdminPanel();
     return;
   }
   const visibleBookings = getFilteredBookings();
@@ -2744,6 +3091,7 @@ function renderBookings() {
     });
   });
   renderBookingDetail();
+  renderRefundAdminPanel();
 }
 
 function renderAdmin() {
@@ -2998,6 +3346,8 @@ function renderCoachSelf() {
   $("coachSelfName").textContent = current ? current.name : "코치 선택";
   $("coachSelfHint").textContent = current ? `${current.tier} · ${current.lessons}개 강의` : "강의를 선택하면 오른쪽에서 수정할 수 있습니다.";
   renderCoachSelfProfile(current);
+  renderCoachAvailabilityPanel();
+  if (state.currentUser?.role === "coach" && state.coachAvailabilityLoadState === "idle") loadCoachAvailability();
 
   const lessons = getCoachSelfLessons();
   if (state.coachSelfLessonId && !lessons.some((lesson) => lesson.id === state.coachSelfLessonId)) {
@@ -3122,6 +3472,100 @@ function updateCoachSelfPriceValue() {
   const amount = Number(String($("coachSelfPriceAmount")?.value || "").replace(/[^\d]/g, ""));
   const amountText = amount ? `${amount.toLocaleString("ko-KR")}원` : "가격 상담";
   if ($("coachSelfPrice")) $("coachSelfPrice").value = `${amountText} / ${$("coachSelfPriceUnit").value}`;
+}
+
+function normalizeCoachAvailability(slot) {
+  const normalized = normalizeAvailabilitySlot(slot);
+  return { ...normalized, coachId: slot.coachId || slot.coach_id || "" };
+}
+
+async function loadCoachAvailability() {
+  if (!state.currentUser || state.currentUser.role !== "coach") return;
+  state.coachAvailabilityLoadState = "loading";
+  state.coachAvailabilityLoadError = "";
+  renderCoachAvailabilityPanel();
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/availability`, { credentials: "include" });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    const raw = result.availability || result.slots || result.items || [];
+    state.coachAvailability = Array.isArray(raw) ? raw.map(normalizeCoachAvailability).filter((slot) => slot.id) : [];
+    state.coachAvailabilityLoadState = "loaded";
+  } catch (error) {
+    state.coachAvailability = [];
+    state.coachAvailabilityLoadState = "error";
+    state.coachAvailabilityLoadError = error.message || "가능 시간을 불러오지 못했습니다.";
+  }
+  renderCoachAvailabilityPanel();
+}
+
+function renderCoachAvailabilityPanel() {
+  const target = $("coachAvailabilityPanel");
+  if (!target || state.currentUser?.role !== "coach") {
+    if (target) target.innerHTML = "";
+    return;
+  }
+  if (state.coachAvailabilityLoadState === "loading") {
+    target.innerHTML = `<section class="availability-panel"><strong>가능한 시간 불러오는 중...</strong></section>`;
+    return;
+  }
+  const slots = state.coachAvailability || [];
+  target.innerHTML = `
+    <section class="availability-panel">
+      <div class="availability-head"><div><span>예약 일정</span><strong>가능한 시간 등록</strong></div><button type="button" class="secondary" id="reloadCoachAvailabilityBtn">새로고침</button></div>
+      <form class="availability-form" id="coachAvailabilityForm">
+        <label>시작<input id="availabilityStartsAt" type="datetime-local" required></label>
+        <label>종료<input id="availabilityEndsAt" type="datetime-local" required></label>
+        <button class="primary" type="submit">시간 추가</button>
+      </form>
+      ${state.coachAvailabilityLoadState === "error" ? `<small class="save-status error">${escapeHtml(state.coachAvailabilityLoadError)}</small>` : ""}
+      <div class="availability-list">${slots.length ? slots.map((slot) => `<div class="availability-item"><span>${escapeHtml(slot.label)}${slot.status !== "open" ? ` · ${escapeHtml(slot.status)}` : ""}</span>${slot.status === "open" ? `<button type="button" class="danger mini" data-delete-availability="${escapeHtml(slot.id)}">삭제</button>` : "<small>예약됨</small>"}</div>`).join("") : `<small class="availability-empty">등록된 시간이 없습니다.</small>`}</div>
+    </section>
+  `;
+  $("reloadCoachAvailabilityBtn")?.addEventListener("click", loadCoachAvailability);
+  $("coachAvailabilityForm")?.addEventListener("submit", addCoachAvailability);
+  document.querySelectorAll("[data-delete-availability]").forEach((button) => button.addEventListener("click", () => deleteCoachAvailability(button.dataset.deleteAvailability)));
+}
+
+async function addCoachAvailability(event) {
+  event.preventDefault();
+  const startsAt = $("availabilityStartsAt")?.value;
+  const endsAt = $("availabilityEndsAt")?.value;
+  if (!startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt)) {
+    alert("시작·종료 시간을 올바르게 입력해주세요.");
+    return;
+  }
+  const button = event.target.querySelector("button[type='submit']");
+  if (button) button.disabled = true;
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/availability`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString() }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    state.coachAvailabilityLoadState = "idle";
+    await loadCoachAvailability();
+  } catch (error) {
+    alert(`가능 시간을 추가하지 못했습니다.\n${error.message}`);
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function deleteCoachAvailability(slotId) {
+  if (!slotId || !window.confirm("이 가능 시간을 삭제할까요?")) return;
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/availability/${encodeURIComponent(slotId)}`, { method: "DELETE", credentials: "include" });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    state.coachAvailability = state.coachAvailability.filter((slot) => slot.id !== slotId);
+    renderCoachAvailabilityPanel();
+  } catch (error) {
+    alert(`가능 시간을 삭제하지 못했습니다.\n${error.message}`);
+  }
 }
 
 async function saveCoachSelfProfile(event) {

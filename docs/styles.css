@@ -1047,7 +1047,7 @@ button {
 }
 .social-auth {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 .social-auth button {
@@ -1056,6 +1056,14 @@ button {
   border-radius: 8px;
   font-weight: 900;
 }
+.social-auth button img {
+  width: 20px;
+  height: 20px;
+  margin-right: 7px;
+  border-radius: 4px;
+  object-fit: contain;
+  vertical-align: middle;
+}
 .social-auth .google {
   background: #fff;
   color: #202124;
@@ -1063,6 +1071,11 @@ button {
 .social-auth .naver {
   background: #03c75a;
   border-color: #03c75a;
+  color: #fff;
+}
+.social-auth .discord {
+  background: #5865f2;
+  border-color: #5865f2;
   color: #fff;
 }
 .password-field {
@@ -1179,6 +1192,34 @@ button {
   display: grid;
   gap: 10px;
 }
+.availability-picker {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+.availability-picker small { color: var(--muted); font-size: 12px; }
+.availability-panel {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+.availability-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.availability-head div { display: grid; gap: 3px; }
+.availability-head span { color: var(--brand-dark); font-size: 12px; font-weight: 900; }
+.availability-head strong { font-size: 16px; }
+.availability-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; align-items: end; gap: 8px; }
+.availability-form button { min-height: 40px; }
+.availability-list { display: grid; gap: 6px; }
+.availability-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+.availability-item span { font-size: 13px; }
+.availability-empty { color: var(--muted); font-size: 12px; }
 .booking-form .primary {
   margin-top: 2px;
   min-height: 44px;
@@ -1443,6 +1484,27 @@ th {
 .booking-detail-item.wide {
   grid-column: 1 / -1;
 }
+.refund-admin-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.refund-admin-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.refund-admin-head > div { display: grid; gap: 3px; }
+.refund-admin-head span { color: var(--brand-dark); font-size: 12px; font-weight: 900; }
+.refund-admin-head strong { font-size: 17px; }
+.refund-admin-list { display: grid; gap: 8px; }
+.refund-admin-row { display: grid; grid-template-columns: minmax(220px, 1.2fr) minmax(180px, 1fr) auto; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.refund-admin-row > div { display: grid; gap: 4px; min-width: 0; }
+.refund-admin-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.refund-admin-row small { color: var(--muted); font-size: 12px; }
+.refund-admin-empty { color: var(--muted); font-size: 13px; }
+.refund-admin-empty.error { color: var(--danger); }
 .student-head {
   align-items: center;
 }
@@ -2306,6 +2368,7 @@ th {
   padding: 24px;
   color: var(--muted);
 }
+.empty .secondary { margin-top: 12px; }
 
 body[data-theme="dark"] .metrics div,
 body[data-theme="dark"] .detail-panel,
@@ -2518,6 +2581,7 @@ body[data-theme="dark"] .explorer-coach-body small {
   .student-head { align-items: stretch; }
   .student-balance { text-align: left; }
   .coach-self-layout { grid-template-columns: 1fr; }
+  .refund-admin-row { grid-template-columns: 1fr; }
   .coach-self-profile-grid { grid-template-columns: 1fr; }
   .coach-self-tabs { justify-content: flex-start; }
   .image-adjust { grid-template-columns: 1fr; }
@@ -2531,6 +2595,7 @@ body[data-theme="dark"] .explorer-coach-body small {
   .coach-explorer-head { grid-template-columns: 1fr; }
   .coach-explorer-grid { grid-template-columns: 1fr; }
   .coach-explorer-dialog { max-height: 90vh; }
+  .availability-form { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
@@ -2608,4 +2673,5 @@ body[data-theme="dark"] .explorer-coach-body small {
   table {
     min-width: 560px;
   }
+  .social-auth { grid-template-columns: 1fr; }
 }
