@@ -139,9 +139,13 @@ const text = {
 
 const samples = [
   { id: "coach-shineast", category: "league", name: "샤이니스트 코치", coachKey: "shineast", coachProfileName: "샤이니스트 코치", tier: "최우수", coachTier: "최우수", coachSummary: "프로팀 출신 · 모든 라인 피드백 · 팀게임 운영까지 가능", tagline: "프로팀식 운영, 라인전 교정, 팀게임 피드백까지 보는 고급 코칭", bio: "모든 라인과 팀게임을 프로팀 관점으로 점검합니다. 미니맵 시선, 턴 사용, 귀환 타이밍, 오더와 시야 컨트롤처럼 승패를 가르는 선택을 리플레이로 정리합니다.", purpose: ["value", "team", "high", "mid"], roles: ["탑", "정글", "미드", "원딜", "서폿", "팀게임"], price: "100,000원 / 1시간", image: "assets/shineast.png", featuredImage: "assets/shineast2.png", detailImage: "assets/shineast2.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 5.0, lessons: 212, reviews: [["사이니스트", "복기하면서 제가 맵을 거의 안 보고 있었다는 걸 깨달았어요."], ["미드연습중", "라인을 밀어야 할 때와 받아야 할 때가 구분됐어요."]], badges: ["최우수", "추천"], featuredAd: true },
+  { id: "coach-shineast-mid-value", category: "league", name: "미드 가성비 리플레이", coachKey: "shineast", coachProfileName: "샤이니스트 코치", tier: "최우수", coachTier: "최우수", coachSummary: "프로팀 출신 · 모든 라인 피드백 · 팀게임 운영까지 가능", tagline: "미드 라인전, 로밍 타이밍, 한타 합류를 핵심 장면 중심으로 빠르게 교정", bio: "미드 리플레이를 중심으로 라인 주도권, 귀환 타이밍, 정글과의 턴 사용, 사이드 합류 판단을 압축해서 봅니다. 부담 없는 리플레이 점검형 상품입니다.", purpose: ["value", "mid"], roles: ["미드", "라인전", "로밍", "리플레이"], price: "50,000원 / 1게임", image: "assets/shineast.png", featuredImage: "assets/shineast2.png", detailImage: "assets/shineast2.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 4.9, lessons: 84, reviews: [["미드연습중", "로밍을 가야 하는 타이밍이 명확해졌어요."], ["아지르유저", "라인을 밀고 뭘 해야 하는지 정리가 됐습니다."]], badges: ["추천", "리뷰 우수"] },
   { id: "coach-mireu", category: "league", name: "정미르 코치", coachKey: "mireu", coachProfileName: "정미르 코치", tier: "우수", coachTier: "우수", coachSummary: "우수 수강생 · 저티어 친화 · 정글/팀게임 피드백", tagline: "저티어와 일반 수강생에게 쉬운 정글 동선, 갱각, 오브젝트 판단 코칭", bio: "학교 강의 경험을 바탕으로 입문자와 저티어가 바로 적용할 수 있는 판단 기준을 쉽게 정리합니다. 정글 첫 동선, 갱각, 오브젝트 판단과 팀게임 피드백을 부담 없는 가격대로 진행합니다.", purpose: ["jungle", "low", "team", "value"], roles: ["정글", "저티어", "팀게임", "입문"], price: "35,000원 / 1시간", image: "assets/mireu.png", featuredImage: "assets/mireu2.png", detailImage: "assets/mireu2.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 4.6, lessons: 72, reviews: [["게스트", "이전 리플레이로 설명해주셔서 이해가 빨랐어요."], ["입문자", "연습 순서가 생겨서 좋았습니다."]], badges: ["우수", "입문 추천"] },
+  { id: "coach-mireu-jungle-basic", category: "league", name: "저티어 정글 동선 입문", coachKey: "mireu", coachProfileName: "정미르 코치", tier: "우수", coachTier: "우수", coachSummary: "우수 수강생 · 저티어 친화 · 정글/팀게임 피드백", tagline: "첫 동선, 갱각, 오브젝트 판단을 저티어 기준으로 쉽게 정리하는 입문 코칭", bio: "정글을 막 시작했거나 동선이 자주 꼬이는 수강생에게 맞춘 강의입니다. 첫 캠프 선택, 라인 상태 읽기, 갱킹 타이밍, 용과 전령 판단을 쉬운 기준으로 정리합니다.", purpose: ["jungle", "low", "value"], roles: ["정글", "저티어", "입문", "오브젝트"], price: "25,000원 / 1게임", image: "assets/mireu.png", featuredImage: "assets/mireu2.png", detailImage: "assets/mireu2.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 4.6, lessons: 38, reviews: [["브론즈정글", "첫 동선 기준이 생겼어요."], ["누누연습", "오브젝트를 언제 쳐야 하는지 알겠어요."]], badges: ["입문 추천", "저티어 입문"] },
   { id: "coach-persona", category: "league", name: "페르소나 코치", coachKey: "persona", coachProfileName: "페르소나 코치", tier: "우수", coachTier: "우수", coachSummary: "탑 라이너 출신 · 이론 중심 · 고티어까지 가능", tagline: "탑 라인 매치업, 웨이브, 텔 타이밍을 이론 중심으로 정리하는 코칭", bio: "탑 라인에서 손해를 보는 구간을 매치업과 웨이브 기준으로 분석합니다. 라인전 이론, 텔레포트 타이밍, 사이드 운영처럼 탑 라이너에게 중요한 판단을 리플레이로 점검합니다.", purpose: ["top", "high", "value"], roles: ["탑", "라인전", "고티어", "이론"], price: "45,000원 / 1시간", image: "assets/persona2.png", featuredImage: "assets/persona.png", detailImage: "assets/persona.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 4.5, lessons: 41, reviews: [["게스트", "지게 보는 각도 고칠 게 명확했습니다."], ["초보탑", "뭘 몰라서 지는지 알게 됐어요."]], badges: ["우수"] },
+  { id: "coach-persona-top-matchup", category: "league", name: "탑 매치업 집중 리플레이", coachKey: "persona", coachProfileName: "페르소나 코치", tier: "우수", coachTier: "우수", coachSummary: "탑 라이너 출신 · 이론 중심 · 고티어까지 가능", tagline: "탑 라인 매치업과 웨이브 손해 구간을 한 게임 단위로 짚는 리플레이 코칭", bio: "탑 라인에서 솔킬각, 웨이브 위치, 귀환 타이밍, 텔레포트 사용을 매치업별로 점검합니다. 특정 챔피언 상대법을 빠르게 정리하고 싶은 수강생에게 맞춘 상품입니다.", purpose: ["top", "value"], roles: ["탑", "매치업", "라인전", "웨이브"], price: "30,000원 / 1게임", image: "assets/persona2.png", featuredImage: "assets/persona.png", detailImage: "assets/persona.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 4.5, lessons: 29, reviews: [["탑연습", "상성 때문에 지는 줄 알았는데 웨이브가 문제였어요."], ["잭스유저", "딜교 타이밍이 훨씬 명확해졌습니다."]], badges: ["추천", "우수"] },
   { id: "coach-mephi", category: "league", name: "메피 코치", coachKey: "mephi", coachProfileName: "메피 코치", tier: "엠버서더", coachTier: "엠버서더", coachSummary: "전프로 바텀 라이너 · 전 라인 피드백 · 팀게임 리뷰 가능", tagline: "바텀 라인전과 전 라인 리플레이를 전프로 관점으로 보는 코칭", bio: "시즌 5부터 현재까지 챌린저를 유지한 바텀 라이너 관점으로 라인전, 교전, 한타 포지션을 점검합니다. 전 라인 피드백과 팀게임 리뷰까지 가능하며, 운영과 시야 컨트롤도 함께 봅니다.", purpose: ["adc", "support", "team", "high"], roles: ["원딜", "서폿", "전 라인", "팀게임"], price: "70,000원 / 1시간", image: "assets/mephi.png", featuredImage: "assets/mephi2.png", detailImage: "assets/mephi2.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 4.8, lessons: 103, reviews: [["리조또", "라인전 전에 계속 뭘 봐야 하는지 처음으로 이해됐어요."], ["봄", "상대 정글 위치를 근거로 플레이하는 법을 배웠습니다."]], badges: ["엠버서더", "추천"], featuredAd: true },
+  { id: "coach-mephi-bot-lane", category: "league", name: "바텀 라인전 듀오 피드백", coachKey: "mephi", coachProfileName: "메피 코치", tier: "엠버서더", coachTier: "엠버서더", coachSummary: "전프로 바텀 라이너 · 전 라인 피드백 · 팀게임 리뷰 가능", tagline: "원딜과 서폿의 라인전 합, 선2렙, 교전각을 전프로 관점으로 점검", bio: "바텀 듀오 또는 원딜/서폿 개인에게 맞춘 상품입니다. 선2렙 설계, 미니언 웨이브, 시야 타이밍, 용 전 교전 준비를 리플레이로 정리합니다.", purpose: ["adc", "support", "high", "value"], roles: ["원딜", "서폿", "라인전", "교전"], price: "55,000원 / 1게임", image: "assets/mephi.png", featuredImage: "assets/mephi2.png", detailImage: "assets/mephi2.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 4.8, lessons: 67, reviews: [["원딜유저", "서폿이랑 언제 싸워야 하는지 알게 됐어요."], ["서폿연습", "와드 타이밍이 훨씬 깔끔해졌습니다."]], badges: ["엠버서더", "리뷰 우수"] },
 ];
 
 const initialBookings = [];
@@ -216,7 +220,12 @@ function migrateCoachImages(coaches) {
 
 function getPublicCatalogCoaches(coaches) {
   const next = migrateCoachImages(coaches).filter((coach) => publicCoachIds.has(coach.id));
-  return next.length ? next : migrateCoachImages(structuredClone(samples));
+  if (!next.length) return migrateCoachImages(structuredClone(samples));
+  const byId = new Map(next.map((coach) => [coach.id, coach]));
+  migrateCoachImages(structuredClone(samples)).forEach((coach) => {
+    if (!byId.has(coach.id)) byId.set(coach.id, coach);
+  });
+  return [...byId.values()];
 }
 
 function inferLeagueCoachKey(coach) {
@@ -321,15 +330,7 @@ function bindEvents() {
 
   document.querySelectorAll("[data-admin-view]").forEach((button) => {
     button.addEventListener("click", async () => {
-      const nextView = button.dataset.adminView;
-      const allowed = await ensureAdminAccess();
-      if (!allowed) return;
-      state.activeView = nextView;
-      document.querySelector(".admin-menu")?.removeAttribute("open");
-      render();
-      if (state.activeView === "bookings") {
-        loadReservations({ promptForLogin: false });
-      }
+      await openAdminView(button.dataset.adminView);
     });
   });
 
@@ -454,6 +455,18 @@ function renderMetrics() {
   if ($("metricCoaches")) $("metricCoaches").textContent = state.coaches.length;
   if ($("metricBookings")) $("metricBookings").textContent = state.bookings.length;
   if ($("metricRating")) $("metricRating").textContent = average.toFixed(1);
+}
+
+async function openAdminView(nextView) {
+  if (!["bookings", "admin", "coachSelf"].includes(nextView)) return;
+  const allowed = await ensureAdminAccess();
+  if (!allowed) return;
+  state.activeView = nextView;
+  document.querySelector(".admin-menu")?.removeAttribute("open");
+  render();
+  if (nextView === "bookings") {
+    loadReservations({ promptForLogin: false });
+  }
 }
 
 function renderUserActions() {
@@ -1509,25 +1522,31 @@ async function loginForReservations() {
   const password = window.prompt("관리자 비밀번호를 입력하세요.");
   if (!password) return false;
 
-  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/admin/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ password }),
-  });
-  const result = await response.json().catch(() => ({}));
-  if (response.ok && result.ok && result.adminToken) {
-    sessionStorage.setItem(ADMIN_TOKEN_KEY, result.adminToken);
-  }
-  if (response.ok && result.ok && !result.adminToken) {
-    alert("관리자 인증 응답에 토큰이 없습니다. 서버를 최신 코드로 다시 배포해주세요.");
+  try {
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/admin/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ password }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (response.ok && result.ok && result.adminToken) {
+      sessionStorage.setItem(ADMIN_TOKEN_KEY, result.adminToken);
+    }
+    if (response.ok && result.ok && !result.adminToken) {
+      alert("관리자 인증 응답에 토큰이 없습니다. 서버를 최신 코드로 다시 배포해주세요.");
+      return false;
+    }
+    if (!response.ok || !result.ok) {
+      alert("관리자 비밀번호가 맞지 않거나 인증 서버에 연결할 수 없습니다.");
+      return false;
+    }
+    return true;
+  } catch (error) {
+    alert("관리자 인증 요청이 브라우저에서 차단되었습니다. 백엔드 CORS 허용 도메인에 현재 사이트 주소를 추가하고 서버를 다시 배포해야 합니다.");
+    console.warn("관리자 인증 실패", error);
     return false;
   }
-  if (!response.ok || !result.ok) {
-    alert("관리자 비밀번호가 맞지 않거나 인증 서버에 연결할 수 없습니다.");
-    return false;
-  }
-  return true;
 }
 
 async function fetchReservations() {
