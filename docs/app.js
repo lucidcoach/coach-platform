@@ -112,7 +112,7 @@ const text = {
   thMemo: "메모",
   adminEyebrow: "로컬 편집",
   adminTitle: "코치/강의 관리",
-  resetCoachesBtn: "강의 샘플 초기화",
+  resetCoachesBtn: "4명 · 8강의로 초기화",
   labelCategory: "카테고리",
   labelName: "코치명",
   labelTagline: "한 줄 소개",
@@ -177,7 +177,7 @@ const leagueLessonOverrides = {
   "coach-persona": { coachKey: "persona" },
   "coach-mephi": { coachKey: "mephi" },
 };
-const publicCoachIds = new Set(samples.map((coach) => coach.id));
+const legacyCoachKeys = { "lol-1": "persona", "lol-2": "shineast", "lol-3": "mireu", "lol-5": "mephi" };
 const state = {
   activeView: "market",
   category: "league",
@@ -232,21 +232,14 @@ function migrateCoachImages(coaches) {
 }
 
 function getPublicCatalogCoaches(coaches) {
-  const base = migrateCoachImages(structuredClone(samples));
-  const sampleIds = new Set(samples.map((coach) => coach.id));
-  const extra = migrateCoachImages(coaches).filter((coach) => coach.id && !sampleIds.has(coach.id));
-  return [...base, ...extra];
+  return migrateCoachImages(coaches);
 }
 
 function inferLeagueCoachKey(coach) {
   if (coach.coachKey) return coach.coachKey;
   const id = String(coach.id || "");
   if (leagueLessonOverrides[id]?.coachKey) return leagueLessonOverrides[id].coachKey;
-  const haystack = [coach.name, coach.tagline, coach.bio, ...(coach.roles || [])].join(" ").toLowerCase();
-  if (haystack.includes("메피") || haystack.includes("바텀") || haystack.includes("원딜") || haystack.includes("서폿")) return "mephi";
-  if (haystack.includes("미르") || haystack.includes("정글") || haystack.includes("저티어")) return "mireu";
-  if (haystack.includes("페르소나") || haystack.includes("탑")) return "persona";
-  return "shineast";
+  return legacyCoachKeys[id] || id;
 }
 
 function normalizeCoachProfiles(coaches) {
@@ -425,6 +418,7 @@ function bindEvents() {
   $("coachPriceAmount").addEventListener("input", updateCoachPriceValue);
   $("coachPriceUnit").addEventListener("change", updateCoachPriceValue);
   $("resetCoachesBtn").addEventListener("click", async () => {
+    if (!window.confirm("전 버전 기준 4명 × 2강의만 남기고 나머지 코치·강의를 숨길까요?")) return;
     await resetCoachesToSamples();
   });
   $("clearBookingsBtn").addEventListener("click", () => {
@@ -2123,11 +2117,16 @@ async function updateUserRole(id, payload) {
 
 async function saveUserRole(id) {
   const role = findUserRoleSelect(id)?.value || "student";
-  const existing = state.users.find((item) => item.id === id);
+  const coachKey = role === "coach" ? (findUserCoachSelect(id)?.value || "") : "";
+  if (role === "coach" && !coachKey) {
+    state.userSaveStates = { ...state.userSaveStates, [id]: "코치 선택 필요" };
+    renderUsers();
+    return;
+  }
   state.userSaveStates = { ...state.userSaveStates, [id]: "저장 중..." };
   renderUsers();
   try {
-    const user = await runAdminRequest(() => updateUserRole(id, { role, coachKey: role === "coach" ? existing?.coachKey : "" }));
+    const user = await runAdminRequest(() => updateUserRole(id, { role, coachKey }));
     state.users = state.users.map((item) => item.id === id ? user : item);
     state.userSaveStates = { ...state.userSaveStates, [id]: "저장 완료" };
     renderUsers();
@@ -2541,13 +2540,18 @@ function renderUsers() {
     target.innerHTML = `<tr><td colspan="4">${escapeHtml(state.userLoadError || "회원 목록을 불러오지 못했습니다.")}</td></tr>`;
     return;
   }
+  const coachOptions = getCoachIdentities("league");
   target.innerHTML = state.users.length ? state.users.map((user) => `
     <tr>
       <td>${escapeHtml(user.displayName || "-")}</td>
       <td>${escapeHtml(user.email || "-")}</td>
       <td>
         <select data-user-role="${escapeHtml(user.id)}">
-          ${[...(user.role === "coach" ? ["coach"] : []), "student", "admin"].filter((role, index, array) => array.indexOf(role) === index).map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${getRoleLabel(role)}</option>`).join("")}
+          ${["student", "coach", "admin"].map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${getRoleLabel(role)}</option>`).join("")}
+        </select>
+        <select data-user-coach="${escapeHtml(user.id)}" ${user.role === "coach" ? "" : "hidden"}>
+          <option value="">코치 선택</option>
+          ${coachOptions.map((coach) => `<option value="${escapeHtml(coach.key)}" ${coach.key === user.coachKey ? "selected" : ""}>${escapeHtml(coach.name)}</option>`).join("")}
         </select>
         ${user.role === "coach" ? `<small>${escapeHtml(getUserCoachLabel(user))}</small>` : ""}
       </td>
@@ -2562,6 +2566,12 @@ function renderUsers() {
 
   document.querySelectorAll("[data-user-save]").forEach((button) => {
     button.addEventListener("click", () => saveUserRole(button.dataset.userSave));
+  });
+  document.querySelectorAll("[data-user-role]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const coachSelect = findUserCoachSelect(select.dataset.userRole);
+      if (coachSelect) coachSelect.hidden = select.value !== "coach";
+    });
   });
 }
 
@@ -2619,7 +2629,7 @@ function getCoachRequestStatusLabel(status) {
 }
 
 function getUserCoachLabel(user) {
-  const key = user.coachKey || getKnownCoachKeyForUser(user);
+  const key = user.coachKey;
   const coach = getCoachIdentities("league").find((item) => item.key === key);
   return coach ? `${coach.name} 연결됨` : "코치 프로필 자동 생성 대상";
 }
