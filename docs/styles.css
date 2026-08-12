@@ -644,6 +644,30 @@ button {
   color: var(--brand-dark);
   font-weight: 900;
 }
+.detail-trust {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.detail-trust strong {
+  color: var(--text);
+  font-size: 15px;
+}
+.detail-trust strong span {
+  color: var(--muted);
+  font-weight: 800;
+}
+.detail-trust em {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: #475467;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
 .detail-body p { color: var(--muted); line-height: 1.55; }
 .detail-summary {
   display: grid;
@@ -712,7 +736,7 @@ button {
 .booking-panel {
   display: grid;
   gap: 12px;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #b9c6d8;
   border-radius: 8px;
   padding: 14px;
@@ -792,6 +816,24 @@ legend {
 .choice-field {
   display: grid;
   gap: 7px;
+}
+.toggle-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 9px 11px;
+  border: 1px solid #b8e8cc;
+  border-radius: 8px;
+  background: #f0f9f4;
+  color: var(--brand-dark);
+  font-weight: 900;
+}
+.toggle-line input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--brand);
 }
 .choice-grid {
   display: flex;

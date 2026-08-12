@@ -453,7 +453,8 @@ const leagueCoachProfiles = {
     tagline: "프로팀 출신 · 전 라인 피드백 · 팀게임 운영까지 가능",
     roles: ["전 라인", "팀게임", "운영", "프로팀 경험"],
     image: "assets/KakaoTalk_20250810_005153132_04.jpg",
-    imagePosition: "center 8%",
+    imagePosition: "center 12%",
+    featuredImagePosition: "center 16%",
   },
   mireu: {
     name: "정미르 코치",
@@ -462,6 +463,7 @@ const leagueCoachProfiles = {
     roles: ["정글", "저티어", "팀게임", "입문"],
     image: "assets/mireucoach.png",
     imagePosition: "center 8%",
+    featuredImagePosition: "center 8%",
   },
   persona: {
     name: "페르소나 코치",
@@ -470,6 +472,7 @@ const leagueCoachProfiles = {
     roles: ["탑", "이론", "고티어", "라인전"],
     image: "assets/personacoach.png",
     imagePosition: "center 8%",
+    featuredImagePosition: "center 8%",
   },
   mephi: {
     name: "메피 코치",
@@ -478,6 +481,7 @@ const leagueCoachProfiles = {
     roles: ["바텀", "전 라인", "팀게임", "전프로"],
     image: "assets/mephicoach.png",
     imagePosition: "72% 12%",
+    featuredImagePosition: "72% 12%",
   },
 };
 
@@ -635,6 +639,12 @@ function normalizeCoachProfiles(coaches) {
       tier: profile.tier,
       image: coach.image && coach.manualCoachEdit ? coach.image : profile.image,
       imagePosition: profile.imagePosition,
+      featuredImagePosition: (coach.featuredImage || coach.manualCoachEdit)
+        ? (coach.featuredImagePosition || profile.featuredImagePosition || profile.imagePosition)
+        : (profile.featuredImagePosition || profile.imagePosition),
+      detailImagePosition: (coach.detailImage || coach.manualCoachEdit)
+        ? (coach.detailImagePosition || profile.featuredImagePosition || profile.imagePosition)
+        : (profile.featuredImagePosition || profile.imagePosition),
       badges: [profile.tier, ...(coach.badges || []).filter((badge) => badge !== profile.tier)].slice(0, 3),
     };
   });
@@ -1111,9 +1121,7 @@ function getActiveFilterSet() {
 }
 
 function renderFeatured(visible) {
-  const featured = visible
-    .filter((coach) => coach.category === state.category && ["엠버서더", "최우수"].includes(coach.tier))
-    .slice(0, state.category === "league" ? 5 : 3);
+  const featured = getFeaturedCoachSlots(visible);
   const section = $("featuredSection");
   if (!featured.length || state.query) {
     section.hidden = true;
@@ -1122,6 +1130,32 @@ function renderFeatured(visible) {
   }
   section.hidden = false;
   $("featuredList").innerHTML = featured.map(renderFeaturedCard).join("");
+}
+
+function getFeaturedScore(coach) {
+  return Number(coach.lessons || 0) * 10 + Number(coach.reviews?.length || 0);
+}
+
+function chooseFeaturedCoachLesson(coaches) {
+  const promoted = coaches
+    .filter((coach) => coach.featuredAd)
+    .sort((a, b) => String(b.featuredAdUpdatedAt || "").localeCompare(String(a.featuredAdUpdatedAt || "")) || getFeaturedScore(b) - getFeaturedScore(a))[0];
+  if (promoted) return promoted;
+  return [...coaches].sort((a, b) => getFeaturedScore(b) - getFeaturedScore(a))[0];
+}
+
+function getFeaturedCoachSlots(visible) {
+  const eligible = visible.filter((coach) => coach.category === state.category && ["엠버서더", "최우수"].includes(coach.tier));
+  const grouped = new Map();
+  eligible.forEach((coach) => {
+    const key = getCoachKey(coach);
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(coach);
+  });
+  return [...grouped.values()]
+    .map(chooseFeaturedCoachLesson)
+    .filter(Boolean)
+    .sort((a, b) => (tierRank[a.tier] ?? 9) - (tierRank[b.tier] ?? 9) || getFeaturedScore(b) - getFeaturedScore(a));
 }
 
 function renderFeaturedCard(coach) {
@@ -1246,6 +1280,10 @@ function renderDetail() {
       <div class="rank-badges">${getCoachBadges(coach).map(renderBadge).join("")}</div>
       <h2>${coach.name}</h2>
       <p class="detail-owner">${escapeHtml(coach.coachProfileName || coach.name)} · ${escapeHtml(coach.coachSummary || coach.tier || "코치")}</p>
+      <div class="detail-trust">
+        <strong>★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></strong>
+        <em>${reviews.length}개 후기</em>
+      </div>
       <p>${coach.bio}</p>
       <div class="detail-summary">
         <div><span>가격</span><strong>${coach.price}</strong></div>
@@ -1901,6 +1939,12 @@ function renderCoachSelfEditor() {
         <label><span>단위</span><select id="coachSelfPriceUnit"></select></label>
         <input id="coachSelfPrice" type="hidden">
       </div>
+      ${["엠버서더", "최우수"].includes(lesson.tier) ? `
+        <label class="toggle-line">
+          <input id="coachSelfFeaturedAd" type="checkbox" ${lesson.featuredAd ? "checked" : ""}>
+          <span>이 강의를 상단 추천 광고로 노출</span>
+        </label>
+      ` : ""}
       <fieldset class="choice-field">
         <legend>분류</legend>
         <div class="choice-grid">
@@ -1962,6 +2006,8 @@ async function saveCoachSelfLesson(event) {
     name: $("coachSelfLessonName").value.trim(),
     tagline: $("coachSelfTagline").value.trim(),
     price: (updateCoachSelfPriceValue(), $("coachSelfPrice").value.trim() || "가격 상담"),
+    featuredAd: Boolean($("coachSelfFeaturedAd")?.checked),
+    featuredAdUpdatedAt: $("coachSelfFeaturedAd")?.checked ? new Date().toISOString() : "",
     purpose: getCheckedValues("coachSelfPurposeChoice"),
     roles: getCheckedValues("coachSelfRoleChoice"),
     bio: $("coachSelfBio").value.trim(),
@@ -2313,6 +2359,9 @@ async function saveCoachFromForm() {
     imagePosition: $("coachImagePosition").value.trim() || "center center",
     imageScale: 1,
     badges: selectedBadges,
+    featuredAd: Boolean(previous?.featuredAd),
+    featuredAdUpdatedAt: previous?.featuredAdUpdatedAt || "",
+    manualCoachEdit: Boolean(previous?.manualCoachEdit),
     rating: previous?.rating || 4.8,
     lessons: previous?.lessons || 0,
     bio: $("coachBio").value.trim(),
