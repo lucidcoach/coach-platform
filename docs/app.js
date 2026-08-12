@@ -349,9 +349,13 @@ function bindEvents() {
         openCoachExplorer();
         return;
       }
-      const nextView = button.dataset.view;
+      let nextView = button.dataset.view;
       if (!nextView) return;
-      if (["bookings", "admin", "coachSelf"].includes(nextView)) {
+      if (nextView === "student" && hasCoachLikeAccount()) {
+        state.coachSelfKey = getFallbackCoachKey();
+        nextView = "coachSelf";
+      }
+      if (["bookings", "admin"].includes(nextView)) {
         const allowed = await ensureAdminAccess();
         if (!allowed) return;
       }
@@ -472,7 +476,8 @@ function bindEvents() {
 
 function render() {
   document.querySelectorAll(".nav-item").forEach((button) => {
-    button.classList.toggle("active", button.dataset.view === state.activeView);
+    button.classList.toggle("active", button.dataset.view === state.activeView
+      || (button.dataset.view === "student" && state.activeView === "coachSelf" && hasCoachLikeAccount()));
   });
   document.querySelectorAll(".view").forEach((view) => view.classList.remove("active"));
   $(`${state.activeView}View`).classList.add("active");
@@ -1594,11 +1599,11 @@ async function loadCurrentUser() {
     state.currentUser = response.ok && result.ok ? result.user : null;
     if (state.currentUser?.coachKey) state.coachSelfKey = state.currentUser.coachKey;
     state.authLoadState = "loaded";
-    renderUserActions();
+    render();
   } catch {
     state.currentUser = null;
     state.authLoadState = "error";
-    renderUserActions();
+    render();
   }
 }
 
