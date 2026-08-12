@@ -18,10 +18,8 @@
       </button>
       <nav class="nav" aria-label="main">
         <button class="nav-item active" data-view="market" id="navMarket"></button>
+        <button class="nav-item" data-action="coachSearch" id="navCoachSearch" type="button">맞춤 강의 검색</button>
         <button class="nav-item" data-view="student" id="navStudent"></button>
-        <button class="nav-item" data-view="bookings" id="navBookings"></button>
-        <button class="nav-item" data-view="admin" id="navAdmin"></button>
-        <button class="nav-item" data-view="coachSelf" id="navCoachSelf"></button>
       </nav>
       <section class="side-coaches" aria-label="코치 목록">
         <span class="label">코치 목록</span>
@@ -39,10 +37,20 @@
           <p class="eyebrow" id="heroEyebrow"></p>
           <h1 id="heroTitle"></h1>
         </div>
-        <div class="metrics">
-          <div><strong id="metricCoaches">0</strong><span id="metricCoachesLabel"></span></div>
-          <div><strong id="metricBookings">0</strong><span id="metricBookingsLabel"></span></div>
-          <div><strong id="metricRating">0.0</strong><span id="metricRatingLabel"></span></div>
+        <div class="topbar-actions">
+          <div class="metrics">
+            <div><strong id="metricCoaches">0</strong><span id="metricCoachesLabel"></span></div>
+            <div><strong id="metricBookings">0</strong><span id="metricBookingsLabel"></span></div>
+            <div><strong id="metricRating">0.0</strong><span id="metricRatingLabel"></span></div>
+          </div>
+          <details class="admin-menu">
+            <summary>관리</summary>
+            <div>
+              <button type="button" data-admin-view="bookings" id="navBookings"></button>
+              <button type="button" data-admin-view="admin" id="navAdmin"></button>
+              <button type="button" data-admin-view="coachSelf" id="navCoachSelf"></button>
+            </div>
+          </details>
         </div>
       </section>
 

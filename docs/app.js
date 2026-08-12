@@ -658,6 +658,8 @@ function boot() {
     else el.textContent = value;
   });
   $("navStudent").textContent = "수강생 홈";
+  $("navStudent").textContent = "내 정보";
+  $("navCoachSearch").textContent = "맞춤 강의 검색";
   $("searchInput").placeholder = text.searchPlaceholder;
   $("coachImagePosition").placeholder = "예: center 8%, 72% 12%";
   state.coaches = migrateCoachImages(structuredClone(samples));
@@ -682,12 +684,31 @@ function bindEvents() {
 
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.addEventListener("click", async () => {
+      if (button.dataset.action === "coachSearch") {
+        openCoachExplorer();
+        return;
+      }
       const nextView = button.dataset.view;
+      if (!nextView) return;
       if (["bookings", "admin", "coachSelf"].includes(nextView)) {
         const allowed = await ensureAdminAccess();
         if (!allowed) return;
       }
       state.activeView = nextView;
+      render();
+      if (state.activeView === "bookings") {
+        loadReservations({ promptForLogin: false });
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-admin-view]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const nextView = button.dataset.adminView;
+      const allowed = await ensureAdminAccess();
+      if (!allowed) return;
+      state.activeView = nextView;
+      document.querySelector(".admin-menu")?.removeAttribute("open");
       render();
       if (state.activeView === "bookings") {
         loadReservations({ promptForLogin: false });
