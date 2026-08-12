@@ -1438,6 +1438,52 @@ function closeLessonDetail() {
   if (modal) modal.hidden = true;
 }
 
+function getLessonFocusItems(coach) {
+  const roles = (coach.roles || []).slice(0, 4);
+  const purposeLabels = getPurposeLabels(coach.purpose).slice(0, 3);
+  const fallback = ["리플레이 핵심 장면 점검", "라인전 습관 교정", "다음 게임 적용 과제 정리"];
+  return [...roles, ...purposeLabels, ...fallback]
+    .map((item) => String(item).trim())
+    .filter(Boolean)
+    .filter((item, index, array) => array.indexOf(item) === index)
+    .slice(0, 6);
+}
+
+function getCoachDetailTone(coach) {
+  const key = getCoachKey(coach);
+  if (key === "shineast") return "프로팀 운영 관점으로 라인전, 오더, 팀게임 판단까지 넓게 봅니다.";
+  if (key === "mephi") return "전프로 바텀 라이너 관점으로 전 라인 피드백과 팀게임 리뷰까지 가능합니다.";
+  if (key === "mireu") return "저티어와 일반 수강생이 바로 따라 할 수 있게 동선과 판단 기준을 쉽게 정리합니다.";
+  if (key === "persona") return "탑 라인 중심의 이론과 매치업 이해도를 차분하게 정리합니다.";
+  return "현재 플레이에서 바로 고칠 수 있는 습관과 다음 연습 과제를 정리합니다.";
+}
+
+function renderLessonInfoBlocks(coach) {
+  const focusItems = getLessonFocusItems(coach);
+  const reviewCount = coach.reviews?.length || 0;
+  return `
+    <section class="lesson-info-grid">
+      <article>
+        <span>이 강의에서 보는 것</span>
+        <ul>${focusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      </article>
+      <article>
+        <span>진행 방식</span>
+        <ul>
+          <li>디스코드 화면공유 또는 리플레이 리뷰</li>
+          <li>핵심 장면 위주로 원인과 대안을 정리</li>
+          <li>끝나기 전 다음 연습 과제 확인</li>
+        </ul>
+      </article>
+      <article>
+        <span>추천 대상</span>
+        <p>${escapeHtml(getCoachDetailTone(coach))}</p>
+        <small>판매 ${coach.lessons || 0}회 · 후기 ${reviewCount}개 · 평점 ${coach.rating.toFixed(1)}</small>
+      </article>
+    </section>
+  `;
+}
+
 function renderLessonDetailMarkup(coach) {
   const reviews = coach.reviews || [];
   return `
@@ -1455,6 +1501,7 @@ function renderLessonDetailMarkup(coach) {
         <div><span>가격</span><strong>${escapeHtml(coach.price)}</strong></div>
         <div><span>전문 분야</span><strong>${escapeHtml((coach.roles || []).slice(0, 5).join(", "))}</strong></div>
       </div>
+      ${renderLessonInfoBlocks(coach)}
       ${reviews.length ? `
         <section class="review-preview full">
           <div>

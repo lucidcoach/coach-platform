@@ -715,10 +715,49 @@ button {
   min-height: 44px;
   margin-top: 4px;
 }
+.lesson-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.lesson-info-grid article {
+  min-width: 0;
+  border: 1px solid #d4e3f6;
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 13px;
+}
+.lesson-info-grid span {
+  display: block;
+  color: #175cd3;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+.lesson-info-grid ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #344054;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.lesson-info-grid p {
+  margin: 0;
+  color: #344054;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.lesson-info-grid small {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
 .booking-note {
-  color: #475467;
-  background: #f8fafc;
-  border: 1px solid var(--line);
+  color: #175cd3;
+  background: #ffffff;
+  border: 1px solid #bfdbfe;
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 13px;
@@ -758,11 +797,12 @@ button {
 .booking-panel {
   display: grid;
   gap: 12px;
-  background: #f8fafc;
-  border: 1px solid #b9c6d8;
+  background: #eefbf4;
+  border: 1px solid #74c69d;
+  border-left: 5px solid var(--brand);
   border-radius: 8px;
-  padding: 14px;
-  box-shadow: 0 12px 26px rgba(21, 32, 43, 0.06);
+  padding: 16px 14px 14px;
+  box-shadow: 0 16px 34px rgba(15, 122, 66, 0.12);
 }
 .booking-panel-head {
   display: flex;
@@ -772,17 +812,18 @@ button {
 }
 .booking-panel-head strong {
   display: block;
-  font-size: 17px;
+  color: #064e3b;
+  font-size: 18px;
 }
 .booking-panel-head span {
   display: block;
   margin-top: 4px;
-  color: var(--muted);
+  color: #2f5f4c;
   font-size: 13px;
 }
 .booking-panel-head em {
   flex: 0 0 auto;
-  color: var(--brand-dark);
+  color: #047857;
   font-style: normal;
   font-weight: 900;
 }
@@ -1814,6 +1855,7 @@ th {
   .search { min-width: 0; }
   .coach-card { grid-template-columns: 82px minmax(0, 1fr); }
   .avatar-frame { height: 82px; }
+  .lesson-info-grid { grid-template-columns: 1fr; }
   .coach-explorer-head { grid-template-columns: 1fr; }
   .coach-explorer-grid { grid-template-columns: 1fr; }
   .coach-explorer-dialog { max-height: 90vh; }
