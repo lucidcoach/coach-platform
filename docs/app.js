@@ -1,62 +1,62 @@
 ﻿const categories = [
-  { id: "league", label: "由ш렇?ㅻ툕?덉쟾?? },
-  { id: "valorant", label: "諛쒕줈??? },
-  { id: "academy", label: "?뚯뒪?? },
+  { id: "league", label: "리그오브레전드" },
+  { id: "valorant", label: "발로란트" },
+  { id: "academy", label: "테스트" },
 ];
 
 const API_BASE_URL = "https://lucid-chzzk-auth.onrender.com";
 const ADMIN_TOKEN_KEY = "coach-admin-token";
 const THEME_KEY = "coach-theme";
-const RESERVATION_STATUSES = ["?좉퇋", "?곷떞以?, "?덉빟?뺤젙", "?꾨즺", "痍⑥냼"];
+const RESERVATION_STATUSES = ["신규", "상담중", "예약확정", "완료", "취소"];
 const COACH_API_TIMEOUT_MS = 6500;
 
 const filterSets = {
   league: {
     type: [
-      { id: "all", label: "?꾩껜" },
-      { id: "value", label: "媛?깅퉬 由ы뵆?덉씠" },
-      { id: "low", label: "?낅Ц/??곗뼱" },
-      { id: "high", label: "怨좏떚???꾨줈吏留? },
-      { id: "team", label: "?寃뚯엫/?ㅽ겕由? },
+      { id: "all", label: "전체" },
+      { id: "value", label: "가성비 리플레이" },
+      { id: "low", label: "입문/저티어" },
+      { id: "high", label: "고티어/프로지망" },
+      { id: "team", label: "팀게임/스크림" },
     ],
     segment: [
-      { id: "all", label: "?꾩껜 ?쇱씤" },
-      { id: "top", label: "?? },
-      { id: "mid", label: "誘몃뱶" },
-      { id: "jungle", label: "?뺢?" },
-      { id: "adc", label: "?먮뵜" },
-      { id: "support", label: "?쒗뤏" },
+      { id: "all", label: "전체 라인" },
+      { id: "top", label: "탑" },
+      { id: "mid", label: "미드" },
+      { id: "jungle", label: "정글" },
+      { id: "adc", label: "원딜" },
+      { id: "support", label: "서폿" },
     ],
   },
   valorant: {
     type: [
-      { id: "all", label: "?꾩껜" },
-      { id: "value", label: "媛?깅퉬 由ы뵆?덉씠" },
-      { id: "low", label: "?낅Ц/??곗뼱" },
-      { id: "high", label: "怨좏떚???꾨줈吏留? },
-      { id: "team", label: "?寃뚯엫/?ㅽ겕由? },
+      { id: "all", label: "전체" },
+      { id: "value", label: "가성비 리플레이" },
+      { id: "low", label: "입문/저티어" },
+      { id: "high", label: "고티어/프로지망" },
+      { id: "team", label: "팀게임/스크림" },
     ],
     segment: [
-      { id: "all", label: "?꾩껜 ??븷" },
-      { id: "duelist", label: "?寃⑸?" },
-      { id: "controller", label: "?꾨왂媛" },
-      { id: "initiator", label: "泥숉썑?" },
-      { id: "sentinel", label: "媛먯떆?? },
-      { id: "aim", label: "?먯엫/?쇳궧" },
+      { id: "all", label: "전체 역할" },
+      { id: "duelist", label: "타격대" },
+      { id: "controller", label: "전략가" },
+      { id: "initiator", label: "척후대" },
+      { id: "sentinel", label: "감시자" },
+      { id: "aim", label: "에임/피킹" },
     ],
   },
   academy: {
     type: [
-      { id: "all", label: "?꾩껜" },
-      { id: "entry", label: "?낅Ц" },
-      { id: "curriculum", label: "而ㅻ━?섎읆" },
-      { id: "branding", label: "釉뚮옖?? },
+      { id: "all", label: "전체" },
+      { id: "entry", label: "입문" },
+      { id: "curriculum", label: "커리큘럼" },
+      { id: "branding", label: "브랜딩" },
     ],
     segment: [
-      { id: "all", label: "?꾩껜 怨쇱젙" },
-      { id: "coach-basic", label: "湲곗큹 怨쇱젙" },
-      { id: "coach-advanced", label: "?ы솕 怨쇱젙" },
-      { id: "operation", label: "?댁쁺/愿由? },
+      { id: "all", label: "전체 과정" },
+      { id: "coach-basic", label: "기초 과정" },
+      { id: "coach-advanced", label: "심화 과정" },
+      { id: "operation", label: "운영/관리" },
     ],
   },
 };
@@ -66,505 +66,112 @@ const purposes = Object.values(filterSets).flatMap((set) => [...set.type, ...set
 );
 
 const adminLineOptions = {
-  league: ["??, "誘몃뱶", "?뺢?", "?먮뵜", "?쒗뤏"],
-  valorant: ["?寃⑸?", "泥숉썑?", "媛먯떆??, "?꾨왂媛"],
-  academy: ["湲곗큹 怨쇱젙", "?ы솕 怨쇱젙", "?댁쁺/愿由?],
+  league: ["탑", "미드", "정글", "원딜", "서폿"],
+  valorant: ["타격대", "척후대", "감시자", "전략가"],
+  academy: ["기초 과정", "심화 과정", "운영/관리"],
 };
 
 const adminFieldOptions = {
-  league: ["?댁쁺", "?쇱씤??, "?쒗?", "?ㅻ툕?앺듃", "?쒖빞", "怨좏떚??],
-  valorant: ["?먯엫", "?쇳궧", "?뷀듃由?, "?ㅽ겕由?, "由ы뵆?덉씠", "? ?쇰뱶諛?],
-  academy: ["肄붿튂 ?낅Ц", "而ㅻ━?섎읆", "?쇰뱶諛?, "釉뚮옖??, "?댁쁺", "?섍컯??愿由?],
+  league: ["운영", "라인전", "시야", "오브젝트", "팀게임", "고티어"],
+  valorant: ["에임", "피킹", "엔트리", "스크림", "리플레이", "팀 피드백"],
+  academy: ["코치 입문", "커리큘럼", "피드백", "브랜딩", "운영", "수강생 관리"],
 };
 
 const priceUnits = {
-  time: ["30遺?, "1?쒓컙", "1.5?쒓컙", "2?쒓컙"],
-  game: ["1寃뚯엫", "2寃뚯엫", "3寃뚯엫"],
+  time: ["30분", "1시간", "1.5시간", "2시간"],
+  game: ["1게임", "2게임", "3게임"],
 };
 
-const badgeOptions = ["?좊쾭?쒕뜑", "理쒖슦??, "?곗닔", "異붿쿇", "?쇰컲", "?媛 ?낅Ц", "?낅Ц 異붿쿇", "由щ럭 ?곗닔", "? ?쇰뱶諛?媛??];
+const badgeOptions = ["엠버서더", "최우수", "우수", "추천", "일반", "저티어 입문", "입문 추천", "리뷰 우수", "팀 피드백 가능"];
 
 const text = {
-  navMarket: "媛뺤쓽 紐⑸줉",
-  navBookings: "?덉빟 愿由?,
-  navAdmin: "肄붿튂 愿由?,
-  navCoachSelf: "肄붿튂 媛쒖씤 愿由?,
-  sideLabel: "?덉빟 ?덈궡",
-  sideCopy: "肄붿튂 紐⑸줉?먯꽌 ?먰븯???곹뭹??怨좊Ⅴ硫??곸꽭 ?뺣낫? ?덉빟 ?좎껌??諛붾줈 ?대┰?덈떎.",
-  heroEyebrow: "LoL 由ы뵆?덉씠 遺꾩꽍 쨌 ?쇱씤??援먯젙 쨌 ? ?쇰뱶諛?,
-  heroTitle: "LoL 肄붿묶 ?뚮옯??,
-  metricCoachesLabel: "媛뺤쓽",
-  metricBookingsLabel: "?덉빟",
-  metricRatingLabel: "?됱젏",
-  searchLabel: "寃??,
-  searchPlaceholder: "肄붿튂紐? ?쇱씤, 梨뷀뵾?? 媛뺤쓽紐?,
-  bookingEyebrow: "愿由ъ옄 ?붾㈃",
-  bookingTitle: "?덉빟 ?좎껌 紐⑸줉",
-  clearBookingsBtn: "?덉빟 ?덈줈怨좎묠",
-  thStatus: "?곹깭",
-  thStudent: "?섍컯??,
-  thLesson: "媛뺤쓽",
-  thTime: "?щ쭩 ?쒓컙",
-  thContact: "?곕씫泥?,
-  thMemo: "硫붾え",
-  adminEyebrow: "濡쒖뺄 ?몄쭛",
-  adminTitle: "肄붿튂/媛뺤쓽 愿由?,
-  resetCoachesBtn: "媛뺤쓽 ?섑뵆 珥덇린??,
-  labelCategory: "移댄뀒怨좊━",
-  labelName: "肄붿튂紐?,
-  labelTagline: "??以??뚭컻",
-  labelPurpose: "遺꾨쪟",
-  labelRoles: "?꾨Ц 遺꾩빞",
-  labelPrice: "媛寃?,
-  labelImage: "?대?吏 寃쎈줈",
-  labelImagePosition: "?대?吏 ?꾩튂",
-  labelBadges: "諛곗?",
-  labelBio: "?곸꽭 ?ㅻ챸",
-  optLeague: "由ш렇?ㅻ툕?덉쟾??,
-  optValorant: "諛쒕줈???,
-  optAcademy: "?뚯뒪??,
-  saveCoachBtn: "???,
-  newCoachBtn: "??媛뺤쓽",
-  deleteCoachBtn: "??젣",
-  bookingStudentLabel: "?섍컯???대쫫",
+  navMarket: "강의 목록",
+  navBookings: "예약 관리",
+  navAdmin: "코치 관리",
+  navCoachSelf: "코치 개인 관리",
+  sideLabel: "예약 안내",
+  sideCopy: "코치 목록에서 원하는 상품을 고르면 상세 정보와 예약 신청을 바로 확인할 수 있습니다.",
+  heroEyebrow: "LoL 리플레이 분석 · 라인전 교정 · 팀 피드백",
+  heroTitle: "LoL 코칭 플랫폼",
+  metricCoachesLabel: "강의",
+  metricBookingsLabel: "예약",
+  metricRatingLabel: "평점",
+  searchLabel: "검색",
+  searchPlaceholder: "코치명, 라인, 챔피언, 강의명",
+  bookingEyebrow: "관리자 화면",
+  bookingTitle: "예약 신청 목록",
+  clearBookingsBtn: "예약 새로고침",
+  thStatus: "상태",
+  thStudent: "수강생",
+  thLesson: "강의",
+  thTime: "희망 시간",
+  thContact: "연락처",
+  thMemo: "메모",
+  adminEyebrow: "로컬 편집",
+  adminTitle: "코치/강의 관리",
+  resetCoachesBtn: "강의 샘플 초기화",
+  labelCategory: "카테고리",
+  labelName: "코치명",
+  labelTagline: "한 줄 소개",
+  labelPurpose: "분류",
+  labelRoles: "전문 분야",
+  labelPrice: "가격",
+  labelImage: "이미지 경로",
+  labelImagePosition: "이미지 위치",
+  labelBadges: "배지",
+  labelBio: "상세 설명",
+  optLeague: "리그오브레전드",
+  optValorant: "발로란트",
+  optAcademy: "테스트",
+  saveCoachBtn: "저장",
+  newCoachBtn: "새 강의",
+  deleteCoachBtn: "삭제",
+  bookingStudentLabel: "수강생 이름",
   bookingContactLabel: "Riot ID / Discord",
-  bookingTimeLabel: "?щ쭩 ?쒓컙",
-  bookingMemoLabel: "?붿껌?ы빆",
-  bookingSubmitBtn: "?덉빟 ?좎껌",
-  featuredTitle: "異붿쿇 肄붿묶 ?곹뭹",
-  featuredHint: "?꾧린? ?ъ삁?쎈쪧??醫뗭? 媛뺤쓽",
-  expertTitle: "肄붿묶 ?곹뭹 李얘린",
-  expertHint: "?ъ??? ?곗뼱, ?寃뚯엫 湲곗??쇰줈 怨⑤씪蹂댁꽭??",
+  bookingTimeLabel: "희망 시간",
+  bookingMemoLabel: "요청사항",
+  bookingSubmitBtn: "예약 신청",
+  featuredTitle: "추천 코칭 상품",
+  featuredHint: "후기와 재예약률이 좋은 강의",
+  expertTitle: "코칭 상품 찾기",
+  expertHint: "라인, 티어, 팀게임 기준으로 골라보세요.",
 };
 
 const samples = [
-  {
-    id: "lol-1",
-    category: "league",
-    name: "?섎Ⅴ?뚮굹 肄붿튂",
-    tier: "理쒖슦??,
-    tagline: "???쇱씤??二쇰룄沅? ?⑥씠釉?愿由? ?ъ씠???댁쁺 ?ㅺ퀎",
-    purpose: ["top", "high"],
-    roles: ["??, "?댁쁺", "怨좏떚??],
-    price: "70,000??/ 1?쒓컙",
-    image: "assets/personacoach.png",
-    imagePosition: "center 8%",
-    badges: ["理쒖슦??, "異붿쿇"],
-    rating: 4.9,
-    lessons: 248,
-    bio: "???쇱씤?꾩쓽 ?쒓탳 ??대컢, ?⑥씠釉?怨좎젙怨??몄돩 ?좏깮, ?ъ씠???댁쁺 ?꾪솚源뚯? 由ы뵆?덉씠 湲곗??쇰줈 ?뺣━?댁＜??1:1 肄붿묶?낅땲??",
-    reviews: [
-      ["由ъ“??, "?쇱씤?꾩뿉????怨꾩냽 ?먰빐蹂대뒗吏 泥섏쓬?쇰줈 ?댄빐?덉뼱?? ?ㅼ쓬 ?먮???CS媛 ???섏뿀?듬땲??"],
-      ["遊?, "?곷? ?뺢? ?꾩튂瑜?洹쇨굅濡??뚮젅?댄븯??踰뺤쓣 諛곗썙??寃뚯엫?????붾뱾?몄뒿?덈떎."],
-    ],
-  },
-  {
-    id: "lol-2",
-    category: "league",
-    name: "Lucid Macro",
-    tier: "理쒖슦??,
-    tagline: "? 寃뚯엫 愿?먯쓽 以묓썑諛??댁쁺, ?ㅻ뜑, ?쒖빞 而⑦듃濡?,
-    purpose: ["team", "high"],
-    roles: ["?뺢?", "?쒗뤏", "?댁쁺"],
-    price: "75,000??/ 1?쒓컙",
-    image: "assets/KakaoTalk_20250810_005153132_04.jpg",
-    imagePosition: "center 8%",
-    badges: ["理쒖슦??, "異붿쿇"],
-    rating: 5.0,
-    lessons: 212,
-    bio: "?붾옲怨??댁쟾 由ы뵆?덉씠瑜??④퍡 蹂대ŉ ?쒖빞 ?μ븙, ?ㅻ툕?앺듃 ??以鍮? ?ъ씠???뺣컯, 肄??곗꽑?쒖쐞瑜??뺣━?⑸땲??",
-    reviews: [
-      ["?ъ씠?덉뒪??, "蹂듦린?섎㈃???쒓? 留듭쓣 嫄곗쓽 ??蹂닿퀬 ?덉뿀?ㅻ뒗 嫄?源⑤떖?섏뼱??"],
-      ["硫붾줎", "???닿린??寃뚯엫??援대━吏 紐삵뻽?붿? ?먮쫫 ?⑥쐞濡??ㅻ챸?댁쨾??醫뗭븯?듬땲??"],
-    ],
-  },
-  {
-    id: "lol-3",
-    category: "league",
-    name: "誘몃Ⅴ 肄붿튂",
-    tier: "?곗닔",
-    tagline: "?뺢? 泥??숈꽑, 媛???대컢, ?ㅻ툕?앺듃 ?먮떒 吏묒쨷 肄붿묶",
-    purpose: ["jungle", "low"],
-    roles: ["?뺢?", "?숈꽑", "?ㅻ툕?앺듃"],
-    price: "45,000??/ 1?쒓컙",
-    image: "assets/mireucoach.png",
-    imagePosition: "center 8%",
-    badges: ["?곗닔", "異붿쿇"],
-    rating: 4.7,
-    lessons: 121,
-    bio: "泥?諛뷀??댄썑 ?댁씠 ?щ씪吏???뺢??щ? ?꾪빐 ?쇱씤 ?곹깭, 罹좏봽 由ъ젨, ?ㅻ툕?앺듃 ??대컢??湲곗??쇰줈 紐⑹쟻 ?덈뒗 ?숈꽑???≪븘以띾땲??",
-    reviews: [
-      ["?띾낫?쒕쾭", "留ㅻ쾲 媛먯쑝濡??섎뜕 嫄?湲곗??쇰줈 諛붽씀?덇퉴 寃뚯엫?????붾뱾?몄뒿?덈떎."],
-      ["寃뚯뒪??, "?댁쟾 由ы뵆?덉씠濡??ㅻ챸?댁쨾???댄빐媛 鍮⑤옄?댁슂."],
-    ],
-  },
-  {
-    id: "lol-4",
-    category: "league",
-    name: "Luna Mid Lab",
-    tier: "?곗닔",
-    tagline: "誘몃뱶 硫붿씠吏 ?쇱씤?? 濡쒕컢 ??대컢, ?쒖빞 ?ㅺ퀎",
-    purpose: ["mid", "high"],
-    roles: ["誘몃뱶", "硫붿씠吏", "濡쒕컢"],
-    price: "42,000??/ 1?쒓컙",
-    image: "assets/KakaoTalk_20250810_005153132_06.jpg",
-    imagePosition: "center 8%",
-    badges: ["?곗닔", "異붿쿇"],
-    rating: 4.8,
-    lessons: 136,
-    bio: "梨뷀뵾???숇젴?꾨낫??癒쇱? ?≪븘????誘몃땲留??쒖꽑, ???ъ슜, 洹????대컢??以묒떖?쇰줈 ?쇰뱶諛깊빀?덈떎.",
-    reviews: [
-      ["?뚯뒪??, "移쒖젅?쒕뜲 ?듭떖? ?뺥솗?댁꽌 留뚯”?덉뒿?덈떎."],
-      ["誘몃뱶?곗뒿以?, "?쇱씤??諛?댁빞 ???뚯? 諛쏆븘?????뚭? 援щ텇?먯뼱??"],
-    ],
-  },
-  {
-    id: "lol-5",
-    category: "league",
-    name: "硫뷀뵾 肄붿튂",
-    tier: "?곗닔",
-    tagline: "?먮뵜/?쒗뤏 諛뷀? ?쇱씤?꾧낵 2:2 援먯쟾 ?ㅺ퀎",
-    purpose: ["adc", "support", "team"],
-    roles: ["?먮뵜", "?쒗뤏", "???],
-    price: "48,000??/ 1?쒓컙",
-    image: "assets/mephicoach.png",
-    imagePosition: "72% 12%",
-    badges: ["?곗닔", "異붿쿇"],
-    rating: 4.8,
-    lessons: 103,
-    bio: "諛뷀? 議고빀蹂?1?덈꺼 ?댁쁺, ?쇱씤 二쇰룄沅?援먰솚, ?먮뵜怨??쒗뤏??援먯쟾 媛곸쓣 ?ㅼ젣 由ы뵆?덉씠濡??뺣━?⑸땲??",
-    reviews: [
-      ["?덈꼍諛?, "?섏씠 留먯씠 ??留욎븘??吏???먯씠 以꾩뿀?듬땲??"],
-      ["誘쇳듃", "?쒗뤏 ?숈꽑???먮뵜 ?깆옣???쇰쭏???곗? 泥닿컧?덉뼱??"],
-    ],
-  },
-  {
-    id: "lol-6",
-    category: "league",
-    name: "???쇱씤??30遺?吏꾨떒",
-    tier: "?쇰컲",
-    tagline: "??寃쎄린留?蹂닿퀬 ?쇱씤???먰빐 ?먯씤 3媛吏瑜?吏싳뼱二쇰뒗 ?낅Ц ?곹뭹",
-    purpose: ["value", "top", "low"],
-    roles: ["?媛 ?낅Ц", "??, "?쇱씤??],
-    price: "9,900??/ 30遺?,
-    image: "assets/personacoach.png",
-    imagePosition: "center 8%",
-    badges: ["?媛 ?낅Ц"],
-    rating: 4.5,
-    lessons: 61,
-    bio: "遺???놁씠 ?쒖옉?????덈뒗 吏㏃? 吏꾨떒 ?곹뭹?낅땲?? ??寃쎄린 由ы뵆?덉씠瑜?湲곗??쇰줈 ?⑥씠釉? ?쒓탳 ??대컢, 媛??뚰뵾 ???以?媛???먰빐媛 ??3媛吏瑜??뺣━?⑸땲??",
-    reviews: [
-      ["?묒쑀?", "臾댁옉???몄슦???듦???怨좎낀?듬땲??"],
-      ["?섎Ⅴ?곗뒿", "?곸꽦 ?ㅻ챸???ъ썙??醫뗭븯?댁슂."],
-    ],
-  },
-  {
-    id: "lol-7",
-    category: "league",
-    name: "?쒗뤏 ?쒖빞 ?낅Ц 泥댄겕",
-    tier: "?쇰컲",
-    tagline: "????꾩튂蹂대떎 癒쇱? ?≪븘?????쒖빞 ??대컢 鍮좊Ⅸ ?먭?",
-    purpose: ["value", "support", "low"],
-    roles: ["?媛 ?낅Ц", "?쒗뤏", "?쒖빞"],
-    price: "12,000??/ 30遺?,
-    image: "assets/mephicoach.png",
-    imagePosition: "center 8%",
-    badges: ["?媛 ?낅Ц"],
-    rating: 4.4,
-    lessons: 54,
-    bio: "??쒕? ?대뵒??諛뺣뒗吏蹂대떎 ??洹???대컢???吏곸씠?붿?瑜?癒쇱? ?≪븘二쇰뒗 ?낅Ц 肄붿묶?낅땲??",
-    reviews: [
-      ["?쒗뤏泥섏쓬", "誘몃뱶 濡쒕컢 ??대컢??泥섏쓬 ?뚯븯?듬땲??"],
-      ["遊?, "?쒖빞 ?먯닔媛 ?꾨땲???섎? ?덈뒗 ?쒖빞瑜?諛곗썱?댁슂."],
-    ],
-  },
-  {
-    id: "lol-8",
-    category: "league",
-    name: "?먮뵜 ?쒗? ?앹〈 ?대━??,
-    tier: "?쇰컲",
-    tagline: "二쎈뒗 ?쒗? ?λ㈃留?怨⑤씪 ?ъ????듦???怨좎튂???媛 ?곹뭹",
-    purpose: ["value", "adc", "low"],
-    roles: ["?媛 ?낅Ц", "?먮뵜", "?쒗?"],
-    price: "14,900??/ 30遺?,
-    image: "assets/mephicoach.png",
-    imagePosition: "center 8%",
-    badges: ["?媛 ?낅Ц"],
-    rating: 4.6,
-    lessons: 72,
-    bio: "二쎌? ?딄퀬 ?쒗븯???꾩튂, ?욌씪??嫄곕━ ?좎?, ?ㅽ렆 泥댄겕, ?쒗? ???湲??꾩튂瑜?以묒떖?쇰줈 遊낅땲??",
-    reviews: [
-      ["?먮뵜?곗뒿", "?욌Т鍮숉븯??二쎈뒗 ?λ㈃???뺥솗??吏싳뼱以ъ뒿?덈떎."],
-      ["?ㅻ쾭?덉텧", "?쒗? ?꾩뿉 ?쒕뒗 ?꾩튂媛 諛붾뚮땲源??쒕웾???щ옄?댁슂."],
-    ],
-  },
-  {
-    id: "lol-9",
-    category: "league",
-    name: "梨뷀뵾?명룺 20遺??곷떞",
-    tier: "?쇰컲",
-    tagline: "OP.GG? ?뚮젅???깊뼢 湲곗??쇰줈 ?곗뒿 梨뷀뵾??2~3媛?異붿쿇",
-    purpose: ["value", "aim", "low"],
-    roles: ["?媛 ?낅Ц", "梨뷀뵾?명룺", "?붾옲"],
-    price: "7,900??/ 20遺?,
-    image: "assets/KakaoTalk_20250810_005153132_06.jpg",
-    imagePosition: "center 8%",
-    badges: ["?媛 ?낅Ц"],
-    rating: 4.3,
-    lessons: 39,
-    bio: "?꾩옱 ?곗뼱, ?좏샇 ?뚮젅?? ?쇱씤蹂??쎌젏??蹂닿퀬 臾대━ ?놁씠 ?곗뒿 媛?ν븳 梨뷀뵾??2~3媛쒕? 異붿쿇?⑸땲??",
-    reviews: [
-      ["梨뷀봽怨좊?", "愿쒗엳 ?대젮??梨뷀봽留??↔퀬 ?덉뿀?ㅻ뒗 嫄??뚯븯?댁슂."],
-      ["?낅Ц??, "?곗뒿 ?쒖꽌媛 ?앷꺼????겕媛 ??臾댁꽌?뚯죱?듬땲??"],
-    ],
-  },
-  {
-    id: "lol-10",
-    category: "league",
-    name: "Replay Quick Check",
-    tier: "?쇰컲",
-    tagline: "吏㏃? 由ы뵆?덉씠 吏꾨떒怨?諛붾줈 怨좎튌 3媛吏 怨쇱젣",
-    purpose: ["value", "low"],
-    roles: ["由ы뵆?덉씠", "?쇰뱶諛?, "?낅Ц"],
-    price: "9,900??/ 30遺?,
-    image: "assets/mephicoach.png",
-    imagePosition: "72% 12%",
-    badges: ["?媛 ?낅Ц"],
-    rating: 4.5,
-    lessons: 84,
-    bio: "??寃쎄린 由ы뵆?덉씠瑜?鍮좊Ⅴ寃?蹂대ŉ 媛???먰빐媛 ???듦? 3媛쒖? ?ㅼ쓬 ?먯뿉??諛붾줈 ?대낵 怨쇱젣瑜??④퉩?덈떎.",
-    reviews: [
-      ["寃뚯뒪??, "吏㏐쾶 遊ㅻ뒗?곕룄 怨좎튌 寃?紐낇솗?덉뒿?덈떎."],
-      ["??겕?꾩궗", "媛寃?遺???놁씠 ?먭?諛쏄린 醫뗭븘??"],
-    ],
-  },
-  {
-    id: "val-1",
-    category: "valorant",
-    name: "Astra Aim Room",
-    tagline: "?먯엫 猷⑦떞怨??쇳궧 ?듦? 援먯젙",
-    purpose: ["value", "low"],
-    roles: ["?먯엫", "?쇳궧", "媛먮룄"],
-    price: "32,000??/ 1?쒓컙",
-    image: "assets/KakaoTalk_20250810_005153132_06.jpg",
-    imagePosition: "center 8%",
-    badges: ["?낅Ц 異붿쿇", "由щ럭 ?곗닔"],
-    rating: 4.8,
-    lessons: 88,
-    bio: "?곗뒪留ㅼ튂留?留롮씠 ?섎뒗 諛⑹떇?먯꽌 踰쀬뼱?? ?ㅼ젣 ??겕?먯꽌 ?섏삤??援먯쟾 媛곷룄? ?щ줈?ㅽ뿤???꾩튂瑜?怨좎묩?덈떎.",
-    reviews: [
-      ["?덈꼍諛?, "媛먮룄遺???덈젴 猷⑦떞源뚯? ??踰덉뿉 ?뺣━?쇱꽌 醫뗭븯?댁슂."],
-      ["誘쇳듃", "??癒쇱? ?섍퀬??吏?붿? ?뺥솗??吏싳뼱以ъ뒿?덈떎."],
-    ],
-  },
-  {
-    id: "val-2",
-    category: "valorant",
-    name: "Duelist Clinic",
-    tagline: "?뷀듃由???대컢, ?ㅽ궗 ?곌퀎, ?ъ씠??吏꾩엯",
-    purpose: ["team", "duelist"],
-    roles: ["??쇰━?ㅽ듃", "?뷀듃由?, "?ㅽ겕由?],
-    price: "38,000??/ 1?쒓컙",
-    image: "assets/KakaoTalk_20250810_005153132_17.jpg",
-    imagePosition: "72% 12%",
-    badges: ["? ?쇰뱶諛?媛??],
-    rating: 4.6,
-    lessons: 73,
-    bio: "?쇱옄 ?ㅼ뼱媛??二쎈뒗 吏꾩엯??????곕씪?????덈뒗 吏꾩엯?쇰줈 諛붽씀????吏묒쨷?⑸땲??",
-    reviews: [
-      ["?뚮옒李띿옄", "吏꾩엯 ??대컢?대옉 肄쒖쓣 媛숈씠 遊먯쨾??? 寃뚯엫???ъ썙議뚯뼱??"],
-      ["彛?, "怨듦꺽 ?쇱슫?쒓? ?듬떟?덈뒗???좏깮吏媛 ?앷꼈?듬땲??"],
-    ],
-  },
-  {
-    id: "academy-1",
-    category: "academy",
-    name: "?좉퇋 肄붿튂 踰좎씠吏?4二?,
-    tagline: "肄붿묶 吏꾪뻾踰? 由ы뵆?덉씠 遺꾩꽍, ?섍컯??愿由?,
-    purpose: ["entry", "curriculum", "coach-basic"],
-    roles: ["肄붿튂 ?낅Ц", "而ㅻ━?섎읆", "?쇰뱶諛?],
-    price: "300,000??/ 4二?,
-    image: "assets/KakaoTalk_20250810_005153132_01.jpg",
-    imagePosition: "center 8%",
-    badges: ["?섎즺 諛곗?", "?뚮옯???낆젏 ?곌퀎"],
-    rating: 4.9,
-    lessons: 42,
-    bio: "寃뚯엫???섑븯???щ엺???ㅼ젣濡??덉쓣 諛쏄퀬 媛瑜댁튌 ???덈뒗 肄붿튂濡?留뚮뱶??湲곗큹 怨쇱젙?낅땲??",
-    reviews: [
-      ["?섎즺??A", "留먮줈 ?ㅻ챸?섎뒗 踰뺤쓣 諛곗슦?덇퉴 肄붿묶???⑥뵮 ?덉젙?먯뒿?덈떎."],
-      ["?섎즺??B", "?쇰뱶諛??쒗뵆由우씠 ?덉뼱??泥??좊즺 媛뺤쓽源뚯? 諛붾줈 ?댁뼱議뚯뼱??"],
-    ],
-  },
-  {
-    id: "academy-2",
-    category: "academy",
-    name: "?곗닔 肄붿튂 ?꾪솚諛?,
-    tagline: "?꾧린 愿由? ?곹뭹?? ?κ린 ?섍컯 ?ㅺ퀎",
-    purpose: ["branding", "coach-advanced", "operation"],
-    roles: ["怨좉툒諛?, "釉뚮옖??, "?댁쁺"],
-    price: "180,000??/ 2二?,
-    image: "assets/lollogo.png",
-    imagePosition: "center center",
-    badges: ["?섏닔猷?媛먮㈃ ?꾨낫"],
-    rating: 4.7,
-    lessons: 26,
-    bio: "媛뺤쓽 ?④?瑜??щ━怨?諛섎났 ?덉빟??留뚮뱾湲??꾪븳 ?곷떞 諛⑹떇怨??⑦궎吏 援ъ꽦???ㅻ９?덈떎.",
-    reviews: [
-      ["肄붿튂K", "媛뺤쓽 ?뚭컻瑜?諛붽엥?붾땲 臾몄쓽媛 ??援ъ껜?곸쑝濡??ㅼ뼱?붿뒿?덈떎."],
-      ["肄붿튂M", "?꾧린 ?붿껌 諛⑹떇 ?섎굹留?諛붽퓭??李⑥씠媛 而몄뼱??"],
-    ],
-  },
+  { id: "lol-1", category: "league", name: "바텀 라인전 2:2 코칭", coachKey: "mephi", coachProfileName: "메피 코치", tier: "엠버서더", coachTier: "엠버서더", coachSummary: "전프로 바텀 라이너 출신, 전 라인 피드백 가능", tagline: "원딜/서폿 바텀 라인전과 2:2 교전 설계", bio: "바텀 듀오의 라인전 구도, 웨이브, 교전 타이밍을 리플레이로 짚습니다.", purpose: ["adc", "support", "team"], roles: ["원딜", "서폿", "바텀", "팀게임"], price: "70,000원 / 1시간", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.8, lessons: 103, reviews: [["리조또", "라인전 전에 계속 뭘 봐야 하는지 처음으로 이해됐어요."], ["봄", "상대 정글 위치를 근거로 플레이하는 법을 배웠습니다."]], badges: ["엠버서더", "추천"], featuredAd: true },
+  { id: "lol-2", category: "league", name: "프로팀식 팀게임 운영 피드백", coachKey: "shineast", coachProfileName: "샤이니스트 코치", tier: "최우수", coachTier: "최우수", coachSummary: "프로팀 출신, 전 라인과 팀게임 운영 가능", tagline: "프로팀 관점으로 보는 중후반 운영, 오더, 시야 컨트롤", bio: "챔피언 숙련보다 먼저 잡아야 할 미니맵 시선, 턴 사용, 귀환 타이밍을 중심으로 피드백합니다.", purpose: ["team", "high"], roles: ["탑", "정글", "미드", "원딜", "서폿"], price: "100,000원 / 1시간", image: "assets/shineast.png", imagePosition: "center 12%", featuredImagePosition: "center 16%", detailImagePosition: "center 16%", rating: 5.0, lessons: 212, reviews: [["사이니스트", "복기하면서 제가 맵을 거의 안 보고 있었다는 걸 깨달았어요."], ["미드연습중", "라인을 밀어야 할 때와 받아야 할 때가 구분됐어요."]], badges: ["최우수", "추천"], featuredAd: true },
+  { id: "lol-3", category: "league", name: "정글 저티어 탈출 코칭", coachKey: "mireu", coachProfileName: "정미르 코치", tier: "우수", coachTier: "우수", coachSummary: "우수 수강생, 학교강의 경험, 저티어 친화", tagline: "정글 첫 동선, 갱각, 오브젝트 판단 집중 코칭", bio: "저티어에서 바로 적용하기 쉬운 동선과 판단 기준을 쉽게 정리합니다.", purpose: ["jungle", "low", "value"], roles: ["정글", "저티어", "동선", "오브젝트"], price: "35,000원 / 1시간", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.6, lessons: 72, reviews: [["게스트", "이전 리플레이로 설명해주셔서 이해가 빨랐어요."]], badges: ["우수", "입문 추천"] },
+  { id: "lol-4", category: "league", name: "전 라인 솔랭 리플레이 분석", coachKey: "shineast", coachProfileName: "샤이니스트 코치", tier: "최우수", coachTier: "최우수", coachSummary: "프로팀 출신, 모든 라인 피드백 가능", tagline: "라인 상관없이 승리 플랜과 실수 패턴을 잡아주는 고급 피드백", bio: "한 경기 전체 흐름에서 반복되는 선택 실수와 승리 조건을 정리합니다.", purpose: ["high"], roles: ["탑", "정글", "미드", "원딜", "서폿"], price: "90,000원 / 1시간", image: "assets/shineast.png", imagePosition: "center 12%", featuredImagePosition: "center 16%", detailImagePosition: "center 16%", rating: 4.8, lessons: 136, reviews: [["테스트", "친절한데 핵심은 정확해서 만족했습니다."], ["미드연습중", "라인을 밀어야 할 때와 받아야 할 때가 구분됐어요."]], badges: ["최우수", "추천"] },
+  { id: "lol-5", category: "league", name: "탑 라인전 이론 코칭", coachKey: "persona", coachProfileName: "페르소나 코치", tier: "우수", coachTier: "우수", coachSummary: "탑 라이너 출신, 이론 중심 피드백", tagline: "매치업, 웨이브, 텔 타이밍을 정리하는 탑 전문 코칭", bio: "탑 라인에서 손해를 보는 구간을 이론과 리플레이로 같이 봅니다.", purpose: ["top", "high"], roles: ["탑", "라인전", "고티어", "이론"], price: "45,000원 / 1시간", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.5, lessons: 41, reviews: [["게스트", "지게 보는 각도 고칠 게 명확했습니다."]], badges: ["우수"] },
+  { id: "lol-6", category: "league", name: "탑 라인전 30분 진단", coachKey: "persona", coachProfileName: "페르소나 코치", tier: "우수", coachTier: "우수", coachSummary: "탑 라이너 출신, 이론 중심 피드백", tagline: "한 경기로 보는 라인전 손해 구간 빠른 진단", bio: "짧은 시간에 라인전 습관과 매치업 이해도를 점검합니다.", purpose: ["value", "top", "low"], roles: ["탑", "라인전", "입문"], price: "14,900원 / 30분", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.4, lessons: 54, reviews: [["초보탑", "뭘 몰라서 지는지 알게 됐어요."]], badges: ["우수", "가성비 리플레이"] },
+  { id: "lol-7", category: "league", name: "서폿 시야 입문 체크", coachKey: "mephi", coachProfileName: "메피 코치", tier: "엠버서더", coachTier: "엠버서더", coachSummary: "전프로 바텀 라이너 출신", tagline: "와드 위치보다 먼저 잡아야 할 시야 타이밍 빠른 점검", bio: "서포터의 시야 목적과 턴을 기준으로 입문자가 바로 고칠 수 있게 봅니다.", purpose: ["value", "support", "low"], roles: ["서폿", "시야", "입문"], price: "20,000원 / 30분", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.4, lessons: 54, reviews: [["봄", "시야 점수가 아니라 왜 박는지 배웠어요."]], badges: ["엠버서더", "가성비 리플레이"] },
+  { id: "lol-8", category: "league", name: "원딜 한타 생존 클리닉", coachKey: "mephi", coachProfileName: "메피 코치", tier: "엠버서더", coachTier: "엠버서더", coachSummary: "전프로 바텀 라이너 출신", tagline: "죽는 한타 장면만 골라 포지션 습관을 고치는 저가 상품", bio: "원딜이 한타에서 먼저 죽는 이유를 포지션과 스킬 거리 기준으로 정리합니다.", purpose: ["value", "adc", "low"], roles: ["원딜", "한타", "생존"], price: "25,000원 / 30분", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.6, lessons: 72, reviews: [["원딜러", "죽는 위치가 거의 같은 걸 알았습니다."]], badges: ["엠버서더", "가성비 리플레이"] },
+  { id: "lol-9", category: "league", name: "챔피언폭 20분 상담", coachKey: "mireu", coachProfileName: "정미르 코치", tier: "우수", coachTier: "우수", coachSummary: "저티어 친화, 일반 수강생 코칭", tagline: "지금 티어에서 올리기 쉬운 챔피언폭 정리", bio: "현재 플레이 스타일을 기준으로 현실적인 챔피언폭을 추천합니다.", purpose: ["value", "low"], roles: ["저티어", "챔피언폭", "상담"], price: "9,900원 / 20분", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.3, lessons: 28, reviews: [["입문자", "연습 순서가 생겨서 좋았습니다."]], badges: ["우수", "입문 추천"] },
+  { id: "lol-10", category: "league", name: "가성비 팀게임 피드백", coachKey: "mireu", coachProfileName: "정미르 코치", tier: "우수", coachTier: "우수", coachSummary: "학교강의 경험, 팀게임 저가 피드백 가능", tagline: "팀 단위 내전/스크림을 편하게 점검하는 운영 피드백", bio: "팀게임에서 반복되는 콜, 오브젝트, 합류 실수를 저렴하게 점검합니다.", purpose: ["value", "team", "low"], roles: ["팀게임", "정글", "저티어", "오더"], price: "30,000원 / 1시간", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.5, lessons: 46, reviews: [["팀장", "팀원들이 이해하기 쉽게 정리됐습니다."]], badges: ["우수", "팀 피드백 가능"] },
+  { id: "val-1", category: "valorant", name: "엔트리 피킹 교정", coachKey: "val-entry", coachProfileName: "Valor Coach", tier: "일반", tagline: "초반 교전 각과 피킹 습관 리플레이 교정", bio: "타격대의 진입 타이밍과 교전 각을 봅니다.", purpose: ["duelist", "value"], roles: ["타격대", "에임", "피킹"], price: "30,000원 / 1시간", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.2, lessons: 18, reviews: [["초보", "피킹 전에 생각할 게 생겼어요."]], badges: ["일반"] },
+  { id: "val-2", category: "valorant", name: "스크림 팀 피드백", coachKey: "val-team", coachProfileName: "Valor Coach", tier: "일반", tagline: "팀 단위 콜과 사이트 운영 리뷰", bio: "공격/수비 라운드별 선택지를 정리합니다.", purpose: ["team"], roles: ["스크림", "팀 피드백", "운영"], price: "50,000원 / 1시간", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.1, lessons: 11, reviews: [["팀원", "콜이 정리됐습니다."]], badges: ["일반"] },
+  { id: "academy-1", category: "academy", name: "신규 코치 베이직 4주", coachKey: "academy-basic", coachProfileName: "아카데미", tier: "일반", tagline: "코칭 진행법, 리플레이 분석, 수강생 관리", bio: "코치 입문자를 위한 운영 기본 과정입니다.", purpose: ["entry", "coach-basic"], roles: ["코치 입문", "커리큘럼", "피드백"], price: "300,000원 / 4주", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.7, lessons: 21, reviews: [["신규코치", "진행 순서를 잡을 수 있었습니다."]], badges: ["일반"] },
+  { id: "academy-2", category: "academy", name: "우수 코치 전환반", coachKey: "academy-advanced", coachProfileName: "아카데미", tier: "일반", tagline: "상품 구성과 후기 관리까지 보는 심화 과정", bio: "코치 상품을 판매 가능한 형태로 다듬는 과정입니다.", purpose: ["curriculum", "coach-advanced"], roles: ["브랜딩", "운영", "수강생 관리"], price: "180,000원 / 2주", image: "assets/lollogo.png", imagePosition: "center 8%", rating: 4.8, lessons: 16, reviews: [["코치", "상품 설명이 훨씬 명확해졌어요."]], badges: ["일반"] },
 ];
 
-const bookingSamples = [
-  {
-    status: "?좉퇋",
-    student: "由ъ“??KR1",
-    lesson: "Coach Shineast",
-    time: "8/10 21:00",
-    contact: "discord: risotto",
-    memo: "???쇱씤??蹂듦린? 梨뷀봽???곷떞",
-  },
-  {
-    status: "?곷떞以?,
-    student: "?뚯뒪???뚯뒪??,
-    lesson: "?좉퇋 肄붿튂 踰좎씠吏?4二?,
-    time: "8/12 20:00",
-    contact: "discord: testcoach",
-    memo: "肄붿튂 ?깅줉 ?꾩뿉 而ㅻ━?섎읆??蹂닿퀬 ?띠쓬",
-  },
+const initialBookings = [
+  { id: "booking-1", status: "상담중", student: "테스트 수강생", lesson: "신규 코치 베이직 4주", coach: "아카데미", time: "8/12 20:00", contact: "Discord ID", memo: "샘플 예약입니다." },
 ];
 
-const imageMigration = {
-  "../assets/champions/Aatrox.png": "assets/KakaoTalk_20250810_005153132_05.jpg",
-  "../assets/champions/Ahri.png": "assets/KakaoTalk_20250810_005153132_04.jpg",
-  "../assets/champions/LeeSin.png": "assets/KakaoTalk_20250810_005153132_11.jpg",
-  "../assets/champions/Caitlyn.png": "assets/KakaoTalk_20250810_005153132_06.jpg",
-  "../assets/champions/Zed.png": "assets/KakaoTalk_20250810_005153132_17.jpg",
-  "../assets/champions/Lux.png": "assets/lollogo.png",
-  "../assets/emojis/misc/lollogo.png": "assets/lollogo.png",
-};
-
-const tierRank = { "?좊쾭?쒕뜑": 0, "理쒖슦??: 1, "?곗닔": 2, "?쇰컲": 3 };
+const imageMigration = { "assets/logo.png": "assets/lollogo.png", "assets/lol-logo.png": "assets/lollogo.png" };
+const tierRank = { "엠버서더": 0, "최우수": 1, "우수": 2, "일반": 3 };
 
 const leagueCoachProfiles = {
-  shineast: {
-    name: "?ㅼ씠?덉뒪??肄붿튂",
-    tier: "理쒖슦??,
-    tagline: "?꾨줈? 異쒖떊 쨌 ???쇱씤 ?쇰뱶諛?쨌 ?寃뚯엫 ?댁쁺源뚯? 媛??,
-    roles: ["???쇱씤", "?寃뚯엫", "?댁쁺", "?꾨줈? 寃쏀뿕"],
-    image: "assets/KakaoTalk_20250810_005153132_04.jpg",
-    imagePosition: "center 12%",
-    featuredImagePosition: "center 16%",
-  },
-  mireu: {
-    name: "?뺣?瑜?肄붿튂",
-    tier: "?곗닔",
-    tagline: "?숆탳 媛뺤쓽 寃쏀뿕 쨌 ??곗뼱/?쇰컲??移쒗솕 쨌 媛?깅퉬 ?寃뚯엫 ?쇰뱶諛?,
-    roles: ["?뺢?", "??곗뼱", "?寃뚯엫", "?낅Ц"],
-    image: "assets/mireucoach.png",
-    imagePosition: "center 8%",
-    featuredImagePosition: "center 8%",
-  },
-  persona: {
-    name: "?섎Ⅴ?뚮굹 肄붿튂",
-    tier: "?곗닔",
-    tagline: "???쇱씠??異쒖떊 쨌 ?꾪깂???대줎 쨌 怨좏떚???쇱씤???댁쁺",
-    roles: ["??, "?대줎", "怨좏떚??, "?쇱씤??],
-    image: "assets/personacoach.png",
-    imagePosition: "center 8%",
-    featuredImagePosition: "center 8%",
-  },
-  mephi: {
-    name: "硫뷀뵾 肄붿튂",
-    tier: "?좊쾭?쒕뜑",
-    tagline: "?꾪봽濡?諛뷀? ?쇱씠??쨌 ?쒖쫵5遺??梨뚮┛? ?좎? 쨌 ?寃뚯엫 ?쇰뱶諛?,
-    roles: ["諛뷀?", "???쇱씤", "?寃뚯엫", "?꾪봽濡?],
-    image: "assets/mephicoach.png",
-    imagePosition: "72% 12%",
-    featuredImagePosition: "72% 12%",
-  },
+  shineast: { name: "샤이니스트 코치", tier: "최우수", tagline: "프로팀 출신 · 모든 라인 피드백 · 팀게임 운영까지 가능", roles: ["탑", "정글", "미드", "원딜", "서폿", "팀게임"], image: "assets/shineast.png", imagePosition: "center 12%", featuredImagePosition: "center 16%" },
+  mireu: { name: "정미르 코치", tier: "우수", tagline: "저티어와 일반 수강생에게 쉬운 정글/팀게임 피드백", roles: ["정글", "저티어", "팀게임", "입문"], image: "assets/lollogo.png", imagePosition: "center 8%" },
+  persona: { name: "페르소나 코치", tier: "우수", tagline: "탑 라인 중심의 이론과 매치업 이해도 피드백", roles: ["탑", "이론", "고티어", "라인전"], image: "assets/lollogo.png", imagePosition: "center 8%" },
+  mephi: { name: "메피 코치", tier: "엠버서더", tagline: "전프로 바텀 라이너 · 전 라인 피드백 · 팀게임 리뷰 가능", roles: ["바텀", "전 라인", "팀게임", "전프로"], image: "assets/lollogo.png", imagePosition: "center 8%" },
 };
 
 const leagueLessonOverrides = {
-  "lol-1": {
-    coachKey: "persona",
-    name: "???쇱씤???대줎 肄붿묶",
-    purpose: ["top", "high"],
-    roles: ["??, "?쇱씤??, "怨좏떚??],
-    price: "45,000??/ 1?쒓컙",
-    tagline: "???쇱씤??二쇰룄沅? ?⑥씠釉?愿由? ?ъ씠???댁쁺 ?ㅺ퀎",
-  },
-  "lol-2": {
-    coachKey: "shineast",
-    name: "?꾨줈????寃뚯엫 ?댁쁺 ?쇰뱶諛?,
-    purpose: ["team", "high"],
-    roles: ["???쇱씤", "?寃뚯엫", "?ㅻ뜑", "?댁쁺"],
-    price: "100,000??/ 1?쒓컙",
-    tagline: "?꾨줈? 異쒖떊 愿?먯쑝濡?蹂대뒗 以묓썑諛??댁쁺, ?ㅻ뜑, ?쒖빞 而⑦듃濡?,
-  },
-  "lol-3": {
-    coachKey: "mireu",
-    name: "?뺢? ??곗뼱 ?덉텧 肄붿묶",
-    purpose: ["jungle", "low"],
-    roles: ["?뺢?", "??곗뼱", "?숈꽑", "?ㅻ툕?앺듃"],
-    price: "35,000??/ 1?쒓컙",
-    tagline: "?뺢? 泥??숈꽑, 媛???대컢, ?ㅻ툕?앺듃 ?먮떒 吏묒쨷 肄붿묶",
-  },
-  "lol-4": {
-    coachKey: "shineast",
-    name: "???쇱씤 ?붾옲 由ы뵆?덉씠 遺꾩꽍",
-    purpose: ["high"],
-    roles: ["??, "?뺢?", "誘몃뱶", "?먮뵜", "?쒗뤏"],
-    price: "90,000??/ 1?쒓컙",
-    tagline: "?쇱씤 ?곴??놁씠 ?밸━ ?뚮옖怨??ㅼ닔 ?⑦꽩???≪븘二쇰뒗 怨좉툒 ?쇰뱶諛?,
-  },
-  "lol-5": {
-    coachKey: "mephi",
-    name: "諛뷀? ?쇱씤??2:2 肄붿묶",
-    purpose: ["adc", "support", "team"],
-    roles: ["?먮뵜", "?쒗뤏", "諛뷀?", "???],
-    price: "70,000??/ 1?쒓컙",
-    tagline: "?먮뵜/?쒗뤏 諛뷀? ?쇱씤?꾧낵 2:2 援먯쟾 ?ㅺ퀎",
-  },
-  "lol-6": {
-    coachKey: "persona",
-    name: "???쇱씤??30遺?吏꾨떒",
-    purpose: ["value", "top", "low"],
-    roles: ["??, "?쇱씤??, "?낅Ц"],
-    price: "14,900??/ 30遺?,
-  },
-  "lol-7": {
-    coachKey: "mephi",
-    name: "?쒗뤏 ?쒖빞 ?낅Ц 泥댄겕",
-    purpose: ["value", "support", "low"],
-    roles: ["?쒗뤏", "?쒖빞", "?낅Ц"],
-    price: "20,000??/ 30遺?,
-  },
-  "lol-8": {
-    coachKey: "mephi",
-    name: "?먮뵜 ?쒗? ?앹〈 ?대━??,
-    purpose: ["value", "adc", "low"],
-    roles: ["?먮뵜", "?쒗?", "?ъ???],
-    price: "25,000??/ 30遺?,
-  },
-  "lol-9": {
-    coachKey: "mireu",
-    name: "梨뷀뵾?명룺 20遺??곷떞",
-    purpose: ["value", "low"],
-    roles: ["??곗뼱", "梨뷀뵾?명룺", "?붾옲"],
-    price: "9,900??/ 20遺?,
-  },
-  "lol-10": {
-    coachKey: "mireu",
-    name: "媛?깅퉬 ?寃뚯엫 ?쇰뱶諛?,
-    purpose: ["value", "team", "low"],
-    roles: ["?寃뚯엫", "?뺢?", "??곗뼱", "?ㅻ뜑"],
-    price: "30,000??/ 1?쒓컙",
-    tagline: "? ?⑥쐞 ?댁쟾/?ㅽ겕由쇱쓣 ??댄븯寃??먭??섎뒗 ?댁쁺 ?쇰뱶諛?,
-  },
+  "lol-1": { coachKey: "mephi" }, "lol-2": { coachKey: "shineast" }, "lol-3": { coachKey: "mireu" }, "lol-4": { coachKey: "shineast" }, "lol-5": { coachKey: "persona" },
+  "lol-6": { coachKey: "persona" }, "lol-7": { coachKey: "mephi" }, "lol-8": { coachKey: "mephi" }, "lol-9": { coachKey: "mireu" }, "lol-10": { coachKey: "mireu" },
 };
-
 const state = {
   activeView: "market",
   category: "league",
@@ -611,9 +218,9 @@ function inferLeagueCoachKey(coach) {
   const id = String(coach.id || "");
   if (leagueLessonOverrides[id]?.coachKey) return leagueLessonOverrides[id].coachKey;
   const haystack = [coach.name, coach.tagline, coach.bio, ...(coach.roles || [])].join(" ").toLowerCase();
-  if (haystack.includes("硫뷀뵾") || haystack.includes("諛뷀?") || haystack.includes("?먮뵜") || haystack.includes("?쒗뤏")) return "mephi";
-  if (haystack.includes("誘몃Ⅴ") || haystack.includes("?뺢?") || haystack.includes("??곗뼱")) return "mireu";
-  if (haystack.includes("?섎Ⅴ?뚮굹") || haystack.includes("??)) return "persona";
+  if (haystack.includes("메피") || haystack.includes("바텀") || haystack.includes("원딜") || haystack.includes("서폿")) return "mephi";
+  if (haystack.includes("미르") || haystack.includes("정글") || haystack.includes("저티어")) return "mireu";
+  if (haystack.includes("페르소나") || haystack.includes("탑")) return "persona";
   return "shineast";
 }
 
@@ -842,7 +449,7 @@ function applyTheme(theme) {
   localStorage.setItem(THEME_KEY, nextTheme);
   const button = $("themeToggleBtn");
   if (button) {
-    button.textContent = nextTheme === "dark" ? "?쇱씠?몃え?? : "?ㅽ겕紐⑤뱶";
+    button.textContent = nextTheme === "dark" ? "라이트모드" : "다크모드";
     button.setAttribute("aria-pressed", String(nextTheme === "dark"));
   }
 }
@@ -872,13 +479,13 @@ function renderAuthMarkup(mode) {
   if (mode === "signup") {
     return `
       <div class="auth-content">
-        <span class="eyebrow">?뚯썝媛??/span>
-        <h2 id="authTitle">?섍컯??怨꾩젙 留뚮뱾湲?/h2>
-        <p>媛뺤쓽 援щℓ ?댁뿭, ?덉빟 ?쒓컙, ?꾧린 ?묒꽦 沅뚰븳??怨꾩젙????ν븯???붾㈃?낅땲??</p>
-        <label>?됰꽕??input placeholder="?? ?됰꽕??KR1"></label>
-        <label>?대찓??input placeholder="example@email.com"></label>
-        <label>鍮꾨?踰덊샇<input type="password" placeholder="鍮꾨?踰덊샇"></label>
-        <button class="primary" type="button" disabled>?뚯썝媛??以鍮꾩쨷</button>
+        <span class="eyebrow">회원가입</span>
+        <h2 id="authTitle">수강생 계정 만들기</h2>
+        <p>강의 구매 내역, 예약 시간, 후기 작성 권한을 계정에 저장하는 화면입니다.</p>
+        <label>닉네임<input placeholder="예: 닉네임#KR1"></label>
+        <label>이메일<input placeholder="example@email.com"></label>
+        <label>비밀번호<input type="password" placeholder="비밀번호"></label>
+        <button class="primary" type="button" disabled>회원가입 준비중</button>
       </div>
     `;
   }
@@ -886,25 +493,25 @@ function renderAuthMarkup(mode) {
     const selected = state.coaches.find((coach) => coach.id === state.selectedCoachId);
     return `
       <div class="auth-content">
-        <span class="eyebrow">鍮꾪쉶??援щℓ</span>
-        <h2 id="authTitle">怨꾩젙 ?놁씠 ?덉빟?섍린</h2>
-        <p>濡쒓렇???놁씠???곕씫泥섏? Riot ID瑜??④꺼 ?덉빟?????덇쾶 ???덉젙?낅땲?? 援щℓ ?댁뿭 議고쉶??二쇰Ц踰덊샇/?곕씫泥섎줈 ?뺤씤?섎뒗 ?먮쫫?낅땲??</p>
-        ${selected ? `<div class="guest-selected"><span>?좏깮 媛뺤쓽</span><strong>${escapeHtml(selected.name)}</strong><em>${escapeHtml(selected.price)}</em></div>` : ""}
-        <label>?섍컯???대쫫<input placeholder="?? ?됰꽕??KR1"></label>
-        <label>Riot ID / Discord<input placeholder="?곕씫 媛?ν븳 ID"></label>
-        <label>?곕씫泥?input placeholder="?붿뒪肄붾뱶 ?먮뒗 ?대찓??></label>
-        <button class="primary" type="button" disabled>鍮꾪쉶??援щℓ 以鍮꾩쨷</button>
+        <span class="eyebrow">비회원 구매</span>
+        <h2 id="authTitle">계정 없이 예약하기</h2>
+        <p>로그인 없이도 연락처와 Riot ID를 남겨 예약할 수 있게 둘 예정입니다. 구매 내역 조회는 주문번호와 연락처로 확인하는 흐름입니다.</p>
+        ${selected ? `<div class="guest-selected"><span>선택 강의</span><strong>${escapeHtml(selected.name)}</strong><em>${escapeHtml(selected.price)}</em></div>` : ""}
+        <label>수강생 이름<input placeholder="예: 닉네임#KR1"></label>
+        <label>Riot ID / Discord<input placeholder="연락 가능한 ID"></label>
+        <label>연락처<input placeholder="디스코드 또는 이메일"></label>
+        <button class="primary" type="button" disabled>비회원 구매 준비중</button>
       </div>
     `;
   }
   return `
     <div class="auth-content">
-      <span class="eyebrow">濡쒓렇??/span>
-      <h2 id="authTitle">??媛뺤쓽 ?댁뼱蹂닿린</h2>
-      <p>異⑹쟾 湲덉븸, 媛뺤쓽 援щℓ ?댁뿭, ?덉빟 ?쒓컙, ?꾧린 ?묒꽦 媛??媛뺤쓽瑜??뺤씤?섎뒗 ?섍컯??濡쒓렇???붾㈃?낅땲??</p>
-      <label>?대찓???먮뒗 Discord ID<input placeholder="example@email.com"></label>
-      <label>鍮꾨?踰덊샇<input type="password" placeholder="鍮꾨?踰덊샇"></label>
-      <button class="primary" type="button" disabled>濡쒓렇??以鍮꾩쨷</button>
+      <span class="eyebrow">로그인</span>
+      <h2 id="authTitle">내 강의 이어보기</h2>
+      <p>충전 금액, 강의 구매 내역, 예약 시간, 후기 작성 가능 강의를 확인하는 수강생 로그인 화면입니다.</p>
+      <label>이메일 또는 Discord ID<input placeholder="example@email.com"></label>
+      <label>비밀번호<input type="password" placeholder="비밀번호"></label>
+      <button class="primary" type="button" disabled>로그인 준비중</button>
     </div>
   `;
 }
@@ -1120,7 +727,7 @@ function closeCoachExplorer() {
 function getCoachExplorerFilters() {
   const activeSet = getActiveFilterSet();
   const roleFilters = activeSet.segment.filter((item) => item.id !== "all");
-  const tierFilters = ["?좊쾭?쒕뜑", "理쒖슦??, "?곗닔", "?쇰컲"]
+  const tierFilters = ["엠버서더", "최우수", "우수", "일반"]
     .filter((tier) => getCoachIdentities().some((coach) => coach.tier === tier))
     .map((tier) => ({ id: tier, label: tier }));
   return { roleFilters, tierFilters };
@@ -1362,7 +969,7 @@ function chooseFeaturedCoachLesson(coaches) {
 }
 
 function getFeaturedCoachSlots(visible) {
-  const eligible = visible.filter((coach) => coach.category === state.category && ["?좊쾭?쒕뜑", "理쒖슦??].includes(coach.tier));
+  const eligible = visible.filter((coach) => coach.category === state.category && ["엠버서더", "최우수"].includes(coach.tier));
   const grouped = new Map();
   eligible.forEach((coach) => {
     const key = getCoachKey(coach);
@@ -1405,7 +1012,7 @@ function renderFeaturedCard(coach) {
 function getOriginalPrice(price) {
   const amount = Number(String(price || "").replace(/[^\d]/g, ""));
   if (!amount) return "";
-  return `${Math.round(amount * 1.7).toLocaleString("ko-KR")}??;
+  return `${Math.round(amount * 1.7).toLocaleString("ko-KR")}원`;
 }
 
 function renderCoachCard(coach) {
@@ -1433,20 +1040,20 @@ function renderCoachCard(coach) {
 }
 
 function getCoachBadges(coach) {
-  if (coach.tier === "?좊쾭?쒕뜑") return ["異붿쿇", "?좊쾭?쒕뜑"];
-  if (coach.tier === "理쒖슦??) return ["異붿쿇", "理쒖슦??];
-  if (coach.tier === "?곗닔") return ["異붿쿇", "?곗닔"];
+  if (coach.tier === "엠버서더") return ["추천", "엠버서더"];
+  if (coach.tier === "최우수") return ["추천", "최우수"];
+  if (coach.tier === "우수") return ["추천", "우수"];
   return coach.badges || [];
 }
 
 function renderBadge(label) {
-  const className = label === "異붿쿇" ? "badge recommend" : ["理쒖슦??, "?좊쾭?쒕뜑"].includes(label) ? "badge best" : "badge good";
+  const className = label === "추천" ? "badge recommend" : ["최우수", "엠버서더"].includes(label) ? "badge best" : "badge good";
   return `<span class="${className}">${label}</span>`;
 }
 
 function getTierClass(coach) {
-  if (["理쒖슦??, "?좊쾭?쒕뜑"].includes(coach.tier)) return "tier-best";
-  if (coach.tier === "?곗닔") return "tier-good";
+  if (["최우수", "엠버서더"].includes(coach.tier)) return "tier-best";
+  if (coach.tier === "우수") return "tier-good";
   return "tier-normal";
 }
 
@@ -1476,7 +1083,7 @@ function getPurposeLabels(value) {
   const labels = ids
     .map((id) => purposes.find((purpose) => purpose.id === String(id).trim())?.label || String(id).trim())
     .filter(Boolean);
-  return labels.length ? labels : ["遺꾨쪟 誘몄???];
+  return labels.length ? labels : ["분류 미지정"];
 }
 
 function renderDetail() {
@@ -1641,7 +1248,7 @@ function mountBookingForm(mountId, coach) {
     const submitButton = $("bookingSubmitBtn");
     const originalText = submitButton.textContent;
     submitButton.disabled = true;
-    submitButton.textContent = "?덉빟 ?꾩넚 以?;
+    submitButton.textContent = "예약 전송 중";
     const data = new FormData(event.target);
     const reservation = {
       coachId: coach.id,
@@ -1994,7 +1601,7 @@ function renderBookingDetail() {
         ${renderDetailItem("?섍컯??Riot ID", booking.studentName)}
         ${renderDetailItem("梨뷀뵾??諛?K/D/A", booking.coachPrice)}
         ${renderDetailItem("?꾩옱 ?곹깭", booking.status)}
-        ${renderDetailItem("Discord ?좎껌??, `${booking.feedback?.discord_display_name || "-"} (${booking.feedback?.discord_user_id || "-"})`)}
+        ${renderDetailItem("Discord 요청자", `${booking.feedback?.discord_display_name || "-"} (${booking.feedback?.discord_user_id || "-"})`)}
         ${renderDetailItem("?쒕쾭 / 梨꾨꼸", `${booking.feedback?.guild_name || "-"} / ${booking.feedback?.channel_name || "-"}`)}
         ${renderDetailLink("ROFL ?뚯씪", attachment.filename, attachment.url)}
         ${renderDetailItem("臾몄쓽?ы빆", booking.feedback?.inquiry || booking.memo, true)}
@@ -2008,11 +1615,11 @@ function renderBookingDetail() {
     <div class="booking-detail-grid">
       ${renderDetailItem("?덉빟 ID", booking.id)}
       ${renderDetailItem("?좎껌 ?쒓컙", booking.createdAtText)}
-      ${renderDetailItem("肄붿튂紐?, booking.coachName)}
-      ${renderDetailItem("?곹뭹 媛寃?, booking.coachPrice)}
+      ${renderDetailItem("코치명", booking.coachName)}
+      ${renderDetailItem("상품 가격", booking.coachPrice)}
       ${renderDetailItem("?묒닔 寃쎈줈", booking.source)}
       ${renderDetailItem("?섍컯??Riot ID", booking.studentName)}
-      ${renderDetailItem("?곕씫泥?, booking.contact)}
+      ${renderDetailItem("연락처", booking.contact)}
       ${renderDetailItem("?щ쭩 ?쒓컙", booking.preferredTime)}
       ${renderDetailItem("?꾩옱 ?곹깭", booking.status)}
       ${renderDetailItem("?붿껌?ы빆", booking.memo, true)}
@@ -2250,7 +1857,7 @@ function renderCoachSelfEditor() {
         <label><span>?⑥쐞</span><select id="coachSelfPriceUnit"></select></label>
         <input id="coachSelfPrice" type="hidden">
       </div>
-      ${["?좊쾭?쒕뜑", "理쒖슦??].includes(lesson.tier) ? `
+      ${["엠버서더", "최우수"].includes(lesson.tier) ? `
         <label class="toggle-line">
           <input id="coachSelfFeaturedAd" type="checkbox" ${lesson.featuredAd ? "checked" : ""}>
           <span>??媛뺤쓽瑜??곷떒 異붿쿇 愿묎퀬濡??몄텧</span>
@@ -2298,7 +1905,7 @@ function renderCoachSelfPriceUnitOptions(type, selected = "") {
 
 function updateCoachSelfPriceValue() {
   const amount = Number(String($("coachSelfPriceAmount")?.value || "").replace(/[^\d]/g, ""));
-  const amountText = amount ? `${amount.toLocaleString("ko-KR")}?? : "媛寃??곷떞";
+  const amountText = amount ? `${amount.toLocaleString("ko-KR")}원` : "가격 상담";
   if ($("coachSelfPrice")) $("coachSelfPrice").value = `${amountText} / ${$("coachSelfPriceUnit").value}`;
 }
 
@@ -2417,12 +2024,12 @@ function getCheckedValues(name) {
   return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map((input) => input.value);
 }
 
-function getTierFromBadges(badges, fallback = "?쇰컲") {
-  if (badges.includes("?좊쾭?쒕뜑")) return "?좊쾭?쒕뜑";
-  if (badges.includes("理쒖슦??)) return "理쒖슦??;
-  if (badges.includes("?곗닔")) return "?곗닔";
-  if (badges.includes("?쇰컲")) return "?쇰컲";
-  return fallback || "?쇰컲";
+function getTierFromBadges(badges, fallback = "일반") {
+  if (badges.includes("엠버서더")) return "엠버서더";
+  if (badges.includes("최우수")) return "최우수";
+  if (badges.includes("우수")) return "우수";
+  if (badges.includes("일반")) return "일반";
+  return fallback || "일반";
 }
 
 function setCoachSaveStatus(message = "", type = "") {
@@ -2450,7 +2057,7 @@ function setPriceFields(price) {
 
 function updateCoachPriceValue() {
   const amount = Number(String($("coachPriceAmount").value || "").replace(/[^\d]/g, ""));
-  const amountText = amount ? `${amount.toLocaleString("ko-KR")}?? : "媛寃??곷떞";
+  const amountText = amount ? `${amount.toLocaleString("ko-KR")}원` : "가격 상담";
   $("coachPrice").value = `${amountText} / ${$("coachPriceUnit").value}`;
 }
 
@@ -2533,7 +2140,7 @@ function openCropModal(target = null) {
   const image = state.cropSourceImage || $(state.cropTarget.inputId).value.trim();
   if (!image) return;
   $("cropImage").src = image;
-  $("cropTitle").textContent = `${state.cropTarget.label} 踰붿쐞 吏??;
+  $("cropTitle").textContent = `${state.cropTarget.label} 범위 지정`;
   $("cropModal").hidden = false;
   $("cropX").value = 50;
   $("cropY").value = 50;
