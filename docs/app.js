@@ -138,7 +138,7 @@ const text = {
 };
 
 const samples = [
-  { id: "coach-shineast", category: "league", name: "샤이니스트 코치", coachKey: "shineast", coachProfileName: "샤이니스트 코치", tier: "최우수", coachTier: "최우수", coachSummary: "프로팀 출신 · 모든 라인 피드백 · 팀게임 운영까지 가능", tagline: "프로팀식 운영, 라인전 교정, 팀게임 피드백까지 보는 고급 코칭", bio: "모든 라인과 팀게임을 프로팀 관점으로 점검합니다. 미니맵 시선, 턴 사용, 귀환 타이밍, 오더와 시야 컨트롤처럼 승패를 가르는 선택을 리플레이로 정리합니다.", purpose: ["team", "high"], roles: ["탑", "정글", "미드", "원딜", "서폿", "팀게임"], price: "100,000원 / 1시간", image: "assets/shineast.png", featuredImage: "assets/shineast2.png", detailImage: "assets/shineast2.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 5.0, lessons: 212, reviews: [["사이니스트", "복기하면서 제가 맵을 거의 안 보고 있었다는 걸 깨달았어요."], ["미드연습중", "라인을 밀어야 할 때와 받아야 할 때가 구분됐어요."]], badges: ["최우수", "추천"], featuredAd: true },
+  { id: "coach-shineast", category: "league", name: "샤이니스트 코치", coachKey: "shineast", coachProfileName: "샤이니스트 코치", tier: "최우수", coachTier: "최우수", coachSummary: "프로팀 출신 · 모든 라인 피드백 · 팀게임 운영까지 가능", tagline: "프로팀식 운영, 라인전 교정, 팀게임 피드백까지 보는 고급 코칭", bio: "모든 라인과 팀게임을 프로팀 관점으로 점검합니다. 미니맵 시선, 턴 사용, 귀환 타이밍, 오더와 시야 컨트롤처럼 승패를 가르는 선택을 리플레이로 정리합니다.", purpose: ["value", "team", "high", "mid"], roles: ["탑", "정글", "미드", "원딜", "서폿", "팀게임"], price: "100,000원 / 1시간", image: "assets/shineast.png", featuredImage: "assets/shineast2.png", detailImage: "assets/shineast2.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 5.0, lessons: 212, reviews: [["사이니스트", "복기하면서 제가 맵을 거의 안 보고 있었다는 걸 깨달았어요."], ["미드연습중", "라인을 밀어야 할 때와 받아야 할 때가 구분됐어요."]], badges: ["최우수", "추천"], featuredAd: true },
   { id: "coach-mireu", category: "league", name: "정미르 코치", coachKey: "mireu", coachProfileName: "정미르 코치", tier: "우수", coachTier: "우수", coachSummary: "우수 수강생 · 저티어 친화 · 정글/팀게임 피드백", tagline: "저티어와 일반 수강생에게 쉬운 정글 동선, 갱각, 오브젝트 판단 코칭", bio: "학교 강의 경험을 바탕으로 입문자와 저티어가 바로 적용할 수 있는 판단 기준을 쉽게 정리합니다. 정글 첫 동선, 갱각, 오브젝트 판단과 팀게임 피드백을 부담 없는 가격대로 진행합니다.", purpose: ["jungle", "low", "team", "value"], roles: ["정글", "저티어", "팀게임", "입문"], price: "35,000원 / 1시간", image: "assets/mireu.png", featuredImage: "assets/mireu2.png", detailImage: "assets/mireu2.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 4.6, lessons: 72, reviews: [["게스트", "이전 리플레이로 설명해주셔서 이해가 빨랐어요."], ["입문자", "연습 순서가 생겨서 좋았습니다."]], badges: ["우수", "입문 추천"] },
   { id: "coach-persona", category: "league", name: "페르소나 코치", coachKey: "persona", coachProfileName: "페르소나 코치", tier: "우수", coachTier: "우수", coachSummary: "탑 라이너 출신 · 이론 중심 · 고티어까지 가능", tagline: "탑 라인 매치업, 웨이브, 텔 타이밍을 이론 중심으로 정리하는 코칭", bio: "탑 라인에서 손해를 보는 구간을 매치업과 웨이브 기준으로 분석합니다. 라인전 이론, 텔레포트 타이밍, 사이드 운영처럼 탑 라이너에게 중요한 판단을 리플레이로 점검합니다.", purpose: ["top", "high", "value"], roles: ["탑", "라인전", "고티어", "이론"], price: "45,000원 / 1시간", image: "assets/persona2.png", featuredImage: "assets/persona.png", detailImage: "assets/persona.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 4.5, lessons: 41, reviews: [["게스트", "지게 보는 각도 고칠 게 명확했습니다."], ["초보탑", "뭘 몰라서 지는지 알게 됐어요."]], badges: ["우수"] },
   { id: "coach-mephi", category: "league", name: "메피 코치", coachKey: "mephi", coachProfileName: "메피 코치", tier: "엠버서더", coachTier: "엠버서더", coachSummary: "전프로 바텀 라이너 · 전 라인 피드백 · 팀게임 리뷰 가능", tagline: "바텀 라인전과 전 라인 리플레이를 전프로 관점으로 보는 코칭", bio: "시즌 5부터 현재까지 챌린저를 유지한 바텀 라이너 관점으로 라인전, 교전, 한타 포지션을 점검합니다. 전 라인 피드백과 팀게임 리뷰까지 가능하며, 운영과 시야 컨트롤도 함께 봅니다.", purpose: ["adc", "support", "team", "high"], roles: ["원딜", "서폿", "전 라인", "팀게임"], price: "70,000원 / 1시간", image: "assets/mephi.png", featuredImage: "assets/mephi2.png", detailImage: "assets/mephi2.png", imagePosition: "center center", featuredImagePosition: "center center", detailImagePosition: "center center", rating: 4.8, lessons: 103, reviews: [["리조또", "라인전 전에 계속 뭘 봐야 하는지 처음으로 이해됐어요."], ["봄", "상대 정글 위치를 근거로 플레이하는 법을 배웠습니다."]], badges: ["엠버서더", "추천"], featuredAd: true },
@@ -147,8 +147,9 @@ const samples = [
 const initialBookings = [];
 
 const imageMigration = {
-  "assets/logo.png": "assets/lollogo.png",
-  "assets/lol-logo.png": "assets/lollogo.png",
+  "assets/logo.png": "assets/logo.jpg",
+  "assets/lol-logo.png": "assets/logo.jpg",
+  "assets/lollogo.png": "assets/logo.jpg",
   "assets/NSshineast.jpg": "assets/shineast.png",
   "assets/mephicoach.png": "assets/mephi.png",
   "assets/mireucoach.png": "assets/mireu.png",
@@ -164,7 +165,7 @@ const leagueCoachProfiles = {
 };
 
 const leagueLessonOverrides = {
-  "coach-shineast": { coachKey: "shineast" },
+  "coach-shineast": { coachKey: "shineast", purpose: ["value", "team", "high", "mid"] },
   "coach-mireu": { coachKey: "mireu" },
   "coach-persona": { coachKey: "persona" },
   "coach-mephi": { coachKey: "mephi" },
@@ -203,7 +204,7 @@ function $(id) {
 function migrateCoachImages(coaches) {
   return normalizeCoachProfiles(coaches.map((coach) => ({
     ...coach,
-    image: imageMigration[coach.image] || coach.image || "assets/lollogo.png",
+    image: imageMigration[coach.image] || coach.image || "assets/logo.jpg",
     featuredImage: imageMigration[coach.featuredImage] || coach.featuredImage || "",
     detailImage: imageMigration[coach.detailImage] || coach.detailImage || "",
     bannerImage: imageMigration[coach.bannerImage] || coach.bannerImage || "",
@@ -241,7 +242,7 @@ function normalizeCoachProfiles(coaches) {
     const coachKey = override.coachKey || inferLeagueCoachKey(coach);
     const profile = leagueCoachProfiles[coachKey] || leagueCoachProfiles.shineast;
     const imagePath = imageMigration[coach.image] || coach.image || "";
-    const shouldUseProfileImage = !coach.manualCoachEdit || !imagePath || imagePath === "assets/lollogo.png" || imagePath === "assets/shineast.png";
+    const shouldUseProfileImage = !coach.manualCoachEdit || !imagePath || imagePath === "assets/logo.jpg" || imagePath === "assets/logo.png" || imagePath === "assets/lollogo.png" || imagePath === "assets/shineast.png";
     return {
       ...coach,
       ...lessonDefaults,
@@ -633,7 +634,7 @@ function getCoachIdentityFromGroup(coachKey, coaches) {
     tier: profile?.tier || first.coachTier || first.tier || "일반",
     tagline: profile?.tagline || first.coachSummary || first.tagline || "코칭 상품",
     roles: profile?.roles || first.roles || [],
-    image: profile?.image || first.image || "assets/lollogo.png",
+    image: profile?.image || first.image || "assets/logo.jpg",
     imagePosition: profile?.imagePosition || first.imagePosition || "center 8%",
     lessons: coaches.length,
     rating: coaches.reduce((sum, coach) => sum + Number(coach.rating || 0), 0) / Math.max(coaches.length, 1),
@@ -923,7 +924,7 @@ function renderMarket() {
 
   renderFeatured(visible);
   const featuredIds = new Set(
-    state.query ? [] : Array.from(document.querySelectorAll("#featuredList [data-coach-id]")).map((card) => card.dataset.coachId)
+    Array.from(document.querySelectorAll("#featuredList [data-coach-id]")).map((card) => card.dataset.coachId)
   );
   const listed = visible.filter((coach) => !featuredIds.has(coach.id));
   $("coachList").innerHTML = listed.length ? listed.map(renderCoachCard).join("") : `
@@ -952,7 +953,7 @@ function getActiveFilterSet() {
 function renderFeatured(visible) {
   const featured = getFeaturedCoachSlots(visible);
   const section = $("featuredSection");
-  if (!featured.length || state.query) {
+  if (!featured.length) {
     section.hidden = true;
     $("featuredList").innerHTML = "";
     return;
@@ -1067,11 +1068,11 @@ function getImageStyle(coach) {
 }
 
 function getFeaturedImage(coach) {
-  return coach.featuredImage || coach.bannerImage || coach.heroImage || coach.image || "assets/lollogo.png";
+  return coach.featuredImage || coach.bannerImage || coach.heroImage || coach.image || "assets/logo.jpg";
 }
 
 function getDetailImage(coach) {
-  return coach.detailImage || coach.bannerImage || coach.heroImage || coach.featuredImage || coach.image || "assets/lollogo.png";
+  return coach.detailImage || coach.bannerImage || coach.heroImage || coach.featuredImage || coach.image || "assets/logo.jpg";
 }
 
 function getWideImageStyle(coach, positionKey) {
@@ -1958,7 +1959,7 @@ function fillCoachForm(coach) {
   $("coachTagline").value = coach?.tagline || "";
   renderAdminChoiceControls(getCoachPurposes(coach), coach?.roles || [], coach?.badges || []);
   setPriceFields(coach?.price || "");
-  $("coachImage").value = coach?.image || "assets/lollogo.png";
+  $("coachImage").value = coach?.image || "assets/logo.jpg";
   $("coachFeaturedImage").value = coach?.featuredImage || coach?.bannerImage || "";
   $("coachDetailImage").value = coach?.detailImage || coach?.bannerImage || "";
   $("coachImagePosition").value = coach?.imagePosition || "center center";
@@ -2068,7 +2069,7 @@ function updateCoachPriceValue() {
 
 function updateCoachImagePreview() {
   const preview = $("coachImagePreview");
-  preview.style.backgroundImage = `url("${$("coachImage").value.trim() || "assets/lollogo.png"}")`;
+  preview.style.backgroundImage = `url("${$("coachImage").value.trim() || "assets/logo.jpg"}")`;
   preview.style.backgroundPosition = "center center";
   preview.style.backgroundSize = "cover";
 }
@@ -2274,7 +2275,7 @@ async function saveCoachFromForm() {
     purpose: selectedPurposes.length ? selectedPurposes : ["value"],
     roles: getCheckedValues("coachRoleChoice"),
     price: (updateCoachPriceValue(), $("coachPrice").value.trim() || "가격 상담"),
-    image: $("coachImage").value.trim() || "assets/lollogo.png",
+    image: $("coachImage").value.trim() || "assets/logo.jpg",
     featuredImage: $("coachFeaturedImage").value.trim(),
     featuredImagePosition: "center center",
     detailImage: $("coachDetailImage").value.trim(),
