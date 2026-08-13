@@ -4,7 +4,7 @@
   { id: "academy", label: "테스트" },
 ];
 
-const API_BASE_URL = "https://lucid-chzzk-auth.onrender.com";
+const API_BASE_URL = "https://lucid-chzzk-auth-yhfg.onrender.com";
 const ADMIN_TOKEN_KEY = "coach-admin-token";
 const THEME_KEY = "coach-theme";
 const EMAIL_MAX_LENGTH = 254;
