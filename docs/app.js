@@ -196,10 +196,12 @@ const state = {
   studentReservationLoadError: "",
   bookingFilterStatus: "all",
   bookingQuery: "",
+  bookingPendingStatuses: {},
   selectedBookingId: null,
   users: [],
   userLoadState: "idle",
   userLoadError: "",
+  userQuery: "",
   userSaveStates: {},
   coachRequests: [],
   coachRequestLoadState: "idle",
@@ -386,8 +388,8 @@ function bindEvents() {
     if (event.target.id === "lessonDetailModal") closeLessonDetail();
   });
   $("themeToggleBtn")?.addEventListener("click", toggleTheme);
-  $("loginOpenBtn")?.addEventListener("click", () => openAuthModal("login"));
-  $("discordConnectBtn")?.addEventListener("click", startDiscordOAuth);
+  $("loginOpenBtn")?.addEventListener("click", handleLoginButtonClick);
+  $("discordConnectBtn")?.addEventListener("click", handleDiscordButtonClick);
   $("guestBuyOpenBtn")?.addEventListener("click", () => {
     if (state.currentUser) logoutUser();
     else openAuthModal("guest");
@@ -468,6 +470,10 @@ function bindEvents() {
     state.bookingQuery = event.target.value.trim().toLowerCase();
     renderBookings();
   });
+  $("userSearchInput")?.addEventListener("input", (event) => {
+    state.userQuery = event.target.value.trim().toLowerCase();
+    renderUsers();
+  });
   $("reloadUsersBtn")?.addEventListener("click", () => loadUsers());
   $("coachApplyForm")?.addEventListener("submit", submitCoachApplication);
 }
@@ -503,11 +509,11 @@ function renderMetrics() {
 
 async function openAdminView(nextView) {
   if (!["bookings", "admin", "users", "coachSelf"].includes(nextView)) return;
-  const allowed = nextView === "coachSelf" && state.currentUser?.role === "coach"
+  const allowed = nextView === "coachSelf" && isCoachUser()
     ? true
     : await ensureAdminAccess();
   if (!allowed) return;
-  if (nextView === "coachSelf" && state.currentUser?.role !== "admin") {
+  if (nextView === "coachSelf" && !isAdminUser()) {
     state.coachSelfKey = getFallbackCoachKey();
   }
   state.activeView = nextView;
@@ -523,6 +529,23 @@ async function openAdminView(nextView) {
 
 function hasCoachMenuAccess() {
   return Boolean(state.currentUser);
+}
+
+function getUserRoles(user = state.currentUser) {
+  const roles = Array.isArray(user?.roles)
+    ? user.roles
+    : String(user?.roles || "").split(/[\s,]+/).filter(Boolean);
+  return new Set([...(user?.role ? [user.role] : []), ...roles.map((role) => String(role).toLowerCase())]);
+}
+
+function isAdminUser(user = state.currentUser) {
+  const roles = getUserRoles(user);
+  return Boolean(user?.isAdmin || user?.is_admin || roles.has("admin") || roles.has("관리자"));
+}
+
+function isCoachUser(user = state.currentUser) {
+  const roles = getUserRoles(user);
+  return Boolean(user?.isCoach || user?.is_coach || user?.coachKey || user?.coach_key || roles.has("coach") || roles.has("코치"));
 }
 
 function getFallbackCoachKey(user = state.currentUser) {
@@ -546,7 +569,7 @@ function getKnownCoachKeyForUser(user = state.currentUser) {
 }
 
 function hasCoachLikeAccount() {
-  return state.currentUser?.role === "admin" || state.currentUser?.role === "coach" || Boolean(getKnownCoachKeyForUser());
+  return isAdminUser() || isCoachUser() || Boolean(getKnownCoachKeyForUser());
 }
 
 function renderRoleMenu() {
@@ -562,10 +585,10 @@ function renderRoleMenu() {
   menu.innerHTML = `
     <span class="label">${canManageLessons ? "코치 메뉴" : "계정 메뉴"}</span>
     ${canManageLessons ? `<button class="role-menu-button ${state.activeView === "coachSelf" ? "active" : ""}" id="openCoachSelfMenuBtn" type="button">내 강의 관리</button>` : ""}
-    ${state.currentUser?.role === "student" ? `<button class="role-menu-button ${state.activeView === "coachApply" ? "active" : ""}" id="openCoachApplyMenuBtn" type="button">코치 등록 요청</button>` : ""}
+    ${!isAdminUser() && !isCoachUser() ? `<button class="role-menu-button ${state.activeView === "coachApply" ? "active" : ""}" id="openCoachApplyMenuBtn" type="button">코치 등록 요청</button>` : ""}
   `;
   $("openCoachSelfMenuBtn")?.addEventListener("click", () => {
-    if (state.currentUser?.role !== "admin") state.coachSelfKey = getFallbackCoachKey();
+    if (!isAdminUser()) state.coachSelfKey = getFallbackCoachKey();
     state.activeView = "coachSelf";
     render();
   });
@@ -582,27 +605,62 @@ function renderUserActions() {
   if (!loginButton || !guestButton) return;
   if (state.currentUser) {
     loginButton.textContent = state.currentUser.displayName || state.currentUser.email || "내 계정";
+    loginButton.title = "내 정보 열기";
+    loginButton.setAttribute("aria-label", "내 정보 열기");
     loginButton.classList.add("active-user");
     guestButton.textContent = "로그아웃";
     if (discordButton) {
       discordButton.hidden = false;
       const connected = Boolean(state.currentUser.discordConnected || state.currentUser.discord_connected || state.currentUser.discordDisplayName || state.currentUser.discord_display_name);
       discordButton.textContent = connected ? `Discord · ${state.currentUser.discordDisplayName || state.currentUser.discord_display_name || "연결됨"}` : "Discord 연결";
+      discordButton.title = connected ? "Discord 계정 연결됨 · 내 정보에서 확인" : "Discord 계정 연결";
+      discordButton.setAttribute("aria-label", discordButton.title);
       discordButton.classList.toggle("active-user", connected);
     }
   } else {
     loginButton.textContent = "로그인";
+    loginButton.title = "로그인";
+    loginButton.setAttribute("aria-label", "로그인");
     loginButton.classList.remove("active-user");
     guestButton.textContent = "비회원 상담";
     if (discordButton) {
       discordButton.hidden = false;
       discordButton.textContent = "Discord로 계속하기";
+      discordButton.title = "Discord로 계속하기";
+      discordButton.setAttribute("aria-label", "Discord로 계속하기");
       discordButton.classList.remove("active-user");
     }
   }
 }
 
+function handleLoginButtonClick() {
+  if (!state.currentUser) {
+    openAuthModal("login");
+    return;
+  }
+  state.activeView = "student";
+  render();
+}
+
+function handleDiscordButtonClick() {
+  if (!state.currentUser) {
+    openAuthModal("login");
+    return;
+  }
+  const connected = Boolean(state.currentUser.discordConnected || state.currentUser.discord_connected || state.currentUser.discordDisplayName || state.currentUser.discord_display_name);
+  if (connected) {
+    state.activeView = "student";
+    render();
+    return;
+  }
+  startDiscordOAuth();
+}
+
 function startDiscordOAuth() {
+  if (!state.currentUser) {
+    openAuthModal("login");
+    return;
+  }
   window.location.assign(`${API_BASE_URL.replace(/\/$/, "")}/api/auth/oauth/discord/start`);
 }
 
@@ -697,9 +755,9 @@ function renderAuthMarkup(mode) {
       <h2 id="authTitle">내 강의 이어보기</h2>
       <p>예약 내역과 후기 작성 가능 강의를 계정으로 이어서 확인합니다.</p>
       <div class="social-auth" aria-label="소셜 로그인">
-        <button class="google" type="button" data-oauth-provider="google"><img src="assets/google-logo.jpg" alt="">Google로 계속하기</button>
-        <button class="naver" type="button" data-oauth-provider="naver"><img src="assets/naver.jpg" alt="">네이버로 계속하기</button>
-        <button class="discord" type="button" data-oauth-provider="discord"><img src="assets/discord-login.png" alt="">Discord로 계속하기</button>
+        <button class="google" type="button" data-oauth-provider="google" aria-label="Google로 계속하기" title="Google로 계속하기"><img src="assets/google-logo.jpg" alt="Google"></button>
+        <button class="naver" type="button" data-oauth-provider="naver" aria-label="네이버로 계속하기" title="네이버로 계속하기"><img src="assets/naver.jpg" alt="네이버"></button>
+        <button class="discord" type="button" data-oauth-provider="discord" aria-label="Discord로 계속하기" title="Discord로 계속하기"><img src="assets/discord-login.png" alt="Discord"></button>
       </div>
       <label>이메일<input name="email" type="email" required maxlength="${EMAIL_MAX_LENGTH}" autocomplete="email" placeholder="example@email.com"></label>
       <label>비밀번호
@@ -757,7 +815,7 @@ function bindAuthForm(mode) {
       state.submittedReviewIds = [];
       closeAuthModal();
       render();
-      if (state.currentUser?.role === "coach") await loadCoachProfile();
+      if (isCoachUser()) await loadCoachProfile();
       await handlePaymentReturn();
     } catch (error) {
       if (status) status.textContent = getAuthErrorMessage(error.message);
@@ -804,7 +862,7 @@ function bindGuestConsultForm() {
 function renderStudentHome() {
   const container = $("studentViewContent");
   if (!container) return;
-  if (state.currentUser?.role === "coach") {
+  if (isCoachUser()) {
     renderCoachDashboard(container);
     return;
   }
@@ -1872,7 +1930,7 @@ async function loadCurrentUser() {
     state.submittedReviewIds = [];
     state.authLoadState = "loaded";
     render();
-    if (state.currentUser?.role === "coach") await loadCoachProfile();
+    if (isCoachUser()) await loadCoachProfile();
     await handlePaymentReturn();
   } catch {
     if (requestId !== state.authRequestId) return;
@@ -1942,6 +2000,7 @@ function getAuthErrorMessage(error) {
 }
 
 async function ensureAdminAccess() {
+  if (isAdminUser()) return true;
   if (sessionStorage.getItem(ADMIN_TOKEN_KEY)) return true;
   return loginForReservations();
 }
@@ -2022,12 +2081,12 @@ async function fetchMyRefundRequests() {
 }
 
 function maybeLoadStudentReservations() {
-  if (state.activeView !== "student" || !state.currentUser || state.currentUser.role === "coach" || state.studentReservationLoadState !== "idle") return;
+  if (state.activeView !== "student" || !state.currentUser || isCoachUser() || state.studentReservationLoadState !== "idle") return;
   loadStudentReservations();
 }
 
 async function loadStudentReservations() {
-  if (!state.currentUser || state.currentUser.role === "coach") return;
+  if (!state.currentUser || isCoachUser()) return;
   state.studentReservationLoadState = "loading";
   state.studentReservationLoadError = "";
   renderStudentHome();
@@ -2196,12 +2255,12 @@ function getPaymentErrorMessage(code) {
 }
 
 function maybeLoadCoachDashboardReservations() {
-  if (state.activeView !== "student" || state.currentUser?.role !== "coach" || state.coachDashboardLoadState !== "idle") return;
+  if (state.activeView !== "student" || !isCoachUser() || state.coachDashboardLoadState !== "idle") return;
   loadCoachReservations();
 }
 
 async function loadCoachReservations() {
-  if (state.currentUser?.role !== "coach") return;
+  if (!isCoachUser()) return;
   if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) {
     state.coachDashboardLoadState = "error";
     state.coachDashboardLoadError = "예약 API 주소가 아직 설정되지 않았습니다.";
@@ -2238,6 +2297,7 @@ async function loadReservations(options = {}) {
 
   try {
     state.bookings = await fetchReservations();
+    state.bookingPendingStatuses = {};
     state.bookingLoadState = "loaded";
     state.bookingLoadError = "";
     renderMetrics();
@@ -2480,7 +2540,7 @@ function applyCoachProfileToCatalog(profile) {
 }
 
 async function loadCoachProfile() {
-  if (!state.currentUser || state.currentUser.role !== "coach" || !API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) return;
+  if (!state.currentUser || !isCoachUser() || !API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) return;
   state.coachProfile = null;
   state.coachProfileLoadState = "loading";
   state.coachProfileLoadError = "";
@@ -2685,9 +2745,11 @@ async function updateUserRole(id, payload) {
 }
 
 async function saveUserRole(id) {
-  const role = findUserRoleSelect(id)?.value || "student";
-  const coachKey = role === "coach" ? (findUserCoachSelect(id)?.value || "") : "";
-  if (role === "coach" && !coachKey) {
+  const isCoach = document.querySelector(`[data-user-coach-role="${CSS.escape(id)}"]`)?.checked || false;
+  const isAdmin = document.querySelector(`[data-user-admin-role="${CSS.escape(id)}"]`)?.checked || false;
+  const role = isCoach ? "coach" : (isAdmin ? "admin" : "student");
+  const coachKey = isCoach ? (findUserCoachSelect(id)?.value || "") : "";
+  if (isCoach && !coachKey) {
     state.userSaveStates = { ...state.userSaveStates, [id]: "코치 선택 필요" };
     renderUsers();
     return;
@@ -2695,7 +2757,8 @@ async function saveUserRole(id) {
   state.userSaveStates = { ...state.userSaveStates, [id]: "저장 중..." };
   renderUsers();
   try {
-    const user = await runAdminRequest(() => updateUserRole(id, { role, coachKey }));
+    const roles = [...(isCoach ? ["coach"] : []), ...(isAdmin ? ["admin"] : [])];
+    const user = await runAdminRequest(() => updateUserRole(id, { role, roles, isCoach, isAdmin, coachKey }));
     state.users = state.users.map((item) => item.id === id ? user : item);
     state.userSaveStates = { ...state.userSaveStates, [id]: "저장 완료" };
     renderUsers();
@@ -2705,7 +2768,7 @@ async function saveUserRole(id) {
       renderRoleMenu();
     }
   } catch (error) {
-    state.userSaveStates = { ...state.userSaveStates, [id]: "저장 실패" };
+    state.userSaveStates = { ...state.userSaveStates, [id]: `저장 실패: ${error.message || "서버 오류"}` };
     renderUsers();
   }
 }
@@ -2849,6 +2912,7 @@ async function changeReservationStatus(id, status) {
   try {
     const updated = await updateReservationStatus(id, status);
     state.bookings = state.bookings.map((booking) => booking.id === id ? updated : booking);
+    delete state.bookingPendingStatuses[id];
     renderBookings();
   } catch (error) {
     state.bookings = previousBookings;
@@ -2857,15 +2921,21 @@ async function changeReservationStatus(id, status) {
       const loggedIn = await loginForReservations();
       if (loggedIn) return changeReservationStatus(id, status);
     }
-    alert(`예약 상태를 변경하지 못했습니다.\n${error.message}`);
+    alert(`예약 상태를 저장하지 못했습니다.\n${getReservationErrorMessage(error.message)}`);
   }
 }
 
-async function completeReservation(id) {
-  await changeReservationStatus(id, "완료");
-  if (state.bookingFilterStatus !== "all" && state.bookingFilterStatus !== "완료") {
-    renderBookings();
-  }
+function queueReservationStatus(id, status) {
+  const booking = state.bookings.find((item) => item.id === id);
+  if (!booking) return;
+  state.bookingPendingStatuses[id] = status === booking.status ? "" : status;
+  renderBookings();
+}
+
+async function saveReservationStatus(id) {
+  const status = state.bookingPendingStatuses[id];
+  if (!status) return;
+  await changeReservationStatus(id, status);
 }
 
 async function removeReservation(id) {
@@ -2877,8 +2947,20 @@ async function removeReservation(id) {
     renderMetrics();
     renderBookings();
   } catch (error) {
-    alert(`예약을 삭제하지 못했습니다.\n${error.message}`);
+    alert(`예약을 삭제하지 못했습니다.\n${getReservationErrorMessage(error.message)}`);
   }
+}
+
+function getReservationErrorMessage(error) {
+  const messages = {
+    payment_refund_required: "결제된 예약은 먼저 환불 처리해야 삭제할 수 있습니다.",
+    payment_history_retained: "결제 기록 보존 정책 때문에 이 예약은 삭제할 수 없습니다.",
+    payment_order_exists: "결제 주문 기록이 있어 삭제할 수 없습니다. 환불 또는 결제 기록 정리가 필요합니다.",
+    reservation_not_found: "예약이 이미 삭제됐거나 존재하지 않습니다.",
+    invalid_status: "선택할 수 없는 예약 상태입니다.",
+    unauthorized: "관리자 인증이 필요합니다.",
+  };
+  return messages[error] || error || "서버에서 요청을 거부했습니다.";
 }
 
 function getFilteredBookings() {
@@ -3045,11 +3127,14 @@ function renderBookings() {
     state.selectedBookingId = null;
   }
 
-  $("bookingRows").innerHTML = visibleBookings.length ? visibleBookings.map((booking) => `
+  $("bookingRows").innerHTML = visibleBookings.length ? visibleBookings.map((booking) => {
+    const pendingStatus = state.bookingPendingStatuses[booking.id] || booking.status;
+    const hasPendingStatus = Boolean(state.bookingPendingStatuses[booking.id]);
+    return `
     <tr class="booking-row" data-booking-id="${escapeHtml(booking.id)}">
       <td>
         <select class="status-select" data-booking-status="${escapeHtml(booking.id)}">
-          ${renderStatusOptions(booking.status)}
+          ${renderStatusOptions(pendingStatus)}
         </select>
       </td>
       <td>${escapeHtml(booking.student)}</td>
@@ -3059,12 +3144,13 @@ function renderBookings() {
       <td>${escapeHtml(booking.memo)}</td>
       <td>
         <div class="booking-actions">
-          <button type="button" class="mini primary-mini" data-booking-complete="${escapeHtml(booking.id)}">완료</button>
+          <button type="button" class="mini primary-mini" data-booking-save="${escapeHtml(booking.id)}" ${hasPendingStatus ? "" : "disabled"}>저장</button>
           <button type="button" class="mini danger-mini" data-booking-delete="${escapeHtml(booking.id)}">삭제</button>
         </div>
       </td>
     </tr>
-  `).join("") : `<tr><td colspan="7">예약이 없습니다.</td></tr>`;
+  `;
+  }).join("") : `<tr><td colspan="7">예약이 없습니다.</td></tr>`;
 
   document.querySelectorAll("[data-booking-id]").forEach((row) => {
     row.addEventListener("click", () => {
@@ -3075,13 +3161,13 @@ function renderBookings() {
   document.querySelectorAll("[data-booking-status]").forEach((select) => {
     select.addEventListener("click", (event) => event.stopPropagation());
     select.addEventListener("change", (event) => {
-      changeReservationStatus(select.dataset.bookingStatus, event.target.value);
+      queueReservationStatus(select.dataset.bookingStatus, event.target.value);
     });
   });
-  document.querySelectorAll("[data-booking-complete]").forEach((button) => {
+  document.querySelectorAll("[data-booking-save]").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
-      completeReservation(button.dataset.bookingComplete);
+      saveReservationStatus(button.dataset.bookingSave);
     });
   });
   document.querySelectorAll("[data-booking-delete]").forEach((button) => {
@@ -3142,19 +3228,24 @@ function renderUsers() {
     return;
   }
   const coachOptions = getCoachIdentities("league");
-  target.innerHTML = state.users.length ? state.users.map((user) => `
+  const query = state.userQuery;
+  const visibleUsers = state.users.filter((user) => !query || [user.displayName, user.email, user.coachKey, user.role, ...(user.roles || [])].join(" ").toLowerCase().includes(query));
+  target.innerHTML = visibleUsers.length ? visibleUsers.map((user) => {
+    const flags = getUserRoleFlags(user);
+    return `
     <tr>
       <td>${escapeHtml(user.displayName || "-")}</td>
       <td>${escapeHtml(user.email || "-")}</td>
       <td>
-        <select data-user-role="${escapeHtml(user.id)}">
-          ${["student", "coach", "admin"].map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${getRoleLabel(role)}</option>`).join("")}
-        </select>
-        <select data-user-coach="${escapeHtml(user.id)}" ${user.role === "coach" ? "" : "hidden"}>
+        <div class="user-role-checks">
+          <label><input type="checkbox" data-user-coach-role="${escapeHtml(user.id)}" ${flags.isCoach ? "checked" : ""}> 코치</label>
+          <label><input type="checkbox" data-user-admin-role="${escapeHtml(user.id)}" ${flags.isAdmin ? "checked" : ""}> 관리자</label>
+        </div>
+        <select data-user-coach="${escapeHtml(user.id)}" ${flags.isCoach ? "" : "hidden"}>
           <option value="">코치 선택</option>
           ${coachOptions.map((coach) => `<option value="${escapeHtml(coach.key)}" ${coach.key === user.coachKey ? "selected" : ""}>${escapeHtml(coach.name)}</option>`).join("")}
         </select>
-        ${user.role === "coach" ? `<small>${escapeHtml(getUserCoachLabel(user))}</small>` : ""}
+        ${flags.isCoach ? `<small>${escapeHtml(getUserCoachLabel(user))}</small>` : ""}
       </td>
       <td>
         <div class="inline-save">
@@ -3163,15 +3254,16 @@ function renderUsers() {
         </div>
       </td>
     </tr>
-  `).join("") : `<tr><td colspan="4">가입한 회원이 없습니다.</td></tr>`;
+  `;
+  }).join("") : `<tr><td colspan="4">${query ? "검색 결과가 없습니다." : "가입한 회원이 없습니다."}</td></tr>`;
 
   document.querySelectorAll("[data-user-save]").forEach((button) => {
     button.addEventListener("click", () => saveUserRole(button.dataset.userSave));
   });
-  document.querySelectorAll("[data-user-role]").forEach((select) => {
-    select.addEventListener("change", () => {
-      const coachSelect = findUserCoachSelect(select.dataset.userRole);
-      if (coachSelect) coachSelect.hidden = select.value !== "coach";
+  document.querySelectorAll("[data-user-coach-role]").forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      const coachSelect = findUserCoachSelect(checkbox.dataset.userCoachRole);
+      if (coachSelect) coachSelect.hidden = !checkbox.checked;
     });
   });
 }
@@ -3235,6 +3327,14 @@ function getUserCoachLabel(user) {
   return coach ? `${coach.name} 연결됨` : "코치 프로필 자동 생성 대상";
 }
 
+function getUserRoleFlags(user) {
+  const roles = Array.isArray(user?.roles) ? user.roles.map((role) => String(role).toLowerCase()) : [];
+  return {
+    isCoach: Boolean(user?.isCoach || user?.is_coach || user?.coachKey || user?.coach_key || user?.role === "coach" || roles.includes("coach") || roles.includes("코치")),
+    isAdmin: Boolean(user?.isAdmin || user?.is_admin || user?.role === "admin" || roles.includes("admin") || roles.includes("관리자")),
+  };
+}
+
 function getUserSaveClass(id) {
   const message = state.userSaveStates[id] || "";
   if (message.includes("완료")) return "success";
@@ -3247,16 +3347,12 @@ function getRoleLabel(role) {
   return { student: "수강생", coach: "코치", admin: "관리자" }[role] || role;
 }
 
-function findUserRoleSelect(id) {
-  return [...document.querySelectorAll("[data-user-role]")].find((select) => select.dataset.userRole === id);
-}
-
 function findUserCoachSelect(id) {
   return [...document.querySelectorAll("[data-user-coach]")].find((select) => select.dataset.userCoach === id);
 }
 
 function getCoachSelfLessons() {
-  const allowedKey = state.currentUser?.role !== "admin" ? getFallbackCoachKey() : state.coachSelfKey;
+  const allowedKey = !isAdminUser() ? getFallbackCoachKey() : state.coachSelfKey;
   return state.coaches.filter((coach) => coach.category === "league" && getCoachKey(coach) === allowedKey);
 }
 
@@ -3275,7 +3371,7 @@ function getCoachProfileFormValue(current) {
 function renderCoachSelfProfile(current) {
   const target = $("coachSelfProfile");
   if (!target) return;
-  if (state.currentUser?.role !== "coach") {
+  if (!isCoachUser()) {
     target.innerHTML = "";
     return;
   }
@@ -3330,13 +3426,13 @@ function renderCoachSelf() {
   if (!$("coachSelfTabs") || !$("coachSelfLessonGrid") || !$("coachSelfEditor")) return;
   const currentCoachKey = getFallbackCoachKey();
   const identities = getCoachIdentities("league", true).filter((coach) => (
-    state.currentUser?.role === "admin" || coach.key === currentCoachKey
+    isAdminUser() || coach.key === currentCoachKey
   ));
   if (!identities.some((coach) => coach.key === state.coachSelfKey)) {
     state.coachSelfKey = identities[0]?.key || currentCoachKey || "shineast";
   }
   const current = identities.find((coach) => coach.key === state.coachSelfKey);
-  const canSwitchCoach = state.currentUser?.role === "admin";
+  const canSwitchCoach = isAdminUser();
   $("coachSelfTabs").hidden = !canSwitchCoach;
   $("coachSelfTabs").innerHTML = canSwitchCoach ? identities.map((coach) => `
     <button class="coach-self-tab ${coach.key === state.coachSelfKey ? "active" : ""}" type="button" data-self-coach-key="${escapeHtml(coach.key)}">
@@ -3347,7 +3443,7 @@ function renderCoachSelf() {
   $("coachSelfHint").textContent = current ? `${current.tier} · ${current.lessons}개 강의` : "강의를 선택하면 오른쪽에서 수정할 수 있습니다.";
   renderCoachSelfProfile(current);
   renderCoachAvailabilityPanel();
-  if (state.currentUser?.role === "coach" && state.coachAvailabilityLoadState === "idle") loadCoachAvailability();
+  if (isCoachUser() && state.coachAvailabilityLoadState === "idle") loadCoachAvailability();
 
   const lessons = getCoachSelfLessons();
   if (state.coachSelfLessonId && !lessons.some((lesson) => lesson.id === state.coachSelfLessonId)) {
@@ -3442,7 +3538,7 @@ function renderCoachSelfEditor() {
       </fieldset>
       <label>상세 설명<textarea id="coachSelfBio" rows="7">${escapeHtml(lesson.bio || "")}</textarea></label>
       <div class="form-actions">
-        ${state.currentUser?.role === "admin" ? `<button type="button" class="secondary" id="coachSelfOpenFullEditBtn">전체 편집 화면에서 열기</button>` : ""}
+        ${isAdminUser() ? `<button type="button" class="secondary" id="coachSelfOpenFullEditBtn">전체 편집 화면에서 열기</button>` : ""}
         <span class="save-status" id="coachSelfSaveStatus" aria-live="polite"></span>
       </div>
     </form>
@@ -3480,7 +3576,7 @@ function normalizeCoachAvailability(slot) {
 }
 
 async function loadCoachAvailability() {
-  if (!state.currentUser || state.currentUser.role !== "coach") return;
+  if (!state.currentUser || !isCoachUser()) return;
   state.coachAvailabilityLoadState = "loading";
   state.coachAvailabilityLoadError = "";
   renderCoachAvailabilityPanel();
@@ -3501,7 +3597,7 @@ async function loadCoachAvailability() {
 
 function renderCoachAvailabilityPanel() {
   const target = $("coachAvailabilityPanel");
-  if (!target || state.currentUser?.role !== "coach") {
+  if (!target || !isCoachUser()) {
     if (target) target.innerHTML = "";
     return;
   }
@@ -3628,7 +3724,7 @@ async function saveCoachSelfLesson(event) {
   };
   const previousIndex = state.coaches.findIndex((coach) => coach.id === id);
   try {
-    const savedCoach = state.currentUser?.role === "admin"
+    const savedCoach = isAdminUser()
       ? await runAdminRequest(() => saveCoachToApi(next, previousIndex))
       : await saveCoachLessonToApi(next);
     state.coaches = state.coaches.map((coach) => coach.id === id ? migrateCoachImages([savedCoach])[0] : coach);
