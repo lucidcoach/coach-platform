@@ -26,6 +26,7 @@ body[data-theme="dark"] {
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body {
   margin: 0;
   background: var(--bg);
@@ -899,9 +900,9 @@ button {
   font-weight: 800;
 }
 .booking-note {
-  color: #175cd3;
-  background: #ffffff;
-  border: 1px solid #bfdbfe;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 13px;
@@ -1201,11 +1202,14 @@ button {
   display: grid;
   gap: 5px;
   padding: 10px;
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: #eff6ff;
+  background: var(--panel-2);
+  color: var(--text);
 }
 .availability-picker small { color: var(--muted); font-size: 12px; }
+.availability-picker select { background: var(--panel); color: var(--text); }
+.booking-validation-error { color: var(--danger) !important; font-weight: 800; }
 .booking-student-auto {
   padding: 10px;
   border: 1px solid var(--line);
@@ -1215,6 +1219,8 @@ button {
   font-size: 13px;
   font-weight: 800;
 }
+.user-coach-picker { display: grid; gap: 6px; margin-top: 8px; }
+.user-coach-picker .user-coach-search { width: min(100%, 320px); }
 .account-panel {
   display: grid;
   gap: 12px;
@@ -1936,7 +1942,7 @@ th {
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--panel-soft, #f7faf8);
+  background: var(--panel-2);
 }
 .coach-self-profile-head {
   display: flex;
@@ -1980,7 +1986,7 @@ th {
   padding: 10px;
   border-radius: 8px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--panel-2);
   color: var(--text);
   text-align: left;
 }
@@ -2031,6 +2037,45 @@ th {
   display: grid;
   gap: 12px;
 }
+
+.schedule-panel { gap: 12px; }
+.schedule-actions, .schedule-toolbar, .schedule-save-row, .schedule-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.schedule-actions { justify-content: flex-end; }
+.schedule-week-title { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 12px; }
+.schedule-week-title strong { color: var(--text); font-size: 13px; }
+.schedule-toolbar { justify-content: flex-start; color: var(--muted); font-size: 12px; }
+.schedule-mode { display: inline-flex; align-items: center; gap: 6px; color: var(--text); }
+.schedule-mode select { min-height: 34px; padding: 6px 8px; }
+.schedule-grid-wrap { max-height: 560px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.schedule-grid { min-width: 720px; display: grid; grid-template-columns: 58px repeat(7, minmax(72px, 1fr)); grid-auto-rows: 40px; }
+.schedule-corner, .schedule-day-head, .schedule-time-label { position: sticky; z-index: 2; display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--panel); color: var(--muted); font-size: 11px; }
+.schedule-corner, .schedule-day-head { top: 0; z-index: 3; font-weight: 900; }
+.schedule-corner { left: 0; }
+.schedule-day-head { flex-direction: column; gap: 2px; }
+.schedule-day-head small { color: var(--muted); font-weight: 500; }
+.schedule-time-label { left: 0; z-index: 2; background: var(--panel); }
+.schedule-cell { min-width: 0; padding: 3px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--panel-2); color: transparent; font-size: 10px; font-weight: 800; transition: background .12s, color .12s; }
+.schedule-cell:hover:not(:disabled) { outline: 2px solid var(--blue); outline-offset: -2px; }
+.schedule-cell.open { background: color-mix(in srgb, var(--brand) 22%, var(--panel-2)); color: var(--brand-dark); }
+.schedule-cell.closed { background: var(--panel-2); }
+.schedule-cell.booked { cursor: not-allowed; background: color-mix(in srgb, var(--muted) 40%, var(--panel-2)); color: var(--text); }
+.schedule-cell small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
+.schedule-legend { color: var(--muted); font-size: 11px; }
+.schedule-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.schedule-legend i { width: 12px; height: 12px; display: inline-block; border-radius: 3px; border: 1px solid var(--line); background: var(--panel-2); }
+.schedule-legend i.open { background: color-mix(in srgb, var(--brand) 22%, var(--panel-2)); }
+.schedule-legend i.booked { background: color-mix(in srgb, var(--muted) 40%, var(--panel-2)); }
+.schedule-save-row { justify-content: space-between; }
+.schedule-summary { margin-top: 14px; }
+.schedule-summary-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.schedule-summary-list span { padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); color: var(--muted); font-size: 12px; }
+.schedule-summary-list b { margin-right: 5px; color: var(--text); }
+.schedule-summary-empty { margin: 0; color: var(--muted); font-size: 13px; }
 .coach-self-editor-head {
   display: flex;
   justify-content: space-between;
@@ -2692,6 +2737,8 @@ body[data-theme="dark"] .explorer-coach-body small {
   .coach-explorer-dialog { max-height: 90vh; }
   .availability-form { grid-template-columns: 1fr; }
   .account-form { grid-template-columns: 1fr; align-items: stretch; }
+  .schedule-week-title { align-items: flex-start; flex-direction: column; }
+  .schedule-actions { justify-content: flex-start; }
 }
 
 @media (max-width: 640px) {

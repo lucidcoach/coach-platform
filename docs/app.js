@@ -93,7 +93,7 @@ const text = {
   navAdmin: "코치 관리",
   navUsers: "회원 관리",
   sideLabel: "예약 안내",
-  sideCopy: "코치 목록에서 원하는 상품을 고르면 상세 정보와 예약 신청을 바로 확인할 수 있습니다.",
+  sideCopy: "코치 목록에서 원하는 상품을 고르면 상세 정보와 강의 구매를 바로 진행할 수 있습니다.",
   heroEyebrow: "LoL 리플레이 분석 · 라인전 교정 · 팀 피드백",
   heroTitle: "LoL 코칭 플랫폼",
   metricCoachesLabel: "강의",
@@ -129,11 +129,10 @@ const text = {
   saveCoachBtn: "저장",
   newCoachBtn: "새 강의",
   deleteCoachBtn: "삭제",
-  bookingStudentLabel: "수강생 이름",
   bookingContactLabel: "Riot ID / Discord",
   bookingTimeLabel: "희망 시간",
   bookingMemoLabel: "요청사항",
-  bookingSubmitBtn: "구매 요청",
+  bookingSubmitBtn: "강의 구매",
   featuredTitle: "추천 코칭 상품",
   featuredHint: "후기와 재예약률이 좋은 강의",
   expertTitle: "코칭 상품 찾기",
@@ -220,6 +219,13 @@ const state = {
   coachAvailability: [],
   coachAvailabilityLoadState: "idle",
   coachAvailabilityLoadError: "",
+  coachSchedule: { weekly: [], overrides: [], slots: [] },
+  coachScheduleLoadState: "idle",
+  coachScheduleLoadError: "",
+  coachScheduleWeekStart: "",
+  coachScheduleDraft: null,
+  coachScheduleShowAllHours: false,
+  coachScheduleEditMode: "weekly",
   refundRequests: [],
   adminRefundRequests: [],
   refundAdminLoadState: "idle",
@@ -623,7 +629,7 @@ function renderUserActions() {
     loginButton.title = "로그인";
     loginButton.setAttribute("aria-label", "로그인");
     loginButton.classList.remove("active-user");
-    guestButton.textContent = "비회원 상담";
+    guestButton.textContent = "비회원 강의 구매";
     if (discordButton) {
       discordButton.hidden = false;
       discordButton.textContent = "Discord로 계속하기";
@@ -737,15 +743,15 @@ function renderAuthMarkup(mode) {
     const selected = state.coaches.find((coach) => coach.id === state.selectedCoachId);
     return `
       <form class="auth-content" id="guestConsultForm">
-        <span class="eyebrow">비회원 상담</span>
-        <h2 id="authTitle">계정 없이 문의하기</h2>
-        <p>로그인 없이 Riot ID와 연락처를 남기면 운영진이 확인 후 상담을 이어갑니다.</p>
+        <span class="eyebrow">비회원 강의 구매</span>
+        <h2 id="authTitle">비회원으로 강의 구매</h2>
+        <p>로그인 없이 Riot ID와 연락처를 남기면 운영진이 확인 후 구매 일정을 안내합니다.</p>
         ${selected ? `<div class="guest-selected"><span>선택 강의</span><strong>${escapeHtml(selected.name)}</strong><em>${escapeHtml(selected.price)}</em></div>` : ""}
         <label>Riot 닉네임#태그<input name="riotId" required placeholder="Riot 닉네임#태그"></label>
         <label>연락처<input name="contact" required placeholder="디스코드 또는 이메일"></label>
         <label>받고싶은 피드백 라인 및 포인트<textarea name="feedbackPoint" required rows="4" placeholder="예: 탑 라인, 가렌 1/5/10 게임 라인전이 잘 안풀려서 피드백 받고 싶습니다."></textarea></label>
         <label>강의 방식<textarea name="lessonStyle" required rows="3" placeholder="예: 주2회 한달 강의 희망합니다."></textarea></label>
-        <button class="primary" type="submit">비회원 상담 문의</button>
+        <button class="primary" type="submit">비회원 강의 구매</button>
         <span class="auth-status" id="guestConsultStatus" aria-live="polite"></span>
       </form>
     `;
@@ -851,7 +857,7 @@ function bindGuestConsultForm() {
       });
       form.reset();
       closeAuthModal();
-      alert("비회원 상담 문의가 접수되었습니다. 운영진이 연락드릴게요.");
+       alert("비회원 강의 구매 문의가 접수되었습니다. 운영진이 연락드릴게요.");
     } catch (error) {
       if (status) status.textContent = error.message || "문의를 접수하지 못했습니다.";
     } finally {
@@ -882,6 +888,7 @@ function renderAccountPanelMarkup() {
         <button class="danger" type="button" id="accountDeleteBtn">회원탈퇴</button>
       </div>
     </section>
+    ${isCoachUser() ? renderScheduleSummaryMarkup() : ""}
   `;
 }
 
@@ -959,6 +966,7 @@ function renderStudentHome() {
   if (isCoachUser()) {
     renderCoachDashboard(container);
     mountAccountPanel(container);
+    if (state.coachScheduleLoadState === "idle") loadCoachSchedule();
     return;
   }
   setStudentHeader(false);
@@ -1699,7 +1707,7 @@ function renderDetail() {
     $("coachDetail").innerHTML = `
       <div class="detail-empty">
         <strong>상품을 선택하면 미리보기가 표시됩니다.</strong>
-        <span>상세보기에서 설명, 후기, 예약 신청을 한 번에 확인할 수 있습니다.</span>
+        <span>상세보기에서 설명, 후기, 강의 구매를 한 번에 확인할 수 있습니다.</span>
       </div>
     `;
     return;
@@ -1734,10 +1742,6 @@ function openLessonDetail(coachId) {
   state.selectedCoachId = coach.id;
   $("lessonDetailBody").innerHTML = renderLessonDetailMarkup(coach);
   mountBookingForm("lessonBookingMount", coach);
-  $("lessonDetailBody").querySelector("[data-purchase-route]")?.addEventListener("click", () => {
-    $("bookingForm")?.scrollIntoView({ behavior: "smooth", block: "center" });
-    $("bookingForm")?.elements?.student?.focus();
-  });
   loadPublicAvailability(coach.id);
   loadCoachReviews(coach.id);
   modal.hidden = false;
@@ -1786,7 +1790,9 @@ async function loadPublicAvailability(coachId) {
   if (!key || state.availabilityLoadStates[key] === "loading") return;
   state.availabilityLoadStates[key] = "loading";
   try {
-    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches/${encodeURIComponent(key)}/availability`, { credentials: "include" });
+    const fromDate = new Date();
+    const range = new URLSearchParams({ from: isoDateOnly(fromDate), to: isoDateOnly(addLocalDays(fromDate, 30)) });
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches/${encodeURIComponent(key)}/availability?${range.toString()}`, { credentials: "include" });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
     const raw = result.availability || result.slots || result.items || [];
@@ -1802,12 +1808,14 @@ async function loadPublicAvailability(coachId) {
 function renderAvailabilityPicker(coach) {
   const picker = $("bookingAvailabilityPicker");
   const select = $("bookingAvailabilitySlot");
+  const error = $("bookingAvailabilityError");
   const timeInput = $("bookingForm")?.elements?.time;
   const timeField = $("bookingTimeField");
   if (!picker || !select || !coach) return;
   const slots = state.availabilityByCoach[String(coach.id)] || [];
   if (!slots.length) {
     picker.hidden = true;
+    if (error) error.hidden = true;
     if (timeField) timeField.hidden = false;
     select.required = false;
     if (timeInput) {
@@ -1818,6 +1826,7 @@ function renderAvailabilityPicker(coach) {
     return;
   }
   picker.hidden = false;
+  if (error) error.hidden = true;
   if (timeField) timeField.hidden = true;
   select.required = true;
   select.innerHTML = `<option value="">가능한 시간을 선택하세요</option>${slots.map((slot) => `<option value="${escapeHtml(slot.id)}" data-time="${escapeHtml(slot.label)}">${escapeHtml(slot.label)}</option>`).join("")}`;
@@ -1918,12 +1927,12 @@ function renderLessonDetailMarkup(coach) {
         <div class="booking-note">
           디스코드 화면공유 또는 리플레이 리뷰로 진행됩니다.
         </div>
-        <div class="booking-route">
-           ${state.currentUser
-             ? `<button class="primary" type="button" data-purchase-route>구매 정보 입력</button>`
-             : `<button class="primary" type="button" onclick="openAuthModal('guest')">비회원 구매 문의</button>
-                <button class="secondary" type="button" onclick="openAuthModal('login')">로그인</button>`}
-        </div>
+        ${state.currentUser ? "" : `
+          <div class="booking-route">
+            <button class="primary" type="button" onclick="openAuthModal('login')">강의 구매</button>
+            <button class="secondary" type="button" onclick="openAuthModal('guest')">비회원 강의 구매</button>
+          </div>
+        `}
         <div id="lessonBookingMount"></div>
       </section>
     </div>
@@ -1935,32 +1944,29 @@ function mountBookingForm(mountId, coach) {
   if (!mount) return;
   const form = $("bookingFormTemplate").content.cloneNode(true);
   mount.appendChild(form);
-  $("bookingStudentLabel").textContent = text.bookingStudentLabel;
   $("bookingContactLabel").textContent = text.bookingContactLabel;
   $("bookingTimeLabel").textContent = text.bookingTimeLabel;
   $("bookingMemoLabel").textContent = text.bookingMemoLabel;
   $("bookingSubmitBtn").textContent = text.bookingSubmitBtn;
-  $("bookingForm").student.placeholder = "예: 닉네임#KR1";
   $("bookingForm").contact.placeholder = "예: Discord ID";
   $("bookingForm").time.placeholder = "예: 8/10 21:00";
   $("bookingForm").memo.placeholder = "라인, 챔피언, 고민을 적어주세요.";
-  const studentField = $("bookingStudentField");
   const studentAuto = $("bookingStudentAuto");
   if (state.currentUser) {
     const displayName = state.currentUser.displayName || state.currentUser.nickname || state.currentUser.email || "수강생";
     $("bookingForm").student.value = displayName;
-    $("bookingForm").student.required = false;
-    if (studentField) studentField.hidden = true;
     if (studentAuto) {
       studentAuto.hidden = false;
       studentAuto.textContent = `수강생 닉네임 · ${displayName}`;
     }
     $("bookingForm").contact.value = state.currentUser.email || "";
-  } else {
-    if (studentField) studentField.hidden = false;
-    if (studentAuto) studentAuto.hidden = true;
   }
   renderAvailabilityPicker(coach);
+  $("bookingForm").noValidate = true;
+  $("bookingAvailabilitySlot")?.addEventListener("change", () => {
+    const error = $("bookingAvailabilityError");
+    if (error) error.hidden = Boolean($("bookingAvailabilitySlot").value);
+  });
   $("bookingForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!state.currentUser) {
@@ -1971,6 +1977,17 @@ function mountBookingForm(mountId, coach) {
       alert("구매 전에 내 정보에서 닉네임을 설정해주세요.");
       state.activeView = "student";
       render();
+      return;
+    }
+    const availabilitySlot = $("bookingAvailabilitySlot");
+    if (availabilitySlot?.required && !availabilitySlot.value) {
+      const error = $("bookingAvailabilityError");
+      if (error) error.hidden = false;
+      availabilitySlot.focus();
+      return;
+    }
+    if (!event.target.checkValidity()) {
+      event.target.reportValidity();
       return;
     }
     const submitButton = $("bookingSubmitBtn");
@@ -1999,7 +2016,7 @@ function mountBookingForm(mountId, coach) {
       if (!savedReservation.id) throw new Error("생성된 구매 정보를 확인하지 못했습니다.");
       await startTossPayment(savedReservation.id, submitButton);
     } catch (error) {
-      alert(`예약 신청을 저장하지 못했습니다.\n${error.message}`);
+      alert(`강의 구매를 저장하지 못했습니다.\n${error.message}`);
     } finally {
       submitButton.disabled = false;
       submitButton.textContent = originalText;
@@ -2035,9 +2052,9 @@ async function submitGuestConsultation({ selectedCoach, riotId, contact, feedbac
   }
   return submitReservation({
     coachId: selectedCoach?.id || "guest-consultation",
-    coachName: selectedCoach ? `${selectedCoach.name} 상담 문의` : "비회원 상담 문의",
+    coachName: selectedCoach ? `${selectedCoach.name} 강의 구매` : "비회원 강의 구매",
     coachCategory: selectedCoach?.category || "league",
-    coachPrice: selectedCoach?.price || "상담 문의",
+    coachPrice: selectedCoach?.price || "가격 상담",
     student: cleanRiotId,
     contact: cleanContact,
     time: cleanLessonStyle,
@@ -2069,6 +2086,10 @@ async function loadCurrentUser() {
     if (requestId !== state.authRequestId) return;
     state.currentUser = response.ok && result.ok ? result.user : null;
     if (state.currentUser?.coachKey) state.coachSelfKey = state.currentUser.coachKey;
+    state.coachSchedule = { weekly: [], overrides: [], slots: [] };
+    state.coachScheduleDraft = null;
+    state.coachScheduleLoadState = "idle";
+    state.coachScheduleLoadError = "";
     state.coachDashboardLoadState = "idle";
     state.coachDashboardLoadError = "";
     state.studentReservationLoadState = "idle";
@@ -2130,6 +2151,10 @@ async function logoutUser() {
     state.coachProfile = null;
     state.coachProfileLoadState = "idle";
     state.coachProfileLoadError = "";
+    state.coachSchedule = { weekly: [], overrides: [], slots: [] };
+    state.coachScheduleDraft = null;
+    state.coachScheduleLoadState = "idle";
+    state.coachScheduleLoadError = "";
     render();
   }
 }
@@ -3165,7 +3190,7 @@ function renderBookingDetail() {
     const selected = booking.feedback?.selected_lesson || {};
     panel.hidden = false;
     panel.innerHTML = `
-      <h3>비회원 상담 문의</h3>
+      <h3>비회원 강의 구매 문의</h3>
       <div class="booking-detail-grid">
         ${renderDetailItem("접수 시간", booking.createdAtText)}
         ${renderDetailItem("Riot 닉네임#태그", booking.studentName)}
@@ -3390,10 +3415,8 @@ function renderUsers() {
   const visibleUsers = state.users.filter((user) => !query || [user.displayName, user.email, user.coachKey, user.role, user.discordDisplayName, ...(user.roles || [])].join(" ").toLowerCase().includes(query));
   target.innerHTML = visibleUsers.length ? visibleUsers.map((user) => {
     const flags = getUserRoleFlags(user);
-    const coachQuery = String(state.userCoachQueries[user.id] || "").trim().toLowerCase();
-    const matchingCoachOptions = flags.isCoach ? coachOptions.filter((coach) => (
-      coachQuery ? `${coach.name} ${coach.key}`.toLowerCase().includes(coachQuery) || coach.key === user.coachKey : coach.key === user.coachKey
-    )) : [];
+    const selectedCoach = coachOptions.find((coach) => coach.key === user.coachKey);
+    const coachQuery = String(state.userCoachQueries[user.id] || selectedCoach?.name || "").trim();
     return `
     <tr>
       <td>${escapeHtml(user.displayName || "-")}</td>
@@ -3403,11 +3426,14 @@ function renderUsers() {
           <label><input type="checkbox" data-user-coach-role="${escapeHtml(user.id)}" ${flags.isCoach ? "checked" : ""}> 코치</label>
           <label><input type="checkbox" data-user-admin-role="${escapeHtml(user.id)}" ${flags.isAdmin ? "checked" : ""}> 관리자</label>
         </div>
-        ${flags.isCoach ? `<input class="user-coach-search" type="search" data-user-coach-search="${escapeHtml(user.id)}" value="${escapeHtml(state.userCoachQueries[user.id] || "")}" placeholder="코치명 검색" aria-label="코치명 검색">` : ""}
-        <select data-user-coach="${escapeHtml(user.id)}" ${flags.isCoach ? "" : "hidden"}>
-          <option value="">${coachQuery ? "코치 선택" : "코치명을 검색하세요"}</option>
-          ${matchingCoachOptions.map((coach) => `<option value="${escapeHtml(coach.key)}" ${coach.key === user.coachKey ? "selected" : ""}>${escapeHtml(coach.name)}</option>`).join("")}
-        </select>
+        <div class="user-coach-picker" data-user-coach-picker="${escapeHtml(user.id)}" ${flags.isCoach ? "" : "hidden"}>
+          <input class="user-coach-search" type="search" data-user-coach-search="${escapeHtml(user.id)}" value="${escapeHtml(coachQuery)}" placeholder="코치 선택 또는 검색" aria-label="코치 선택 또는 검색" list="coach-options-${escapeHtml(user.id)}">
+          <datalist id="coach-options-${escapeHtml(user.id)}">${coachOptions.map((coach) => `<option value="${escapeHtml(coach.name)}"></option><option value="${escapeHtml(coach.key)}"></option>`).join("")}</datalist>
+          <select data-user-coach="${escapeHtml(user.id)}" hidden>
+            <option value="">코치 선택</option>
+            ${coachOptions.map((coach) => `<option value="${escapeHtml(coach.key)}" ${coach.key === user.coachKey ? "selected" : ""}>${escapeHtml(coach.name)}</option>`).join("")}
+          </select>
+        </div>
         ${flags.isCoach ? `<small>${escapeHtml(getUserCoachLabel(user))}</small>` : ""}
       </td>
       <td>
@@ -3429,36 +3455,18 @@ function renderUsers() {
   });
   document.querySelectorAll("[data-user-coach-role]").forEach((checkbox) => {
     checkbox.addEventListener("change", () => {
-      const coachSelect = findUserCoachSelect(checkbox.dataset.userCoachRole);
-      if (!coachSelect) return;
-      coachSelect.hidden = !checkbox.checked;
-      if (coachSelect.previousElementSibling?.matches("[data-user-coach-search]")) {
-        coachSelect.previousElementSibling.hidden = !checkbox.checked;
-      }
-      if (checkbox.checked && !coachSelect.previousElementSibling?.matches("[data-user-coach-search]")) {
-        coachSelect.insertAdjacentHTML("beforebegin", `<input class="user-coach-search" type="search" data-user-coach-search="${escapeHtml(checkbox.dataset.userCoachRole)}" placeholder="코치명 검색" aria-label="코치명 검색">`);
-        const searchInput = coachSelect.previousElementSibling;
-        searchInput.addEventListener("input", () => {
-          state.userCoachQueries[checkbox.dataset.userCoachRole] = searchInput.value;
-          const coachQuery = searchInput.value.trim().toLowerCase();
-          const options = coachOptions.filter((coach) => coachQuery ? `${coach.name} ${coach.key}`.toLowerCase().includes(coachQuery) : coach.key === user.coachKey);
-          coachSelect.innerHTML = `<option value="">${coachQuery ? "코치 선택" : "코치명을 검색하세요"}</option>${options.map((coach) => `<option value="${escapeHtml(coach.key)}">${escapeHtml(coach.name)}</option>`).join("")}`;
-        });
-      }
+      const picker = document.querySelector(`[data-user-coach-picker="${CSS.escape(checkbox.dataset.userCoachRole)}"]`);
+      if (picker) picker.hidden = !checkbox.checked;
     });
   });
   document.querySelectorAll("[data-user-coach-search]").forEach((input) => {
     input.addEventListener("input", () => {
       const userId = input.dataset.userCoachSearch;
       state.userCoachQueries[userId] = input.value;
-      const user = state.users.find((item) => String(item.id) === String(userId));
       const select = findUserCoachSelect(userId);
-      if (!select || !user) return;
       const coachQuery = input.value.trim().toLowerCase();
-      const matchingCoachOptions = coachOptions.filter((coach) => (
-        !coachQuery || `${coach.name} ${coach.key}`.toLowerCase().includes(coachQuery) || coach.key === user.coachKey
-      ));
-      select.innerHTML = `<option value="">${coachQuery ? "코치 선택" : "코치명을 검색하세요"}</option>${matchingCoachOptions.map((coach) => `<option value="${escapeHtml(coach.key)}" ${coach.key === user.coachKey ? "selected" : ""}>${escapeHtml(coach.name)}</option>`).join("")}`;
+      const selected = coachOptions.find((coach) => coach.name.toLowerCase() === coachQuery || coach.key.toLowerCase() === coachQuery);
+      if (select) select.value = selected?.key || "";
     });
   });
 }
@@ -3638,7 +3646,7 @@ function renderCoachSelf() {
   $("coachSelfHint").textContent = current ? `${current.tier} · ${current.lessons}개 강의` : "강의를 선택하면 오른쪽에서 수정할 수 있습니다.";
   renderCoachSelfProfile(current);
   renderCoachAvailabilityPanel();
-  if (isCoachUser() && state.coachAvailabilityLoadState === "idle") loadCoachAvailability();
+  if (isCoachUser() && state.coachScheduleLoadState === "idle") loadCoachSchedule();
 
   const lessons = getCoachSelfLessons();
   if (state.coachSelfLessonId && !lessons.some((lesson) => lesson.id === state.coachSelfLessonId)) {
@@ -3767,27 +3775,199 @@ function updateCoachSelfPriceValue() {
 
 function normalizeCoachAvailability(slot) {
   const normalized = normalizeAvailabilitySlot(slot);
-  return { ...normalized, coachId: slot.coachId || slot.coach_id || "" };
+  return {
+    ...normalized,
+    coachId: slot.coachId || slot.coach_id || "",
+    lessonName: slot.lessonName || slot.lesson_name || slot.lesson || slot.bookingLesson || "",
+    reservationId: slot.reservationId || slot.reservation_id || "",
+  };
 }
 
-async function loadCoachAvailability() {
+function localDateOnly(value) {
+  const date = value instanceof Date ? new Date(value) : new Date(`${String(value || "").slice(0, 10)}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+}
+
+function isoDateOnly(value) {
+  const date = localDateOnly(value);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function addLocalDays(value, count) {
+  const date = localDateOnly(value);
+  date.setDate(date.getDate() + count);
+  return date;
+}
+
+function getIsoWeekday(value) {
+  const day = localDateOnly(value).getDay();
+  return day === 0 ? 7 : day;
+}
+
+function getCoachScheduleWeekStart() {
+  const current = state.coachScheduleWeekStart ? localDateOnly(state.coachScheduleWeekStart) : new Date();
+  const monday = addLocalDays(current, -(getIsoWeekday(current) - 1));
+  monday.setHours(0, 0, 0, 0);
+  state.coachScheduleWeekStart = isoDateOnly(monday);
+  return monday;
+}
+
+function scheduleResultPayload(result) {
+  const source = result?.schedule && typeof result.schedule === "object" ? result.schedule : result || {};
+  const weekly = Array.isArray(source.weekly) ? source.weekly : [];
+  const overrides = Array.isArray(source.overrides) ? source.overrides : [];
+  const rawSlots = source.slots || source.availability || source.items || [];
+  return {
+    weekly: weekly.map((item) => ({
+      weekday: Math.min(7, Math.max(1, Number(item.weekday ?? item.day ?? 1))),
+      startMinute: Number(item.startMinute ?? item.start_minute ?? item.start ?? 0),
+      endMinute: Number(item.endMinute ?? item.end_minute ?? item.end ?? 0),
+      enabled: item.enabled !== false && item.available !== false,
+    })).filter((item) => item.endMinute > item.startMinute),
+    overrides: overrides.map((item) => ({
+      date: String(item.date || item.scheduleDate || item.schedule_date || "").slice(0, 10),
+      startMinute: item.startMinute == null && item.start_minute == null ? null : Number(item.startMinute ?? item.start_minute),
+      endMinute: item.endMinute == null && item.end_minute == null ? null : Number(item.endMinute ?? item.end_minute),
+      enabled: item.enabled !== false && item.available !== false,
+    })).filter((item) => item.date),
+    slots: Array.isArray(rawSlots) ? rawSlots.map(normalizeCoachAvailability).filter((slot) => slot.id || slot.startsAt) : [],
+  };
+}
+
+function scheduleSlotDate(slot) {
+  const raw = String(slot.startsAt || slot.start || slot.date || "");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? raw.slice(0, 10) : isoDateOnly(date);
+}
+
+function scheduleSlotMinute(slot) {
+  const raw = slot.startsAt || slot.start || "";
+  const date = new Date(raw);
+  if (!Number.isNaN(date.getTime())) return date.getHours() * 60 + date.getMinutes();
+  const match = String(raw).match(/(?:T|\s)(\d{1,2}):(\d{2})/);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : -1;
+}
+
+function scheduleSlotLabel(slot) {
+  return slot.lessonName || slot.lesson || slot.bookingLesson || slot.title || slot.label || "예약된 강의";
+}
+
+function getScheduleCell(schedule, date, minute) {
+  const dateKey = isoDateOnly(date);
+  const slot = (schedule.slots || []).find((item) => {
+    const start = scheduleSlotMinute(item);
+    const endDate = new Date(item.endsAt || item.end || "");
+    const end = Number.isNaN(endDate.getTime()) ? start + 60 : endDate.getHours() * 60 + endDate.getMinutes();
+    return scheduleSlotDate(item) === dateKey && start >= 0 && minute >= start && minute < end;
+  });
+  if (slot) {
+    const booked = String(slot.status || "open") !== "open" || Boolean(slot.lessonName || slot.reservationId);
+    return { open: !booked, booked, slot };
+  }
+  const override = (schedule.overrides || []).find((item) => item.date === dateKey && (item.startMinute == null || (minute >= item.startMinute && minute < item.endMinute)));
+  if (override) return { open: Boolean(override.enabled), booked: false, override };
+  const weekday = getIsoWeekday(date);
+  const weekly = (schedule.weekly || []).some((item) => item.enabled !== false && item.weekday === weekday && minute >= item.startMinute && minute < item.endMinute);
+  return { open: weekly, booked: false };
+}
+
+function buildScheduleDraft(schedule) {
+  const draft = {};
+  for (let weekday = 1; weekday <= 7; weekday += 1) {
+    for (let minute = 0; minute < 1440; minute += 60) {
+      const date = addLocalDays(getCoachScheduleWeekStart(), weekday - 1);
+      draft[`${weekday}:${minute}`] = getScheduleCell(schedule, date, minute).open;
+    }
+  }
+  return draft;
+}
+
+function buildScheduleBaseDraft(schedule) {
+  const draft = {};
+  for (let weekday = 1; weekday <= 7; weekday += 1) {
+    for (let minute = 0; minute < 1440; minute += 60) {
+      const date = addLocalDays(getCoachScheduleWeekStart(), weekday - 1);
+      const weekly = (schedule.weekly || []).some((item) => item.enabled !== false && item.weekday === weekday && minute >= item.startMinute && minute < item.endMinute);
+      draft[`${weekday}:${minute}`] = weekly;
+    }
+  }
+  return draft;
+}
+
+function buildScheduleOverridesFromDraft() {
+  const weekStart = getCoachScheduleWeekStart();
+  const base = buildScheduleBaseDraft(state.coachSchedule || { weekly: [] });
+  const preserved = (state.coachSchedule?.overrides || []).filter((item) => {
+    const date = localDateOnly(item.date);
+    return date < weekStart || date > addLocalDays(weekStart, 6);
+  });
+  const current = [];
+  for (let weekday = 1; weekday <= 7; weekday += 1) {
+    for (let minute = 0; minute < 1440; minute += 60) {
+      const key = `${weekday}:${minute}`;
+      if (Boolean(state.coachScheduleDraft?.[key]) === Boolean(base[key])) continue;
+      current.push({ date: isoDateOnly(addLocalDays(weekStart, weekday - 1)), startMinute: minute, endMinute: minute + 60, enabled: Boolean(state.coachScheduleDraft?.[key]) });
+    }
+  }
+  return [...preserved, ...current];
+}
+
+function buildWeeklyEntriesFromDraft() {
+  const entries = [];
+  for (let weekday = 1; weekday <= 7; weekday += 1) {
+    let start = null;
+    for (let minute = 0; minute <= 1440; minute += 60) {
+      const enabled = minute < 1440 && Boolean(state.coachScheduleDraft?.[`${weekday}:${minute}`]);
+      if (enabled && start == null) start = minute;
+      if ((!enabled || minute === 1440) && start != null) {
+        entries.push({ weekday, startMinute: start, endMinute: minute, enabled: true });
+        start = null;
+      }
+    }
+  }
+  return entries;
+}
+
+async function loadCoachSchedule() {
   if (!state.currentUser || !isCoachUser()) return;
-  state.coachAvailabilityLoadState = "loading";
-  state.coachAvailabilityLoadError = "";
+  const weekStart = getCoachScheduleWeekStart();
+  const from = isoDateOnly(weekStart);
+  const to = isoDateOnly(addLocalDays(weekStart, 6));
+  state.coachScheduleLoadState = "loading";
+  state.coachScheduleLoadError = "";
   renderCoachAvailabilityPanel();
   try {
-    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/availability`, { credentials: "include" });
+    const coachId = getFallbackCoachKey();
+    const query = new URLSearchParams({ coachId, from, to });
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/schedule?${query.toString()}`, { credentials: "include" });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
-    const raw = result.availability || result.slots || result.items || [];
-    state.coachAvailability = Array.isArray(raw) ? raw.map(normalizeCoachAvailability).filter((slot) => slot.id) : [];
-    state.coachAvailabilityLoadState = "loaded";
+    state.coachSchedule = scheduleResultPayload(result);
+    state.coachAvailability = state.coachSchedule.slots;
+    state.coachScheduleDraft = state.coachScheduleEditMode === "week"
+      ? buildScheduleDraft(state.coachSchedule)
+      : buildScheduleDraft({ ...state.coachSchedule, overrides: [] });
+    state.coachScheduleLoadState = "loaded";
   } catch (error) {
-    state.coachAvailability = [];
-    state.coachAvailabilityLoadState = "error";
-    state.coachAvailabilityLoadError = error.message || "가능 시간을 불러오지 못했습니다.";
+    state.coachScheduleLoadState = "error";
+    state.coachScheduleLoadError = error.message || "주간 가능 시간을 불러오지 못했습니다.";
+    state.coachScheduleDraft = buildScheduleDraft({ weekly: [], overrides: [], slots: [] });
   }
   renderCoachAvailabilityPanel();
+  if (state.activeView === "student") renderStudentHome();
+}
+
+function renderScheduleSummaryMarkup() {
+  const weekly = state.coachSchedule?.weekly || [];
+  if (!weekly.length) return `<section class="student-panel schedule-summary"><div class="student-panel-head"><span>주간 일정</span><strong>예약 가능 시간</strong></div><p class="schedule-summary-empty">등록된 반복 일정이 없습니다. 내 강의 관리에서 시간을 설정해주세요.</p></section>`;
+  const labels = ["월", "화", "수", "목", "금", "토", "일"];
+  const chunks = labels.map((label, index) => {
+    const entries = weekly.filter((item) => item.weekday === index + 1).sort((a, b) => a.startMinute - b.startMinute);
+    if (!entries.length) return "";
+    return `<span><b>${label}</b> ${entries.map((item) => `${String(Math.floor(item.startMinute / 60)).padStart(2, "0")}~${String(Math.floor(item.endMinute / 60) % 24).padStart(2, "0")}`).join(", ")}</span>`;
+  }).filter(Boolean).join("");
+  return `<section class="student-panel schedule-summary"><div class="student-panel-head"><span>주간 일정</span><strong>예약 가능 시간</strong></div><div class="schedule-summary-list">${chunks}</div></section>`;
 }
 
 function renderCoachAvailabilityPanel() {
@@ -3796,68 +3976,105 @@ function renderCoachAvailabilityPanel() {
     if (target) target.innerHTML = "";
     return;
   }
-  if (state.coachAvailabilityLoadState === "loading") {
-    target.innerHTML = `<section class="availability-panel"><strong>가능한 시간 불러오는 중...</strong></section>`;
+  if (state.coachScheduleLoadState === "loading") {
+    target.innerHTML = `<section class="availability-panel"><strong>주간 시간표를 불러오는 중...</strong></section>`;
     return;
   }
-  const slots = state.coachAvailability || [];
+  const weekStart = getCoachScheduleWeekStart();
+  const from = isoDateOnly(weekStart);
+  const to = isoDateOnly(addLocalDays(weekStart, 6));
+  const firstHour = state.coachScheduleShowAllHours ? 0 : 6;
+  const lastHour = 24;
+  const weekdays = [1, 2, 3, 4, 5, 6, 7];
+  const weekdayLabels = ["월", "화", "수", "목", "금", "토", "일"];
+  const cells = [];
+  for (let hour = firstHour; hour < lastHour; hour += 1) {
+    cells.push(`<div class="schedule-time-label">${String(hour).padStart(2, "0")}:00</div>`);
+    weekdays.forEach((weekday) => {
+      const date = addLocalDays(weekStart, weekday - 1);
+      const minute = hour * 60;
+      const cell = getScheduleCell(state.coachSchedule, date, minute);
+      const key = `${weekday}:${minute}`;
+      const open = state.coachScheduleDraft?.[key] ?? cell.open;
+      const disabled = cell.booked;
+      cells.push(`<button type="button" class="schedule-cell ${open ? "open" : "closed"} ${disabled ? "booked" : ""}" data-schedule-cell="${key}" ${disabled ? "disabled" : ""} title="${disabled ? escapeHtml(scheduleSlotLabel(cell.slot)) : (open ? "예약 가능 · 클릭하여 닫기" : "예약 불가 · 클릭하여 열기")}">${disabled ? `<small>${escapeHtml(scheduleSlotLabel(cell.slot))}</small>` : (open ? "가능" : "")}</button>`);
+    });
+  }
   target.innerHTML = `
-    <section class="availability-panel">
-      <div class="availability-head"><div><span>예약 일정</span><strong>가능한 시간 등록</strong></div><button type="button" class="secondary" id="reloadCoachAvailabilityBtn">새로고침</button></div>
-      <form class="availability-form" id="coachAvailabilityForm">
-        <label>시작<input id="availabilityStartsAt" type="datetime-local" required></label>
-        <label>종료<input id="availabilityEndsAt" type="datetime-local" required></label>
-        <button class="primary" type="submit">시간 추가</button>
-      </form>
-      ${state.coachAvailabilityLoadState === "error" ? `<small class="save-status error">${escapeHtml(state.coachAvailabilityLoadError)}</small>` : ""}
-      <div class="availability-list">${slots.length ? slots.map((slot) => `<div class="availability-item"><span>${escapeHtml(slot.label)}${slot.status !== "open" ? ` · ${escapeHtml(slot.status)}` : ""}</span>${slot.status === "open" ? `<button type="button" class="danger mini" data-delete-availability="${escapeHtml(slot.id)}">삭제</button>` : "<small>예약됨</small>"}</div>`).join("") : `<small class="availability-empty">등록된 시간이 없습니다.</small>`}</div>
+    <section class="availability-panel schedule-panel">
+      <div class="availability-head"><div><span>예약 일정</span><strong>주간 시간표</strong></div><div class="schedule-actions"><button type="button" class="secondary mini" id="schedulePrevWeekBtn">이전 주</button><button type="button" class="secondary mini" id="scheduleTodayBtn">이번 주</button><button type="button" class="secondary mini" id="scheduleNextWeekBtn">다음 주</button></div></div>
+      <div class="schedule-week-title"><strong>${from} ~ ${to}</strong><span>${state.coachScheduleEditMode === "week" ? "이 주에만 적용됩니다." : "다음 주에도 같은 시간으로 반복됩니다."} 예약된 칸은 수정할 수 없습니다.</span></div>
+      ${state.coachScheduleLoadState === "error" ? `<small class="save-status error">${escapeHtml(state.coachScheduleLoadError)}</small>` : ""}
+      <div class="schedule-toolbar"><label class="schedule-mode">편집 범위<select id="scheduleEditMode"><option value="weekly" ${state.coachScheduleEditMode === "weekly" ? "selected" : ""}>매주 반복 기본값</option><option value="week" ${state.coachScheduleEditMode === "week" ? "selected" : ""}>이 주만 변경</option></select></label><button type="button" class="secondary mini" id="scheduleHourToggleBtn">${state.coachScheduleShowAllHours ? "06시 이후만 보기" : "전체 24시간 보기"}</button><span>기본 화면은 06:00~24:00이며 내부에서만 스크롤됩니다.</span></div>
+      <div class="schedule-grid-wrap"><div class="schedule-grid" style="--schedule-days: 7"><div class="schedule-corner">시간</div>${weekdayLabels.map((label, index) => `<div class="schedule-day-head">${label}<small>${isoDateOnly(addLocalDays(weekStart, index)).slice(5)}</small></div>`).join("")}${cells.join("")}</div></div>
+      <div class="schedule-legend"><span><i class="open"></i>가능</span><span><i class="closed"></i>불가능</span><span><i class="booked"></i>예약됨</span></div>
+      <div class="schedule-save-row"><span class="save-status" id="coachScheduleStatus" aria-live="polite"></span><button type="button" class="primary" id="saveCoachScheduleBtn">주간 일정 저장</button></div>
     </section>
   `;
-  $("reloadCoachAvailabilityBtn")?.addEventListener("click", loadCoachAvailability);
-  $("coachAvailabilityForm")?.addEventListener("submit", addCoachAvailability);
-  document.querySelectorAll("[data-delete-availability]").forEach((button) => button.addEventListener("click", () => deleteCoachAvailability(button.dataset.deleteAvailability)));
+  document.querySelectorAll("[data-schedule-cell]").forEach((button) => button.addEventListener("click", () => {
+    const key = button.dataset.scheduleCell;
+    if (!state.coachScheduleDraft) state.coachScheduleDraft = buildScheduleDraft(state.coachSchedule);
+    state.coachScheduleDraft[key] = !state.coachScheduleDraft[key];
+    renderCoachAvailabilityPanel();
+  }));
+  $("schedulePrevWeekBtn")?.addEventListener("click", () => changeCoachScheduleWeek(-7));
+  $("scheduleNextWeekBtn")?.addEventListener("click", () => changeCoachScheduleWeek(7));
+  $("scheduleTodayBtn")?.addEventListener("click", () => { state.coachScheduleWeekStart = ""; state.coachScheduleLoadState = "idle"; loadCoachSchedule(); });
+  $("scheduleEditMode")?.addEventListener("change", (event) => {
+    state.coachScheduleEditMode = event.target.value === "week" ? "week" : "weekly";
+    state.coachScheduleDraft = state.coachScheduleEditMode === "week" ? buildScheduleDraft(state.coachSchedule) : buildScheduleDraft({ ...state.coachSchedule, overrides: [] });
+    renderCoachAvailabilityPanel();
+  });
+  $("scheduleHourToggleBtn")?.addEventListener("click", () => { state.coachScheduleShowAllHours = !state.coachScheduleShowAllHours; renderCoachAvailabilityPanel(); });
+  $("saveCoachScheduleBtn")?.addEventListener("click", saveCoachSchedule);
 }
 
-async function addCoachAvailability(event) {
-  event.preventDefault();
-  const startsAt = $("availabilityStartsAt")?.value;
-  const endsAt = $("availabilityEndsAt")?.value;
-  if (!startsAt || !endsAt || new Date(endsAt) <= new Date(startsAt)) {
-    alert("시작·종료 시간을 올바르게 입력해주세요.");
-    return;
-  }
-  const button = event.target.querySelector("button[type='submit']");
+function changeCoachScheduleWeek(days) {
+  state.coachScheduleWeekStart = isoDateOnly(addLocalDays(getCoachScheduleWeekStart(), days));
+  state.coachScheduleLoadState = "idle";
+  state.coachScheduleDraft = null;
+  loadCoachSchedule();
+}
+
+async function saveCoachSchedule() {
+  const button = $("saveCoachScheduleBtn");
+  const status = $("coachScheduleStatus");
+  const weekStart = getCoachScheduleWeekStart();
+  const from = isoDateOnly(weekStart);
+  const to = isoDateOnly(addLocalDays(weekStart, 6));
   if (button) button.disabled = true;
+  if (status) { status.textContent = "저장 중..."; status.className = "save-status loading"; }
   try {
-    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/availability`, {
-      method: "POST",
+    const coachId = getFallbackCoachKey();
+    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/schedule?${new URLSearchParams({ coachId, from, to }).toString()}`, {
+      method: "PUT",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString() }),
+      body: JSON.stringify({
+        coachId,
+        from,
+        to,
+        weekly: state.coachScheduleEditMode === "weekly" ? buildWeeklyEntriesFromDraft() : (state.coachSchedule.weekly || []),
+        overrides: state.coachScheduleEditMode === "week" ? buildScheduleOverridesFromDraft() : (state.coachSchedule.overrides || []),
+      }),
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
-    state.coachAvailabilityLoadState = "idle";
-    await loadCoachAvailability();
+    state.coachSchedule = scheduleResultPayload(result);
+    state.coachScheduleDraft = buildScheduleDraft(state.coachSchedule);
+    state.coachScheduleLoadState = "loaded";
+    if (status) { status.textContent = "저장 완료 · 매주 반복됩니다."; status.className = "save-status success"; }
+    renderCoachAvailabilityPanel();
+    if (state.activeView === "student") renderStudentHome();
   } catch (error) {
-    alert(`가능 시간을 추가하지 못했습니다.\n${error.message}`);
+    if (status) { status.textContent = `저장 실패: ${error.message || "서버 오류"}`; status.className = "save-status error"; }
   } finally {
     if (button) button.disabled = false;
   }
 }
 
-async function deleteCoachAvailability(slotId) {
-  if (!slotId || !window.confirm("이 가능 시간을 삭제할까요?")) return;
-  try {
-    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/availability/${encodeURIComponent(slotId)}`, { method: "DELETE", credentials: "include" });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
-    state.coachAvailability = state.coachAvailability.filter((slot) => slot.id !== slotId);
-    renderCoachAvailabilityPanel();
-  } catch (error) {
-    alert(`가능 시간을 삭제하지 못했습니다.\n${error.message}`);
-  }
-}
+// Kept as a compatibility alias for older callers.
+const loadCoachAvailability = loadCoachSchedule;
 
 async function saveCoachSelfProfile(event) {
   event.preventDefault();
