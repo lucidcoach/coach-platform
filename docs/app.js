@@ -2816,6 +2816,15 @@ async function createCoachLessonApi(name) {
   return result.coach;
 }
 
+async function deleteCoachLessonApi(id) {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/lessons/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+}
+
 async function saveCoachToApi(coach, sortOrder) {
   const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches/${encodeURIComponent(coach.id)}`, {
     method: "PATCH",
@@ -3755,7 +3764,7 @@ function renderCoachSelfEditor(lessons = getCoachSelfLessons()) {
         <span>이 강의를 홈페이지에 공개합니다</span>
       </label>
       <label>강의명<input id="coachSelfLessonName" required value="${escapeHtml(lesson.name)}"></label>
-      <label>한 줄 소개<input id="coachSelfTagline" required value="${escapeHtml(lesson.tagline || "")}"></label>
+      <label>한 줄 소개<input id="coachSelfTagline" ${lesson.published !== false ? "required" : ""} value="${escapeHtml(lesson.tagline || "")}"></label>
       <div class="price-builder">
         <label><span>가격</span><input id="coachSelfPriceAmount" inputmode="numeric" value="${escapeHtml(amount)}"></label>
         <label><span>기준</span>
@@ -3767,12 +3776,6 @@ function renderCoachSelfEditor(lessons = getCoachSelfLessons()) {
         <label><span>단위</span><select id="coachSelfPriceUnit"></select></label>
         <input id="coachSelfPrice" type="hidden">
       </div>
-      ${["엠버서더", "최우수"].includes(lesson.tier) ? `
-        <label class="toggle-line">
-          <input id="coachSelfFeaturedAd" type="checkbox" ${lesson.featuredAd ? "checked" : ""}>
-          <span>이 강의를 상단 추천 광고로 노출</span>
-        </label>
-      ` : ""}
       <fieldset class="choice-field">
         <legend>분류</legend>
         <div class="choice-grid">
@@ -3787,6 +3790,7 @@ function renderCoachSelfEditor(lessons = getCoachSelfLessons()) {
       </fieldset>
       <label>상세 설명<textarea id="coachSelfBio" rows="7">${escapeHtml(lesson.bio || "")}</textarea></label>
       <div class="form-actions">
+        ${!isAdminUser() ? `<button type="button" class="danger" id="coachSelfDeleteLessonBtn">강의 삭제</button>` : ""}
         ${isAdminUser() ? `<button type="button" class="secondary" id="coachSelfOpenFullEditBtn">전체 편집 화면에서 열기</button>` : ""}
         <span class="save-status" id="coachSelfSaveStatus" aria-live="polite"></span>
       </div>
@@ -3796,6 +3800,7 @@ function renderCoachSelfEditor(lessons = getCoachSelfLessons()) {
   updateWideImagePreview("coachSelfLessonImage", "coachSelfLessonImagePreview");
   $("coachSelfLessonImageFile").addEventListener("change", (event) => handleCoachSelfProfileImageFile(event, "coachSelfLessonImage", "coachSelfLessonImagePreview", "강의 이미지"));
   $("openCoachSelfLessonCropBtn").addEventListener("click", () => openCropModal({ inputId: "coachSelfLessonImage", previewId: "coachSelfLessonImagePreview", width: 520, height: 520, label: "강의 이미지" }));
+  $("coachSelfLessonPublished").addEventListener("change", (event) => { $("coachSelfTagline").required = event.target.checked; });
   renderCoachSelfPriceUnitOptions(unitType, unit);
   updateCoachSelfPriceValue();
   $("coachSelfPriceUnitType").addEventListener("change", () => {
@@ -3805,6 +3810,20 @@ function renderCoachSelfEditor(lessons = getCoachSelfLessons()) {
   $("coachSelfPriceAmount").addEventListener("input", updateCoachSelfPriceValue);
   $("coachSelfPriceUnit").addEventListener("change", updateCoachSelfPriceValue);
   $("coachSelfForm").addEventListener("submit", saveCoachSelfLesson);
+  $("coachSelfDeleteLessonBtn")?.addEventListener("click", async (event) => {
+    if (!confirm(`'${lesson.name}' 강의를 삭제할까요?`)) return;
+    event.currentTarget.disabled = true;
+    try {
+      await deleteCoachLessonApi(lesson.id);
+      state.coachSelfLessons = (state.coachSelfLessons || []).filter((item) => item.id !== lesson.id);
+      state.coachSelfLessonId = null;
+      await loadCoachesFromApi();
+      renderCoachSelf();
+    } catch (error) {
+      alert(`강의를 삭제하지 못했습니다.\n${error.message}`);
+      event.currentTarget.disabled = false;
+    }
+  });
   $("coachSelfOpenFullEditBtn")?.addEventListener("click", () => {
     state.activeView = "admin";
     render();
@@ -4204,8 +4223,6 @@ async function saveCoachSelfLesson(event) {
     image: $("coachSelfLessonImage").value.trim(),
     published: Boolean($("coachSelfLessonPublished").checked),
     price: (updateCoachSelfPriceValue(), $("coachSelfPrice").value.trim() || "가격 상담"),
-    featuredAd: Boolean($("coachSelfFeaturedAd")?.checked),
-    featuredAdUpdatedAt: $("coachSelfFeaturedAd")?.checked ? new Date().toISOString() : "",
     purpose: getCheckedValues("coachSelfPurposeChoice"),
     roles: getCheckedValues("coachSelfRoleChoice"),
     bio: $("coachSelfBio").value.trim(),
