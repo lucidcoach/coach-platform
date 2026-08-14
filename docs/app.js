@@ -486,6 +486,7 @@ function bindEvents() {
 }
 
 function render() {
+  if (["bookings", "admin", "users"].includes(state.activeView) && !isAdminUser()) state.activeView = "market";
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.classList.toggle("active", button.dataset.view === state.activeView);
   });
@@ -609,6 +610,11 @@ function renderUserActions() {
   const loginButton = $("loginOpenBtn");
   const guestButton = $("guestBuyOpenBtn");
   const discordButton = $("discordConnectBtn");
+  const adminMenu = document.querySelector(".admin-menu");
+  if (adminMenu) {
+    adminMenu.hidden = !isAdminUser();
+    if (adminMenu.hidden) adminMenu.removeAttribute("open");
+  }
   if (!loginButton || !guestButton) return;
   if (state.currentUser) {
     loginButton.textContent = state.currentUser.displayName || state.currentUser.email || "내 계정";
@@ -3737,7 +3743,10 @@ function renderCoachSelfEditor(lessons = getCoachSelfLessons()) {
           <span>${escapeHtml(lesson.coachProfileName || "코치")}</span>
           <h3>${escapeHtml(lesson.name)}</h3>
         </div>
-        <button type="submit" class="primary" id="coachSelfSaveBtn">저장</button>
+        <div class="coach-self-editor-actions">
+          <span class="save-status" id="coachSelfSaveStatus" aria-live="polite"></span>
+          <button type="submit" class="primary" id="coachSelfSaveBtn">저장</button>
+        </div>
       </div>
       <div class="coach-self-lesson-image">
         <div class="image-preview-frame" id="coachSelfLessonImagePreview"><span class="image-preview-empty">선택된 이미지 없음</span></div>
@@ -3780,7 +3789,6 @@ function renderCoachSelfEditor(lessons = getCoachSelfLessons()) {
       <div class="form-actions">
         ${!isAdminUser() ? `<button type="button" class="danger" id="coachSelfDeleteLessonBtn">강의 삭제</button>` : ""}
         ${isAdminUser() ? `<button type="button" class="secondary" id="coachSelfOpenFullEditBtn">전체 편집 화면에서 열기</button>` : ""}
-        <span class="save-status" id="coachSelfSaveStatus" aria-live="polite"></span>
       </div>
     </form>
   `;

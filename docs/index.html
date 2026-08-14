@@ -20,6 +20,7 @@
         <button class="nav-item" data-action="coachSearch" id="navCoachSearch" type="button">맞춤 강의 검색</button>
         <button class="nav-item" data-view="student" id="navStudent"></button>
       </nav>
+      <section class="side-role-menu" id="sideRoleMenu" hidden></section>
       <section class="side-coaches" aria-label="코치 목록">
         <span class="label">코치 목록</span>
         <div id="sideCoachList"></div>
@@ -28,7 +29,6 @@
         <span class="label" id="sideLabel"></span>
         <p id="sideCopy"></p>
       </div>
-      <section class="side-role-menu" id="sideRoleMenu" hidden></section>
     </aside>
 
     <main class="main">
@@ -44,12 +44,11 @@
             <button class="secondary user-action" id="discordConnectBtn" type="button" hidden>Discord 연결</button>
             <button class="theme-toggle" id="themeToggleBtn" type="button" aria-pressed="false">다크모드</button>
           </div>
-          <details class="admin-menu">
+          <details class="admin-menu" hidden>
             <summary>관리</summary>
             <div>
               <button type="button" data-admin-view="bookings" id="navBookings"></button>
               <button type="button" data-admin-view="admin" id="navAdmin"></button>
-              <button type="button" data-admin-view="coachSelf" id="navCoachSelfAdmin">내 강의 관리</button>
               <button type="button" data-admin-view="users" id="navUsers">회원 관리</button>
             </div>
           </details>

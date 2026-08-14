@@ -103,9 +103,7 @@ button {
 .side-role-menu {
   display: grid;
   gap: 8px;
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  margin-top: 4px;
 }
 .role-menu-button {
   width: 100%;
@@ -2163,6 +2161,7 @@ body[data-theme="dark"] .toggle-line input { color-scheme: dark; }
   align-items: flex-start;
   gap: 12px;
 }
+.coach-self-editor-actions { display: flex; align-items: center; gap: 8px; }
 .coach-self-editor-head span {
   color: var(--muted);
   font-size: 12px;
