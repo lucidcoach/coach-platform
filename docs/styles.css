@@ -1220,7 +1220,7 @@ button {
   font-weight: 800;
 }
 .user-coach-picker { display: grid; gap: 6px; margin-top: 8px; }
-.user-coach-picker .user-coach-search { width: min(100%, 320px); }
+.user-coach-picker select { width: min(100%, 240px); }
 .account-panel {
   display: grid;
   gap: 12px;
@@ -1435,13 +1435,6 @@ textarea { resize: vertical; }
 .user-role-checks input {
   width: auto;
   min-height: auto;
-}
-.user-coach-search {
-  width: 100%;
-  min-height: 34px;
-  margin-top: 6px;
-  padding: 7px 9px;
-  font-size: 12px;
 }
 .discord-status {
   display: inline-block;

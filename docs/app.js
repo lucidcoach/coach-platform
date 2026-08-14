@@ -202,7 +202,6 @@ const state = {
   userLoadState: "idle",
   userLoadError: "",
   userQuery: "",
-  userCoachQueries: {},
   userSaveStates: {},
   coachRequests: [],
   coachRequestLoadState: "idle",
@@ -3455,11 +3454,12 @@ function renderUsers() {
   }
   const coachOptions = getCoachIdentities("league");
   const query = state.userQuery;
-  const visibleUsers = state.users.filter((user) => !query || [user.displayName, user.email, user.coachKey, user.role, user.discordDisplayName, ...(user.roles || [])].join(" ").toLowerCase().includes(query));
+  const visibleUsers = state.users.filter((user) => {
+    const coachName = coachOptions.find((coach) => coach.key === user.coachKey)?.name || "";
+    return !query || [user.displayName, user.email, user.coachKey, coachName, user.role, user.discordDisplayName, ...(user.roles || [])].join(" ").toLowerCase().includes(query);
+  });
   target.innerHTML = visibleUsers.length ? visibleUsers.map((user) => {
     const flags = getUserRoleFlags(user);
-    const selectedCoach = coachOptions.find((coach) => coach.key === user.coachKey);
-    const coachQuery = String(state.userCoachQueries[user.id] || selectedCoach?.name || "").trim();
     return `
     <tr>
       <td>${escapeHtml(user.displayName || "-")}</td>
@@ -3470,9 +3470,7 @@ function renderUsers() {
           <label><input type="checkbox" data-user-admin-role="${escapeHtml(user.id)}" ${flags.isAdmin ? "checked" : ""}> 관리자</label>
         </div>
         <div class="user-coach-picker" data-user-coach-picker="${escapeHtml(user.id)}" ${flags.isCoach ? "" : "hidden"}>
-          <input class="user-coach-search" type="search" data-user-coach-search="${escapeHtml(user.id)}" value="${escapeHtml(coachQuery)}" placeholder="코치 선택 또는 검색" aria-label="코치 선택 또는 검색" list="coach-options-${escapeHtml(user.id)}">
-          <datalist id="coach-options-${escapeHtml(user.id)}">${coachOptions.map((coach) => `<option value="${escapeHtml(coach.name)}"></option><option value="${escapeHtml(coach.key)}"></option>`).join("")}</datalist>
-          <select data-user-coach="${escapeHtml(user.id)}" hidden>
+          <select data-user-coach="${escapeHtml(user.id)}" aria-label="연결할 코치 선택">
             <option value="">코치 선택</option>
             ${coachOptions.map((coach) => `<option value="${escapeHtml(coach.key)}" ${coach.key === user.coachKey ? "selected" : ""}>${escapeHtml(coach.name)}</option>`).join("")}
           </select>
@@ -3500,16 +3498,6 @@ function renderUsers() {
     checkbox.addEventListener("change", () => {
       const picker = document.querySelector(`[data-user-coach-picker="${CSS.escape(checkbox.dataset.userCoachRole)}"]`);
       if (picker) picker.hidden = !checkbox.checked;
-    });
-  });
-  document.querySelectorAll("[data-user-coach-search]").forEach((input) => {
-    input.addEventListener("input", () => {
-      const userId = input.dataset.userCoachSearch;
-      state.userCoachQueries[userId] = input.value;
-      const select = findUserCoachSelect(userId);
-      const coachQuery = input.value.trim().toLowerCase();
-      const selected = coachOptions.find((coach) => coach.name.toLowerCase() === coachQuery || coach.key.toLowerCase() === coachQuery);
-      if (select) select.value = selected?.key || "";
     });
   });
 }
@@ -4237,9 +4225,12 @@ async function saveCoachSelfLesson(event) {
       state.coachSelfLessons = state.coachSelfLessons.map((coach) => coach.id === id ? normalized : coach);
     }
     await loadCoachesFromApi();
-    $("coachSelfSaveStatus").textContent = "저장 완료";
-    $("coachSelfSaveStatus").className = "save-status success";
     renderCoachSelf();
+    const refreshedStatus = $("coachSelfSaveStatus");
+    if (refreshedStatus) {
+      refreshedStatus.textContent = "저장되었습니다!";
+      refreshedStatus.className = "save-status success";
+    }
   } catch (error) {
     $("coachSelfSaveStatus").textContent = "저장 실패";
     $("coachSelfSaveStatus").className = "save-status error";
