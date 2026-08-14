@@ -3570,7 +3570,7 @@ function getCoachProfileFormValue(current) {
   const profile = state.coachProfile || {};
   return {
     nickname: profile.nickname || profile.name || profile.displayName || current?.name || "",
-    image: profile.image || profile.profileImage || current?.image || "assets/logo.jpg",
+    image: profile.image || profile.profileImage || "",
     intro: profile.intro || profile.tagline || current?.tagline || "",
     tier: profile.tier || current?.tier || "일반",
     roles: Array.isArray(profile.roles) ? profile.roles : (current?.coachRoles || current?.roles || []),
@@ -3596,22 +3596,21 @@ function renderCoachSelfProfile(current) {
         <button type="submit" class="secondary" id="coachSelfProfileSaveBtn">저장</button>
       </div>
       <div class="coach-self-profile-grid">
-        <div>
+        <div class="coach-self-profile-media">
+          <span class="coach-self-profile-label">프로필 이미지</span>
+          <input id="coachSelfProfileImage" type="hidden" value="${escapeHtml(profile.image)}">
+          <div class="image-preview thumbnail-preview"><div class="image-preview-frame" id="coachSelfProfileImagePreview"><span class="image-preview-empty" ${profile.image ? "hidden" : ""}>선택된 파일 없음</span></div></div>
+          <label class="coach-self-file-button"><span>파일 선택</span><input id="coachSelfProfileImageFile" type="file" accept="image/*"></label>
+          <button type="button" class="secondary image-crop-button" id="openCoachSelfProfileCropBtn">이미지 범위 지정</button>
+        </div>
+        <div class="coach-self-profile-fields">
           <label>닉네임<input id="coachSelfProfileNickname" required value="${escapeHtml(profile.nickname)}"></label>
           <label>한 줄 소개<textarea id="coachSelfProfileIntro" rows="3" required>${escapeHtml(profile.intro)}</textarea></label>
-          <label>티어<select id="coachSelfProfileTier">
-            ${["일반", "우수", "최우수", "엠버서더"].map((tier) => `<option value="${tier}" ${tier === profile.tier ? "selected" : ""}>${tier}</option>`).join("")}
-          </select></label>
-        </div>
-        <div>
-          <label>프로필 이미지<input id="coachSelfProfileImageFile" type="file" accept="image/*"></label>
-          <input id="coachSelfProfileImage" type="hidden" value="${escapeHtml(profile.image)}">
-          <div class="image-preview thumbnail-preview"><div class="image-preview-frame" id="coachSelfProfileImagePreview"></div></div>
-          <button type="button" class="secondary image-crop-button" id="openCoachSelfProfileCropBtn">이미지 범위 지정</button>
+          <div class="coach-self-tier"><span>티어</span><strong>${escapeHtml(profile.tier || "일반")}</strong><small>관리자 지정</small></div>
         </div>
       </div>
       <fieldset class="choice-field">
-        <legend>전문 분야</legend>
+        <legend>태그</legend>
         <div class="choice-grid">
           ${roleOptions.map((role) => `<label><input type="checkbox" name="coachSelfProfileRole" value="${escapeHtml(role)}" ${profile.roles.includes(role) ? "checked" : ""}> ${escapeHtml(role)}</label>`).join("")}
         </div>
@@ -3741,7 +3740,7 @@ function renderCoachSelfEditor() {
         </div>
       </fieldset>
       <fieldset class="choice-field">
-        <legend>전문 분야</legend>
+        <legend>태그</legend>
         <div class="choice-grid">
           ${[...adminLineOptions.league, ...adminFieldOptions.league].map((role) => `<label><input type="checkbox" name="coachSelfRoleChoice" value="${role}" ${selectedRoles.includes(role) ? "checked" : ""}> ${role}</label>`).join("")}
         </div>
@@ -3958,7 +3957,9 @@ async function loadCoachSchedule() {
     state.coachScheduleLoadState = "loaded";
   } catch (error) {
     state.coachScheduleLoadState = "error";
-    state.coachScheduleLoadError = error.message || "주간 가능 시간을 불러오지 못했습니다.";
+    state.coachScheduleLoadError = error instanceof TypeError
+      ? "서버에 연결하지 못했습니다. 잠시 후 새로고침해주세요."
+      : error.message || "주간 가능 시간을 불러오지 못했습니다.";
     state.coachScheduleDraft = buildScheduleDraft({ weekly: [], overrides: [], slots: [] });
   }
   renderCoachAvailabilityPanel();
@@ -4074,7 +4075,8 @@ async function saveCoachSchedule() {
     renderCoachAvailabilityPanel();
     if (state.activeView === "student") renderStudentHome();
   } catch (error) {
-    if (status) { status.textContent = `저장 실패: ${error.message || "서버 오류"}`; status.className = "save-status error"; }
+    const message = error instanceof TypeError ? "서버에 연결하지 못했습니다. 잠시 후 다시 시도해주세요." : error.message || "서버 오류";
+    if (status) { status.textContent = `저장 실패: ${message}`; status.className = "save-status error"; }
   } finally {
     if (button) button.disabled = false;
   }
@@ -4095,7 +4097,6 @@ async function saveCoachSelfProfile(event) {
     nickname: $("coachSelfProfileNickname").value.trim(),
     image: $("coachSelfProfileImage").value.trim(),
     intro: $("coachSelfProfileIntro").value.trim(),
-    tier: $("coachSelfProfileTier").value,
     roles: getCheckedValues("coachSelfProfileRole"),
     active: Boolean($("coachSelfProfileActive").checked),
   };
@@ -4288,6 +4289,8 @@ function updateWideImagePreview(inputId, previewId) {
   preview.style.backgroundImage = image ? `url("${image}")` : "none";
   preview.style.backgroundPosition = "center center";
   preview.style.backgroundSize = "cover";
+  const empty = preview.querySelector(".image-preview-empty");
+  if (empty) empty.hidden = Boolean(image);
 }
 
 function handleCoachImageFile(event) {
