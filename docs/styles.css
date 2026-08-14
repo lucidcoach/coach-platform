@@ -32,7 +32,9 @@ body {
   color: var(--text);
   font-family: Inter, Pretendard, "Segoe UI", Arial, sans-serif;
   letter-spacing: 0;
+  color-scheme: light;
 }
+body[data-theme="dark"] { color-scheme: dark; }
 body[data-theme="dark"] img {
   color-scheme: dark;
 }
@@ -1204,6 +1206,44 @@ button {
   background: #eff6ff;
 }
 .availability-picker small { color: var(--muted); font-size: 12px; }
+.booking-student-auto {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+}
+.account-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.account-required {
+  margin: 0;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 800;
+}
+.account-form {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) auto minmax(180px, 1fr);
+  align-items: end;
+  gap: 8px;
+}
+.account-form label { display: grid; gap: 5px; }
+.field-hint { color: var(--muted); font-size: 12px; }
+.account-danger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.account-danger div { display: grid; gap: 4px; }
+.account-danger small { color: var(--muted); font-size: 12px; }
 .availability-panel {
   display: grid;
   gap: 10px;
@@ -1336,6 +1376,10 @@ input, select, textarea {
   background: #fff;
   color: var(--text);
 }
+select option {
+  background: var(--panel);
+  color: var(--text);
+}
 body[data-theme="dark"] input,
 body[data-theme="dark"] select,
 body[data-theme="dark"] textarea {
@@ -1385,6 +1429,28 @@ textarea { resize: vertical; }
 .user-role-checks input {
   width: auto;
   min-height: auto;
+}
+.user-coach-search {
+  width: 100%;
+  min-height: 34px;
+  margin-top: 6px;
+  padding: 7px 9px;
+  font-size: 12px;
+}
+.discord-status {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.discord-status.connected {
+  background: #e0f2fe;
+  color: #075985;
+}
+.discord-status.disconnected {
+  background: var(--panel-2);
+  color: var(--muted);
 }
 #usersView th,
 #usersView td {
@@ -2522,6 +2588,10 @@ body[data-theme="dark"] .secondary {
   background: #253142;
   color: #e5e7eb;
 }
+body[data-theme="dark"] .discord-status.connected {
+  background: #082f49;
+  color: #bae6fd;
+}
 body[data-theme="dark"] label,
 body[data-theme="dark"] legend {
   color: #cbd5e1;
@@ -2621,6 +2691,7 @@ body[data-theme="dark"] .explorer-coach-body small {
   .coach-explorer-grid { grid-template-columns: 1fr; }
   .coach-explorer-dialog { max-height: 90vh; }
   .availability-form { grid-template-columns: 1fr; }
+  .account-form { grid-template-columns: 1fr; align-items: stretch; }
 }
 
 @media (max-width: 640px) {
