@@ -111,7 +111,7 @@ const text = {
   thContact: "연락처",
   thMemo: "메모",
   adminEyebrow: "로컬 편집",
-  adminTitle: "코치/강의 관리",
+  adminTitle: "코치 관리",
   resetCoachesBtn: "4명 · 8강의로 초기화",
   labelCategory: "카테고리",
   labelName: "코치명",
@@ -187,6 +187,11 @@ const state = {
   coaches: [],
   coachSelfLessons: null,
   coachLoadState: "idle",
+  adminCoachSettings: [],
+  adminCoachSettingsLoadState: "idle",
+  adminCoachSettingsLoadError: "",
+  adminCoachQuery: "",
+  adminSelectedCoachKey: "",
   bookings: [],
   bookingLoadState: "idle",
   bookingLoadError: "",
@@ -368,6 +373,8 @@ function bindEvents() {
       if (state.activeView === "bookings") {
         loadReservations({ promptForLogin: false });
         loadAdminRefundRequests();
+      } else if (state.activeView === "admin") {
+        loadAdminCoachSettings();
       }
     });
   });
@@ -414,8 +421,6 @@ function bindEvents() {
     await saveCoachFromForm();
   });
 
-  $("newCoachBtn").addEventListener("click", () => fillCoachForm());
-  $("deleteCoachBtn").addEventListener("click", deleteSelectedCoach);
   $("coachCategory").addEventListener("change", () => {
     renderAdminChoiceControls([], [], []);
   });
@@ -431,10 +436,6 @@ function bindEvents() {
   });
   $("coachPriceAmount").addEventListener("input", updateCoachPriceValue);
   $("coachPriceUnit").addEventListener("change", updateCoachPriceValue);
-  $("resetCoachesBtn").addEventListener("click", async () => {
-    if (!window.confirm("전 버전 기준 4명 × 2강의만 남기고 나머지 코치·강의를 숨길까요?")) return;
-    await resetCoachesToSamples();
-  });
   $("clearBookingsBtn").addEventListener("click", () => {
     loadReservations();
   });
@@ -481,6 +482,11 @@ function bindEvents() {
     state.userQuery = event.target.value.trim().toLowerCase();
     renderUsers();
   });
+  $("adminCoachSearchInput")?.addEventListener("input", (event) => {
+    state.adminCoachQuery = event.target.value.trim().toLowerCase();
+    renderAdmin();
+  });
+  $("reloadAdminCoachSettingsBtn")?.addEventListener("click", () => loadAdminCoachSettings());
   $("reloadUsersBtn")?.addEventListener("click", () => loadUsers());
   $("coachApplyForm")?.addEventListener("submit", submitCoachApplication);
 }
@@ -530,6 +536,8 @@ async function openAdminView(nextView) {
   if (nextView === "bookings") {
     loadReservations({ promptForLogin: false });
     loadAdminRefundRequests();
+  } else if (nextView === "admin") {
+    loadAdminCoachSettings();
   } else if (nextView === "users") {
     loadUsers();
   }
@@ -583,7 +591,7 @@ function hasCoachLikeAccount() {
 function renderRoleMenu() {
   const menu = $("sideRoleMenu");
   if (!menu) return;
-  if (!hasCoachMenuAccess()) {
+  if (!hasCoachMenuAccess() || isAdminUser()) {
     menu.hidden = true;
     menu.innerHTML = "";
     return;
@@ -2718,6 +2726,70 @@ async function loadCoachesFromApi() {
   render();
 }
 
+function normalizeAdminCoachSetting(item = {}) {
+  const coachKey = String(item.coachKey || item.coach_key || "").trim();
+  const publicLessons = state.coaches.filter((coach) => getCoachKey(coach) === coachKey);
+  const first = publicLessons[0] || {};
+  const rate = Number(item.commissionRate ?? item.commission_rate ?? 0);
+  return {
+    coachKey,
+    name: String(item.name || item.coachProfileName || item.coach_name || first.coachProfileName || first.name || coachKey || "이름 없음"),
+    lessonCount: Number(item.lessonCount ?? item.lesson_count ?? publicLessons.length ?? 0),
+    badges: Array.isArray(item.badges) ? item.badges.filter(Boolean) : [],
+    commissionRate: Number.isFinite(rate) ? rate : 0,
+    adminNote: String(item.adminNote ?? item.admin_note ?? ""),
+  };
+}
+
+async function fetchAdminCoachSettings() {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/admin/coach-settings`, {
+    method: "GET",
+    headers: getAdminHeaders(),
+    credentials: "include",
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return (result.coaches || []).map(normalizeAdminCoachSetting).filter((item) => item.coachKey);
+}
+
+async function loadAdminCoachSettings() {
+  state.adminCoachSettingsLoadState = "loading";
+  state.adminCoachSettingsLoadError = "";
+  renderAdmin();
+  try {
+    state.adminCoachSettings = await runAdminRequest(fetchAdminCoachSettings);
+    state.adminCoachSettingsLoadState = "loaded";
+    if (state.adminSelectedCoachKey && !state.adminCoachSettings.some((item) => item.coachKey === state.adminSelectedCoachKey)) {
+      state.adminSelectedCoachKey = "";
+    }
+  } catch (error) {
+    state.adminCoachSettings = [];
+    state.adminCoachSettingsLoadState = "error";
+    state.adminCoachSettingsLoadError = error.message || "코치 목록을 불러오지 못했습니다.";
+  }
+  renderAdmin();
+}
+
+async function saveAdminCoachSettings(coachKey, payload) {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/admin/coach-settings/${encodeURIComponent(coachKey)}`, {
+    method: "PATCH",
+    headers: getAdminHeaders(true),
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return normalizeAdminCoachSetting(result.coach || { coachKey, ...payload });
+}
+
 function applyCoachProfileToCatalog(profile) {
   if (!profile) return;
   const coachKey = String(profile.coachKey || profile.coach_key || state.currentUser?.coachKey || getFallbackCoachKey());
@@ -3413,35 +3485,49 @@ function renderBookings() {
 }
 
 function renderAdmin() {
-  const groups = new Map();
-  state.coaches.forEach((coach) => {
-    const name = String(coach.coachProfileName || coach.name || "이름 없음").trim();
-    if (!groups.has(name)) groups.set(name, []);
-    groups.get(name).push(coach);
-  });
+  const target = $("adminCoachList");
+  if (!target) return;
+  const query = state.adminCoachQuery;
+  const settings = state.adminCoachSettings.length
+    ? state.adminCoachSettings
+    : [...new Map(state.coaches.map((coach) => [getCoachKey(coach), normalizeAdminCoachSetting({ coachKey: getCoachKey(coach), badges: coach.badges })])).values()];
+  const visible = settings.filter((coach) => !query || [coach.name, coach.coachKey].join(" ").toLowerCase().includes(query));
+  const search = $("adminCoachSearchInput");
+  if (search && search.value !== state.adminCoachQuery) search.value = state.adminCoachQuery;
+  if (state.adminCoachSettingsLoadState === "loading") {
+    target.innerHTML = `<div class="empty">코치 목록을 불러오는 중입니다.</div>`;
+  } else if (state.adminCoachSettingsLoadState === "error") {
+    target.innerHTML = `<div class="empty error">${escapeHtml(state.adminCoachSettingsLoadError || "코치 목록을 불러오지 못했습니다.")}<br><button type="button" class="secondary mini" id="retryAdminCoachSettingsBtn">다시 시도</button></div>`;
+    $("retryAdminCoachSettingsBtn")?.addEventListener("click", loadAdminCoachSettings);
+  } else {
+    target.innerHTML = visible.length ? visible.map((coach) => `
+      <button class="admin-row admin-coach-select ${coach.coachKey === state.adminSelectedCoachKey ? "active" : ""}" type="button" data-admin-coach-key="${escapeHtml(coach.coachKey)}">
+        <span>
+          <h4>${escapeHtml(coach.name)}</h4>
+          <p>${escapeHtml(coach.coachKey)} · ${coach.lessonCount}개 강의 · 수수료 ${formatCommissionRate(coach.commissionRate)}%</p>
+        </span>
+        <span class="chip">${coach.coachKey === state.adminSelectedCoachKey ? "선택됨" : "관리"}</span>
+      </button>
+    `).join("") : `<div class="empty">${query ? "검색 결과가 없습니다." : "등록된 코치가 없습니다."}</div>`;
+    document.querySelectorAll("[data-admin-coach-key]").forEach((row) => {
+      row.addEventListener("click", () => selectAdminCoach(row.dataset.adminCoachKey));
+    });
+  }
+  const selected = settings.find((coach) => coach.coachKey === state.adminSelectedCoachKey);
+  if (selected) fillCoachForm(selected);
+  else fillCoachForm(null);
+}
 
-  $("adminCoachList").innerHTML = groups.size ? [...groups.entries()].map(([name, coaches]) => `
-    <section class="admin-coach-group">
-      <div class="admin-coach-head">
-        <strong>${name}</strong>
-        <span>${coaches.length}개 강의</span>
-      </div>
-      ${coaches.map((coach) => `
-        <button class="admin-row" type="button" data-id="${coach.id}">
-          <img src="${coach.image}" alt="">
-          <span>
-            <h4>${coach.tagline || coach.name}</h4>
-            <p>${categoryLabel(coach.category)} · ${coach.price}</p>
-          </span>
-          <span class="chip">수정</span>
-        </button>
-      `).join("")}
-    </section>
-  `).join("") : `<div class="empty">등록된 강의가 없습니다.</div>`;
+function formatCommissionRate(value) {
+  const rate = Number(value);
+  return Number.isFinite(rate) ? rate.toLocaleString("ko-KR", { maximumFractionDigits: 2 }) : "0";
+}
 
-  document.querySelectorAll(".admin-row").forEach((row) => {
-    row.addEventListener("click", () => fillCoachForm(state.coaches.find((coach) => coach.id === row.dataset.id)));
-  });
+function selectAdminCoach(coachKey) {
+  const selected = state.adminCoachSettings.find((coach) => coach.coachKey === coachKey);
+  if (!selected) return;
+  state.adminSelectedCoachKey = coachKey;
+  renderAdmin();
 }
 
 function renderUsers() {
@@ -3824,7 +3910,7 @@ function renderCoachSelfEditor(lessons = getCoachSelfLessons()) {
   $("coachSelfOpenFullEditBtn")?.addEventListener("click", () => {
     state.activeView = "admin";
     render();
-    fillCoachForm(lesson);
+    loadAdminCoachSettings().then(() => selectAdminCoach(getCoachKey(lesson)));
   });
 }
 
@@ -4250,23 +4336,18 @@ async function saveCoachSelfLesson(event) {
 }
 
 function fillCoachForm(coach) {
-  $("coachId").value = coach?.id || "";
-  $("coachCategory").value = coach?.category || state.category;
-  $("coachName").value = coach?.name || "";
-  $("coachTagline").value = coach?.tagline || "";
-  renderAdminChoiceControls(getCoachPurposes(coach), coach?.roles || [], coach?.badges || []);
-  setPriceFields(coach?.price || "");
-  $("coachImage").value = coach?.image || "assets/logo.jpg";
-  $("coachFeaturedImage").value = coach?.featuredImage || coach?.bannerImage || "";
-  $("coachDetailImage").value = coach?.detailImage || coach?.bannerImage || "";
-  $("coachImagePosition").value = coach?.imagePosition || "center center";
-  $("coachBio").value = coach?.bio || "";
-  $("coachImageFile").value = "";
-  $("coachFeaturedImageFile").value = "";
-  $("coachDetailImageFile").value = "";
-  updateCoachImagePreview();
-  updateWideImagePreview("coachFeaturedImage", "coachFeaturedImagePreview");
-  updateWideImagePreview("coachDetailImage", "coachDetailImagePreview");
+  const setting = coach && coach.coachKey
+    ? normalizeAdminCoachSetting(coach)
+    : null;
+  $("coachForm").hidden = !setting;
+  $("coachId").value = setting?.coachKey || "";
+  $("adminSelectedCoach").innerHTML = setting
+    ? `<strong>${escapeHtml(setting.name)}</strong><span>${escapeHtml(setting.coachKey)} · ${setting.lessonCount}개 강의</span>`
+    : "코치 목록에서 관리할 코치를 선택하세요.";
+  renderBadgePicker(setting?.badges || []);
+  $("coachCommissionRate").value = setting ? formatCommissionRate(setting.commissionRate) : "";
+  $("coachAdminNote").value = setting?.adminNote || "";
+  $("saveCoachBtn").disabled = !setting;
 }
 
 function renderAdminChoiceControls(selectedPurposes = [], selectedRoles = [], selectedBadges = []) {
@@ -4585,59 +4666,37 @@ function applyImageCrop() {
 
 async function saveCoachFromForm() {
   const saveButton = $("saveCoachBtn");
+  const coachKey = $("coachId").value || state.adminSelectedCoachKey;
+  if (!coachKey) {
+    setCoachSaveStatus("코치를 먼저 선택하세요.", "error");
+    return;
+  }
+  const commissionRate = Number($("coachCommissionRate").value);
+  if (!Number.isInteger(commissionRate) || commissionRate < 0 || commissionRate > 100) {
+    setCoachSaveStatus("수수료율은 0~100 사이의 정수로 입력하세요.", "error");
+    $("coachCommissionRate").focus();
+    return;
+  }
   saveButton.disabled = true;
   setCoachSaveStatus("저장 중...", "loading");
-  const id = $("coachId").value || `coach-${Date.now()}`;
-  const previous = state.coaches.find((coach) => coach.id === id);
-  const previousIndex = state.coaches.findIndex((coach) => coach.id === id);
-  const selectedPurposes = getCheckedValues("coachPurposeChoice");
-  const selectedBadges = $("coachBadgeChoices")
-    ? getCheckedValues("coachBadgeChoice")
-    : splitCsv($("coachBadges")?.value || (previous?.badges || []).join(", "));
-  const next = {
-    id,
-    category: $("coachCategory").value,
-    name: $("coachName").value.trim(),
-    tier: getTierFromBadges(selectedBadges, previous?.tier),
-    tagline: $("coachTagline").value.trim(),
-    purpose: selectedPurposes.length ? selectedPurposes : ["value"],
-    roles: getCheckedValues("coachRoleChoice"),
-    price: (updateCoachPriceValue(), $("coachPrice").value.trim() || "가격 상담"),
-    image: $("coachImage").value.trim() || "assets/logo.jpg",
-    featuredImage: $("coachFeaturedImage").value.trim(),
-    featuredImagePosition: "center center",
-    detailImage: $("coachDetailImage").value.trim(),
-    detailImagePosition: "center center",
-    imagePosition: $("coachImagePosition").value.trim() || "center center",
-    imageScale: 1,
-    badges: selectedBadges,
-    featuredAd: Boolean(previous?.featuredAd),
-    featuredAdUpdatedAt: previous?.featuredAdUpdatedAt || "",
-    manualCoachEdit: Boolean(previous?.manualCoachEdit),
-    rating: previous?.rating || 4.8,
-    lessons: previous?.lessons || 0,
-    bio: $("coachBio").value.trim(),
-    reviews: previous?.reviews || [["첫 후기", "관리자가 입력한 샘플 후기입니다."]],
+  const payload = {
+    badges: getCheckedValues("coachBadgeChoice"),
+    commissionRate,
+    adminNote: $("coachAdminNote").value.trim(),
   };
   try {
-    const savedCoach = await runAdminRequest(() => saveCoachToApi(next, previousIndex >= 0 ? previousIndex : state.coaches.length));
+    const saved = await runAdminRequest(() => saveAdminCoachSettings(coachKey, payload));
+    state.adminCoachSettings = state.adminCoachSettings.map((item) => item.coachKey === coachKey ? saved : item);
+    state.adminSelectedCoachKey = coachKey;
     await loadCoachesFromApi();
-    if (!state.coaches.some((coach) => coach.id === savedCoach.id)) {
-      state.coaches = state.coaches.filter((coach) => coach.id !== id).concat(savedCoach);
-    }
-    state.category = savedCoach.category;
-    state.selectedCoachId = savedCoach.id;
-    render();
-    fillCoachForm(savedCoach);
+    renderAdmin();
     setCoachSaveStatus("저장 완료", "success");
     setTimeout(() => {
       if ($("coachSaveStatus")?.textContent === "저장 완료") setCoachSaveStatus();
     }, 2200);
   } catch (error) {
     setCoachSaveStatus("저장 실패", "error");
-    alert(error.message === "coach_lesson_limit_reached"
-      ? "코치 한 명당 강의는 최대 5개까지 등록할 수 있습니다."
-      : `코치 정보를 저장하지 못했습니다.\n${error.message}`);
+    alert(`코치 관리자 설정을 저장하지 못했습니다.\n${error.message}`);
   } finally {
     saveButton.disabled = false;
   }

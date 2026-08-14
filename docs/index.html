@@ -136,20 +136,23 @@
             <p class="eyebrow" id="adminEyebrow"></p>
             <h2 id="adminTitle"></h2>
           </div>
-          <button class="secondary" id="resetCoachesBtn"></button>
+        </div>
+        <div class="booking-tools admin-coach-tools">
+          <input id="adminCoachSearchInput" type="search" placeholder="코치명 또는 코치 키 검색" aria-label="코치 검색">
+          <button class="secondary" id="reloadAdminCoachSettingsBtn" type="button">새로고침</button>
         </div>
         <form class="admin-form" id="coachForm">
           <input type="hidden" id="coachId">
-          <label><span id="labelCategory"></span>
+          <label hidden><span id="labelCategory"></span>
             <select id="coachCategory">
               <option value="league" id="optLeague"></option>
               <option value="valorant" id="optValorant"></option>
               <option value="academy" id="optAcademy"></option>
             </select>
           </label>
-          <label><span id="labelName"></span><input id="coachName" required></label>
-          <label><span id="labelTagline"></span><input id="coachTagline" required></label>
-          <div class="price-builder">
+          <label hidden><span id="labelName"></span><input id="coachName"></label>
+          <label hidden><span id="labelTagline"></span><input id="coachTagline"></label>
+          <div class="price-builder" hidden>
             <label><span>가격</span><input id="coachPriceAmount" inputmode="numeric" placeholder="예: 70000"></label>
             <label><span>기준</span>
               <select id="coachPriceUnitType">
@@ -162,19 +165,19 @@
             </label>
             <input id="coachPrice" type="hidden">
           </div>
-          <fieldset class="choice-field">
+          <fieldset class="choice-field" hidden>
             <legend id="labelPurpose"></legend>
             <div class="choice-grid" id="coachPurposeChoices"></div>
           </fieldset>
-          <fieldset class="choice-field">
+          <fieldset class="choice-field" hidden>
             <legend id="labelRoles"></legend>
             <div class="choice-stack" id="coachRoleChoices"></div>
           </fieldset>
           <input id="coachImage" type="hidden">
           <input id="coachFeaturedImage" type="hidden">
           <input id="coachDetailImage" type="hidden">
-          <label class="image-position-raw"><span id="labelImagePosition"></span><input id="coachImagePosition" readonly></label>
-          <div class="image-upload-grid wide">
+          <label class="image-position-raw" hidden><span id="labelImagePosition"></span><input id="coachImagePosition" readonly></label>
+          <div class="image-upload-grid wide" hidden>
             <div class="image-upload-card">
               <label><span>상단 추천 이미지 <small>엠버서더/최우수 노출용 · 권장 1200x675</small></span><input id="coachFeaturedImageFile" type="file" accept="image/*"></label>
               <div class="image-preview banner-preview">
@@ -200,6 +203,7 @@
               <button type="button" class="secondary image-crop-button" id="openDetailCropBtn">상세 설명 이미지 범위 지정</button>
             </div>
           </div>
+          <div class="admin-selected-coach" id="adminSelectedCoach">코치 목록에서 관리할 코치를 선택하세요.</div>
           <fieldset class="choice-field">
             <legend id="labelBadges"></legend>
             <div class="badge-picker">
@@ -208,11 +212,11 @@
             </div>
             <div class="choice-grid" id="coachBadgeChoices"></div>
           </fieldset>
-          <label class="wide"><span id="labelBio"></span><textarea id="coachBio" rows="4"></textarea></label>
+          <label><span>강의 수수료율 (%)</span><input id="coachCommissionRate" type="number" min="0" max="100" step="1" inputmode="numeric" placeholder="예: 10"></label>
+          <label class="wide"><span>특이사항</span><textarea id="coachAdminNote" rows="4" maxlength="2000" placeholder="관리자만 보는 메모"></textarea></label>
+          <label class="wide" hidden><span id="labelBio"></span><textarea id="coachBio" rows="4"></textarea></label>
           <div class="form-actions">
             <button type="submit" class="primary" id="saveCoachBtn"></button>
-            <button type="button" class="secondary" id="newCoachBtn"></button>
-            <button type="button" class="danger" id="deleteCoachBtn"></button>
             <span class="save-status" id="coachSaveStatus" aria-live="polite"></span>
           </div>
         </form>

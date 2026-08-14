@@ -379,6 +379,10 @@ button {
 }
 .view { display: none; }
 .view.active { display: block; }
+#adminView.active { display: flex; flex-direction: column; }
+#adminView.active .admin-coach-tools { order: 1; }
+#adminView.active .admin-list { order: 2; }
+#adminView.active .admin-form { order: 3; }
 .toolbar {
   display: flex;
   justify-content: flex-start;
@@ -1473,6 +1477,7 @@ textarea { resize: vertical; }
   gap: 10px;
   margin-bottom: 12px;
 }
+.admin-coach-tools { grid-template-columns: minmax(220px, 1fr) auto; }
 .table-wrap, .admin-form, .admin-list {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -2583,6 +2588,13 @@ body[data-theme="dark"] .toggle-line input { color-scheme: dark; }
   border-bottom: 0;
 }
 .admin-row:hover { background: var(--panel-2); }
+.admin-coach-select {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.admin-coach-select.active {
+  background: var(--panel-2);
+  box-shadow: inset 3px 0 0 var(--brand);
+}
 .admin-row img {
   width: 52px;
   height: 52px;
@@ -2591,6 +2603,19 @@ body[data-theme="dark"] .toggle-line input { color-scheme: dark; }
 }
 .admin-row h4 { margin: 0 0 4px; }
 .admin-row p { margin: 0; color: var(--muted); font-size: 13px; }
+.admin-selected-coach {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 13px;
+}
+.admin-selected-coach strong { color: var(--text); font-size: 17px; }
 .empty {
   background: var(--panel);
   border: 1px solid var(--line);
