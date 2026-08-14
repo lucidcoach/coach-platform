@@ -1602,21 +1602,21 @@ function renderFeaturedCard(coach) {
   const featuredImage = getFeaturedImage(coach);
   const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
   return `
-    <article class="featured-card ${getTierClass(coach)}" data-coach-id="${coach.id}">
+    <article class="featured-card ${getTierClass(coach)}" data-coach-id="${escapeHtml(coach.id)}">
       <div class="featured-image">
-        <img src="${featuredImage}" alt="" style="${getWideImageStyle(coach, "featuredImagePosition")}">
+        <img src="${escapeHtml(featuredImage)}" alt="" style="${escapeHtml(getWideImageStyle(coach, "featuredImagePosition"))}">
         <span class="ad-label">추천</span>
-        <span class="tier-ribbon">${coach.tier}</span>
+        <span class="tier-ribbon">${escapeHtml(coach.tier)}</span>
       </div>
       <div class="featured-body">
-        <h3>${coach.name}</h3>
+        <h3>${escapeHtml(coach.name)}</h3>
         <p class="coach-owner">${escapeHtml(coach.coachProfileName || coach.name)}</p>
-        <p class="purpose-label">${purposeText}</p>
-        <p class="featured-summary">${coach.tagline}</p>
+        <p class="purpose-label">${escapeHtml(purposeText)}</p>
+        <p class="featured-summary">${escapeHtml(coach.tagline)}</p>
         <div class="featured-rating">★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></div>
         <div class="featured-price">
-          <strong>${coach.price}</strong>
-          ${originalPrice ? `<del>${originalPrice}</del>` : ""}
+          <strong>${escapeHtml(coach.price)}</strong>
+          ${originalPrice ? `<del>${escapeHtml(originalPrice)}</del>` : ""}
         </div>
         <button class="detail-link" type="button" data-detail-id="${escapeHtml(coach.id)}">상세보기</button>
       </div>
@@ -1635,19 +1635,19 @@ function renderCoachCard(coach) {
   const imageStyle = getImageStyle(coach);
   const purposeText = getPurposeLabels(coach.purpose).slice(0, 2).join(" · ");
   return `
-    <article class="coach-card ${coach.id === state.selectedCoachId ? "active" : ""} ${getTierClass(coach)}" data-coach-id="${coach.id}">
-      <div class="avatar-frame"><img class="avatar" src="${coach.image}" alt="" style="${imageStyle}"></div>
+    <article class="coach-card ${coach.id === state.selectedCoachId ? "active" : ""} ${getTierClass(coach)}" data-coach-id="${escapeHtml(coach.id)}">
+      <div class="avatar-frame"><img class="avatar" src="${escapeHtml(coach.image)}" alt="" style="${escapeHtml(imageStyle)}"></div>
       <div class="coach-main">
         ${badges.length ? `<div class="rank-badges">${badges.map(renderBadge).join("")}</div>` : ""}
-        <h3>${coach.name}</h3>
+        <h3>${escapeHtml(coach.name)}</h3>
         <span class="coach-owner">${escapeHtml(coach.coachProfileName || coach.name)}</span>
-        <span class="purpose-label">${purposeText}</span>
-        <p>${coach.tagline}</p>
-        <div class="chips">${(coach.roles || []).map((role) => `<span class="chip">${role}</span>`).join("")}</div>
+        <span class="purpose-label">${escapeHtml(purposeText)}</span>
+        <p>${escapeHtml(coach.tagline)}</p>
+        <div class="chips">${(coach.roles || []).map((role) => `<span class="chip">${escapeHtml(role)}</span>`).join("")}</div>
       </div>
       <div class="card-foot">
         <span>★ ${coach.rating.toFixed(1)} · 후기 ${coach.reviews?.length || 0}</span>
-        <span class="price">${coach.price}</span>
+        <span class="price">${escapeHtml(coach.price)}</span>
       </div>
       <button class="detail-link card-detail-link" type="button" data-detail-id="${escapeHtml(coach.id)}">상세보기</button>
     </article>
@@ -1663,7 +1663,7 @@ function getCoachBadges(coach) {
 
 function renderBadge(label) {
   const className = label === "추천" ? "badge recommend" : ["최우수", "엠버서더"].includes(label) ? "badge best" : "badge good";
-  return `<span class="${className}">${label}</span>`;
+  return `<span class="${className}">${escapeHtml(label)}</span>`;
 }
 
 function getTierClass(coach) {
@@ -1715,19 +1715,19 @@ function renderDetail() {
 
   const reviews = coach.reviews || [];
   $("coachDetail").innerHTML = `
-    <div class="detail-hero"><img src="${getDetailImage(coach)}" alt="" style="${getWideImageStyle(coach, "detailImagePosition")}"></div>
+    <div class="detail-hero"><img src="${escapeHtml(getDetailImage(coach))}" alt="" style="${escapeHtml(getWideImageStyle(coach, "detailImagePosition"))}"></div>
     <div class="detail-body">
       <div class="rank-badges">${getCoachBadges(coach).map(renderBadge).join("")}</div>
-      <h2>${coach.name}</h2>
+      <h2>${escapeHtml(coach.name)}</h2>
       <p class="detail-owner">${escapeHtml(coach.coachProfileName || coach.name)} · ${escapeHtml(coach.coachSummary || coach.tier || "코치")}</p>
       <div class="detail-trust">
         <strong>★ ${coach.rating.toFixed(1)} <span>(${coach.lessons || 0})</span></strong>
         <em>${reviews.length}개 후기</em>
       </div>
-      <p>${coach.tagline || coach.bio}</p>
+      <p>${escapeHtml(coach.tagline || coach.bio)}</p>
       <div class="detail-summary">
-        <div><span>가격</span><strong>${coach.price}</strong></div>
-        <div><span>전문 분야</span><strong>${(coach.roles || []).slice(0, 4).join(", ")}</strong></div>
+        <div><span>가격</span><strong>${escapeHtml(coach.price)}</strong></div>
+        <div><span>전문 분야</span><strong>${escapeHtml((coach.roles || []).slice(0, 4).join(", "))}</strong></div>
       </div>
       <button class="primary detail-panel-button" type="button" data-detail-id="${escapeHtml(coach.id)}">상세보기</button>
     </div>
@@ -1802,7 +1802,9 @@ async function loadPublicAvailability(coachId) {
     state.availabilityByCoach[key] = [];
     state.availabilityLoadStates[key] = "error";
   }
-  renderAvailabilityPicker(state.coaches.find((coach) => String(coach.id) === key));
+  if (String(state.selectedCoachId) === key) {
+    renderAvailabilityPicker(state.coaches.find((coach) => String(coach.id) === key));
+  }
 }
 
 function renderAvailabilityPicker(coach) {
@@ -1853,7 +1855,7 @@ async function loadCoachReviews(coachId) {
     const coach = state.coaches.find((item) => String(item.id) === key);
     if (coach) {
       coach.reviews = state.reviewsByCoach[key].map((review) => [review.author || review.displayName || review.studentName || "수강생", review.content || review.body || ""]);
-      if ($("lessonDetailModal") && !$("lessonDetailModal").hidden) {
+      if (String(state.selectedCoachId) === key && $("lessonDetailModal") && !$("lessonDetailModal").hidden) {
         $("lessonDetailBody").innerHTML = renderLessonDetailMarkup(coach);
         mountBookingForm("lessonBookingMount", coach);
       }
@@ -2135,11 +2137,12 @@ async function requestAuth(path, payload) {
 async function logoutUser() {
   state.authRequestId += 1;
   try {
-    await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/auth/logout`, {
+    await Promise.allSettled(["auth", "admin"].map((scope) => fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/${scope}/logout`, {
       method: "POST",
       credentials: "include",
-    });
+    })));
   } finally {
+    sessionStorage.removeItem(ADMIN_TOKEN_KEY);
     state.currentUser = null;
     state.coachDashboardLoadState = "idle";
     state.coachDashboardLoadError = "";
@@ -2270,6 +2273,8 @@ function maybeLoadStudentReservations() {
 
 async function loadStudentReservations() {
   if (!state.currentUser || isCoachUser()) return;
+  const requestId = state.authRequestId;
+  const userId = String(state.currentUser.id || "");
   state.studentReservationLoadState = "loading";
   state.studentReservationLoadError = "";
   renderStudentHome();
@@ -2278,10 +2283,12 @@ async function loadStudentReservations() {
       fetchMyReservations(),
       fetchMyRefundRequests().catch(() => []),
     ]);
+    if (requestId !== state.authRequestId || userId !== String(state.currentUser?.id || "")) return;
     state.bookings = reservations;
     state.refundRequests = refundRequests;
     state.studentReservationLoadState = "loaded";
   } catch (error) {
+    if (requestId !== state.authRequestId || userId !== String(state.currentUser?.id || "")) return;
     state.bookings = [];
     state.refundRequests = [];
     state.studentReservationLoadState = "error";
