@@ -185,6 +185,7 @@ const state = {
   coachExplorerRole: "all",
   coachExplorerTier: "all",
   coaches: [],
+  coachSelfLessons: null,
   coachLoadState: "idle",
   bookings: [],
   bookingLoadState: "idle",
@@ -2087,6 +2088,7 @@ async function loadCurrentUser() {
     const result = await response.json().catch(() => ({}));
     if (requestId !== state.authRequestId) return;
     state.currentUser = response.ok && result.ok ? result.user : null;
+    state.coachSelfLessons = null;
     if (state.currentUser?.coachKey) state.coachSelfKey = state.currentUser.coachKey;
     state.coachSchedule = { weekly: [], overrides: [], slots: [] };
     state.coachScheduleDraft = null;
@@ -2107,6 +2109,7 @@ async function loadCurrentUser() {
   } catch {
     if (requestId !== state.authRequestId) return;
     state.currentUser = null;
+    state.coachSelfLessons = null;
     state.authLoadState = "error";
     render();
   }
@@ -2152,6 +2155,7 @@ async function logoutUser() {
     state.refundRequests = [];
     state.submittedReviewIds = [];
     state.coachProfile = null;
+    state.coachSelfLessons = null;
     state.coachProfileLoadState = "idle";
     state.coachProfileLoadError = "";
     state.coachSchedule = { weekly: [], overrides: [], slots: [] };
@@ -2723,7 +2727,7 @@ function applyCoachProfileToCatalog(profile) {
       coachTier: profile.tier || coach.coachTier,
       tier: profile.tier || coach.tier,
       coachRoles: hasRoles ? profile.roles : coach.coachRoles,
-      image: profile.image || profile.profileImage || coach.image,
+      coachImage: profile.image || profile.profileImage || coach.coachImage,
       active: profile.active !== undefined ? Boolean(profile.active) : coach.active,
     };
   }));
@@ -2747,6 +2751,7 @@ async function loadCoachProfile() {
       throw error;
     }
     state.coachProfile = result.profile || null;
+    await loadCoachSelfLessonsApi();
     applyCoachProfileToCatalog(state.coachProfile);
     state.coachProfileLoadState = "loaded";
   } catch (error) {
@@ -2755,6 +2760,16 @@ async function loadCoachProfile() {
     console.warn("코치 프로필을 불러오지 못했습니다.", error);
   }
   render();
+}
+
+async function loadCoachSelfLessonsApi() {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/lessons`, {
+    credentials: "include",
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+  state.coachSelfLessons = migrateCoachImages(result.coaches || []);
+  return state.coachSelfLessons;
 }
 
 async function saveCoachProfileApi(payload) {
@@ -3575,7 +3590,8 @@ function findUserCoachSelect(id) {
 
 function getCoachSelfLessons() {
   const allowedKey = !isAdminUser() ? getFallbackCoachKey() : state.coachSelfKey;
-  return state.coaches.filter((coach) => coach.category === "league" && getCoachKey(coach) === allowedKey);
+  const lessons = !isAdminUser() && Array.isArray(state.coachSelfLessons) ? state.coachSelfLessons : state.coaches;
+  return lessons.filter((coach) => coach.category === "league" && getCoachKey(coach) === allowedKey);
 }
 
 function getCoachProfileFormValue(current) {
@@ -3646,7 +3662,10 @@ function renderCoachSelfProfile(current) {
 function renderCoachSelf() {
   if (!$("coachSelfTabs") || !$("coachSelfEditor")) return;
   const currentCoachKey = getFallbackCoachKey();
-  const identities = getCoachIdentities("league", true).filter((coach) => (
+  const publicIdentities = getCoachIdentities("league", true);
+  const ownLessons = getCoachSelfLessons();
+  const ownIdentity = ownLessons.length ? getCoachIdentityFromGroup(currentCoachKey, ownLessons) : null;
+  const identities = [...publicIdentities, ...(ownIdentity && !publicIdentities.some((coach) => coach.key === currentCoachKey) ? [ownIdentity] : [])].filter((coach) => (
     isAdminUser() || coach.key === currentCoachKey
   ));
   if (!identities.some((coach) => coach.key === state.coachSelfKey)) {
@@ -3682,7 +3701,7 @@ function renderCoachSelf() {
 
 function renderCoachSelfEditor(lessons = getCoachSelfLessons()) {
   const editor = $("coachSelfEditor");
-  const lesson = state.coaches.find((coach) => coach.id === state.coachSelfLessonId);
+  const lesson = lessons.find((coach) => coach.id === state.coachSelfLessonId);
   const picker = `
     <div class="coach-self-lesson-picker">
       <div class="coach-self-picker-head"><strong>강의 선택</strong><span>${lessons.length}/5</span><button type="button" class="secondary mini" id="coachSelfNewLessonBtn" ${lessons.length >= 5 ? "disabled" : ""}>새 강의 만들기</button></div>
@@ -3690,7 +3709,7 @@ function renderCoachSelfEditor(lessons = getCoachSelfLessons()) {
         ${lessons.length ? lessons.map((item) => `
           <button class="coach-self-card ${item.id === state.coachSelfLessonId ? "active" : ""}" type="button" data-self-lesson-id="${escapeHtml(item.id)}">
             <img src="${escapeHtml(item.image)}" alt="" style="${escapeHtml(getImageStyle(item))}">
-            <span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.tagline || "강의 설명 없음")}</small><em>${escapeHtml(item.price || "가격 상담")}</em></span>
+            <span><strong>${escapeHtml(item.name)}${item.published === false ? " · 비공개" : ""}</strong><small>${escapeHtml(item.tagline || "강의 설명 없음")}</small><em>${escapeHtml(item.price || "가격 상담")}</em></span>
           </button>
         `).join("") : `<div class="empty">이 코치에게 연결된 강의가 없습니다.</div>`}
       </div>
@@ -3723,6 +3742,18 @@ function renderCoachSelfEditor(lessons = getCoachSelfLessons()) {
         </div>
         <button type="submit" class="primary" id="coachSelfSaveBtn">저장</button>
       </div>
+      <div class="coach-self-lesson-image">
+        <div class="image-preview-frame" id="coachSelfLessonImagePreview"><span class="image-preview-empty">선택된 이미지 없음</span></div>
+        <div class="coach-self-lesson-image-actions">
+          <input id="coachSelfLessonImage" type="hidden" value="${escapeHtml(lesson.image || "")}">
+          <label class="coach-self-file-button">파일 선택<input id="coachSelfLessonImageFile" type="file" accept="image/*"></label>
+          <button type="button" class="secondary mini image-crop-button" id="openCoachSelfLessonCropBtn">이미지 범위 지정</button>
+        </div>
+      </div>
+      <label class="toggle-line">
+        <input id="coachSelfLessonPublished" type="checkbox" ${lesson.published !== false ? "checked" : ""}>
+        <span>이 강의를 홈페이지에 공개합니다</span>
+      </label>
       <label>강의명<input id="coachSelfLessonName" required value="${escapeHtml(lesson.name)}"></label>
       <label>한 줄 소개<input id="coachSelfTagline" required value="${escapeHtml(lesson.tagline || "")}"></label>
       <div class="price-builder">
@@ -3762,6 +3793,9 @@ function renderCoachSelfEditor(lessons = getCoachSelfLessons()) {
     </form>
   `;
   bindCoachSelfLessonPicker(editor);
+  updateWideImagePreview("coachSelfLessonImage", "coachSelfLessonImagePreview");
+  $("coachSelfLessonImageFile").addEventListener("change", (event) => handleCoachSelfProfileImageFile(event, "coachSelfLessonImage", "coachSelfLessonImagePreview", "강의 이미지"));
+  $("openCoachSelfLessonCropBtn").addEventListener("click", () => openCropModal({ inputId: "coachSelfLessonImage", previewId: "coachSelfLessonImagePreview", width: 520, height: 520, label: "강의 이미지" }));
   renderCoachSelfPriceUnitOptions(unitType, unit);
   updateCoachSelfPriceValue();
   $("coachSelfPriceUnitType").addEventListener("change", () => {
@@ -4059,7 +4093,7 @@ function bindCoachSelfLessonPicker(editor) {
     event.currentTarget.disabled = true;
     try {
       const lesson = await createCoachLessonApi(name.trim());
-      await loadCoachesFromApi();
+      await Promise.all([loadCoachSelfLessonsApi(), loadCoachesFromApi()]);
       state.coachSelfLessonId = lesson.id;
       renderCoachSelf();
     } catch (error) {
@@ -4156,7 +4190,7 @@ async function saveCoachSelfProfile(event) {
 async function saveCoachSelfLesson(event) {
   event.preventDefault();
   const id = $("coachSelfLessonId").value;
-  const previous = state.coaches.find((coach) => coach.id === id);
+  const previous = getCoachSelfLessons().find((coach) => coach.id === id);
   if (!previous) return;
   const saveButton = $("coachSelfSaveBtn");
   saveButton.disabled = true;
@@ -4167,6 +4201,8 @@ async function saveCoachSelfLesson(event) {
     manualCoachEdit: true,
     name: $("coachSelfLessonName").value.trim(),
     tagline: $("coachSelfTagline").value.trim(),
+    image: $("coachSelfLessonImage").value.trim(),
+    published: Boolean($("coachSelfLessonPublished").checked),
     price: (updateCoachSelfPriceValue(), $("coachSelfPrice").value.trim() || "가격 상담"),
     featuredAd: Boolean($("coachSelfFeaturedAd")?.checked),
     featuredAdUpdatedAt: $("coachSelfFeaturedAd")?.checked ? new Date().toISOString() : "",
@@ -4179,7 +4215,11 @@ async function saveCoachSelfLesson(event) {
     const savedCoach = isAdminUser()
       ? await runAdminRequest(() => saveCoachToApi(next, previousIndex))
       : await saveCoachLessonToApi(next);
-    state.coaches = state.coaches.map((coach) => coach.id === id ? migrateCoachImages([savedCoach])[0] : coach);
+    const normalized = migrateCoachImages([savedCoach])[0];
+    if (Array.isArray(state.coachSelfLessons)) {
+      state.coachSelfLessons = state.coachSelfLessons.map((coach) => coach.id === id ? normalized : coach);
+    }
+    await loadCoachesFromApi();
     $("coachSelfSaveStatus").textContent = "저장 완료";
     $("coachSelfSaveStatus").className = "save-status success";
     renderCoachSelf();
@@ -4354,7 +4394,7 @@ function handleCoachImageFile(event) {
   reader.readAsDataURL(file);
 }
 
-function handleCoachSelfProfileImageFile(event) {
+function handleCoachSelfProfileImageFile(event, inputId = "coachSelfProfileImage", previewId = "coachSelfProfileImagePreview", label = "프로필 이미지") {
   const file = event.target.files?.[0];
   if (!file) return;
   if (!file.type.startsWith("image/")) {
@@ -4370,14 +4410,14 @@ function handleCoachSelfProfileImageFile(event) {
   const reader = new FileReader();
   reader.addEventListener("load", () => {
     state.cropSourceImage = String(reader.result || "");
-    $("coachSelfProfileImage").value = state.cropSourceImage;
-    updateWideImagePreview("coachSelfProfileImage", "coachSelfProfileImagePreview");
+    $(inputId).value = state.cropSourceImage;
+    updateWideImagePreview(inputId, previewId);
     openCropModal({
-      inputId: "coachSelfProfileImage",
-      previewId: "coachSelfProfileImagePreview",
+      inputId,
+      previewId,
       width: 520,
       height: 520,
-      label: "프로필 이미지",
+      label,
     });
   });
   reader.readAsDataURL(file);

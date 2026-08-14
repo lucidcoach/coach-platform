@@ -2110,6 +2110,21 @@ body[data-theme="dark"] .toggle-line input { color-scheme: dark; }
   display: grid;
   gap: 12px;
 }
+.coach-self-lesson-image {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+.coach-self-lesson-image .image-preview-frame {
+  width: 120px;
+  height: 120px;
+  display: grid;
+  place-items: center;
+}
+.coach-self-lesson-image-actions { display: grid; gap: 8px; justify-items: start; }
+.coach-self-lesson-image-actions .coach-self-file-button,
+.coach-self-lesson-image-actions .image-crop-button { width: 150px; }
 
 .schedule-panel { gap: 12px; }
 .schedule-actions, .schedule-toolbar, .schedule-save-row, .schedule-legend {
@@ -2815,6 +2830,7 @@ body[data-theme="dark"] .explorer-coach-body small {
 }
 
 @media (max-width: 640px) {
+  .coach-self-lesson-image { grid-template-columns: 1fr; }
   .brand img { width: 36px; height: 36px; }
   .brand strong { font-size: 16px; }
   .brand span { font-size: 12px; }
