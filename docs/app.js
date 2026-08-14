@@ -2789,6 +2789,18 @@ async function saveCoachLessonToApi(lesson) {
   return result.lesson || result.coach || lesson;
 }
 
+async function createCoachLessonApi(name) {
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach/lessons`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ name }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+  return result.coach;
+}
+
 async function saveCoachToApi(coach, sortOrder) {
   const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches/${encodeURIComponent(coach.id)}`, {
     method: "PATCH",
@@ -3632,7 +3644,7 @@ function renderCoachSelfProfile(current) {
 }
 
 function renderCoachSelf() {
-  if (!$("coachSelfTabs") || !$("coachSelfLessonGrid") || !$("coachSelfEditor")) return;
+  if (!$("coachSelfTabs") || !$("coachSelfEditor")) return;
   const currentCoachKey = getFallbackCoachKey();
   const identities = getCoachIdentities("league", true).filter((coach) => (
     isAdminUser() || coach.key === currentCoachKey
@@ -3658,17 +3670,6 @@ function renderCoachSelf() {
   if (state.coachSelfLessonId && !lessons.some((lesson) => lesson.id === state.coachSelfLessonId)) {
     state.coachSelfLessonId = null;
   }
-  $("coachSelfLessonGrid").innerHTML = lessons.length ? lessons.map((lesson) => `
-    <button class="coach-self-card ${lesson.id === state.coachSelfLessonId ? "active" : ""}" type="button" data-self-lesson-id="${escapeHtml(lesson.id)}">
-      <img src="${lesson.image}" alt="" style="${getImageStyle(lesson)}">
-      <span>
-        <strong>${escapeHtml(lesson.name)}</strong>
-        <small>${escapeHtml(lesson.tagline || "강의 설명 없음")}</small>
-        <em>${escapeHtml(lesson.price || "가격 상담")}</em>
-      </span>
-    </button>
-  `).join("") : `<div class="empty">이 코치에게 연결된 강의가 없습니다.</div>`;
-
   document.querySelectorAll("[data-self-coach-key]").forEach((button) => {
     button.addEventListener("click", () => {
       state.coachSelfKey = button.dataset.selfCoachKey;
@@ -3676,25 +3677,33 @@ function renderCoachSelf() {
       renderCoachSelf();
     });
   });
-  document.querySelectorAll("[data-self-lesson-id]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.coachSelfLessonId = button.dataset.selfLessonId;
-      renderCoachSelf();
-    });
-  });
-  renderCoachSelfEditor();
+  renderCoachSelfEditor(lessons);
 }
 
-function renderCoachSelfEditor() {
+function renderCoachSelfEditor(lessons = getCoachSelfLessons()) {
   const editor = $("coachSelfEditor");
   const lesson = state.coaches.find((coach) => coach.id === state.coachSelfLessonId);
+  const picker = `
+    <div class="coach-self-lesson-picker">
+      <div class="coach-self-picker-head"><strong>강의 선택</strong><span>${lessons.length}/5</span><button type="button" class="secondary mini" id="coachSelfNewLessonBtn" ${lessons.length >= 5 ? "disabled" : ""}>새 강의 만들기</button></div>
+      <div class="coach-self-grid" id="coachSelfLessonGrid">
+        ${lessons.length ? lessons.map((item) => `
+          <button class="coach-self-card ${item.id === state.coachSelfLessonId ? "active" : ""}" type="button" data-self-lesson-id="${escapeHtml(item.id)}">
+            <img src="${escapeHtml(item.image)}" alt="" style="${escapeHtml(getImageStyle(item))}">
+            <span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.tagline || "강의 설명 없음")}</small><em>${escapeHtml(item.price || "가격 상담")}</em></span>
+          </button>
+        `).join("") : `<div class="empty">이 코치에게 연결된 강의가 없습니다.</div>`}
+      </div>
+    </div>
+  `;
   if (!lesson) {
-    editor.innerHTML = `
+    editor.innerHTML = `${picker}
       <div class="detail-empty">
         <strong>강의를 선택해주세요.</strong>
         <span>선택한 코치의 강의만 여기에서 개별 수정할 수 있습니다.</span>
       </div>
     `;
+    bindCoachSelfLessonPicker(editor);
     return;
   }
   const amount = String(lesson.price || "").match(/[\d,]+/)?.[0]?.replace(/[^\d]/g, "") || "";
@@ -3704,7 +3713,7 @@ function renderCoachSelfEditor() {
   const purposeOptions = filters.type.filter((item) => item.id !== "all");
   const selectedPurposes = getCoachPurposes(lesson);
   const selectedRoles = lesson.roles || [];
-  editor.innerHTML = `
+  editor.innerHTML = `${picker}
     <form class="coach-self-form" id="coachSelfForm">
       <input type="hidden" id="coachSelfLessonId" value="${escapeHtml(lesson.id)}">
       <div class="coach-self-editor-head">
@@ -3752,6 +3761,7 @@ function renderCoachSelfEditor() {
       </div>
     </form>
   `;
+  bindCoachSelfLessonPicker(editor);
   renderCoachSelfPriceUnitOptions(unitType, unit);
   updateCoachSelfPriceValue();
   $("coachSelfPriceUnitType").addEventListener("change", () => {
@@ -4035,6 +4045,28 @@ function renderCoachAvailabilityPanel() {
   });
   $("scheduleHourToggleBtn")?.addEventListener("click", () => { state.coachScheduleShowAllHours = !state.coachScheduleShowAllHours; renderCoachAvailabilityPanel(); });
   $("saveCoachScheduleBtn")?.addEventListener("click", saveCoachSchedule);
+}
+
+function bindCoachSelfLessonPicker(editor) {
+  editor.querySelectorAll("[data-self-lesson-id]").forEach((button) => button.addEventListener("click", () => {
+    state.coachSelfLessonId = button.dataset.selfLessonId;
+    renderCoachSelf();
+  }));
+  editor.querySelector("#coachSelfNewLessonBtn")?.addEventListener("click", async (event) => {
+    if (getCoachSelfLessons().length >= 5) return alert("코치 한 명당 강의는 최대 5개까지 등록할 수 있습니다.");
+    const name = window.prompt("새 강의 이름을 입력하세요.", "새 강의");
+    if (!name?.trim()) return;
+    event.currentTarget.disabled = true;
+    try {
+      const lesson = await createCoachLessonApi(name.trim());
+      await loadCoachesFromApi();
+      state.coachSelfLessonId = lesson.id;
+      renderCoachSelf();
+    } catch (error) {
+      alert(error.message === "coach_lesson_limit_reached" ? "코치 한 명당 강의는 최대 5개까지 등록할 수 있습니다." : `강의를 만들지 못했습니다.\n${error.message}`);
+      event.currentTarget.disabled = false;
+    }
+  });
 }
 
 function changeCoachScheduleWeek(days) {
@@ -4546,7 +4578,9 @@ async function saveCoachFromForm() {
     }, 2200);
   } catch (error) {
     setCoachSaveStatus("저장 실패", "error");
-    alert(`코치 정보를 저장하지 못했습니다.\n${error.message}`);
+    alert(error.message === "coach_lesson_limit_reached"
+      ? "코치 한 명당 강의는 최대 5개까지 등록할 수 있습니다."
+      : `코치 정보를 저장하지 못했습니다.\n${error.message}`);
   } finally {
     saveButton.disabled = false;
   }

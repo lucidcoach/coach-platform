@@ -2035,6 +2035,22 @@ body[data-theme="dark"] .toggle-line input { color-scheme: dark; }
   display: grid;
   gap: 10px;
 }
+.coach-self-lesson-picker {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.coach-self-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.coach-self-picker-head span { color: var(--muted); font-size: 12px; font-weight: 800; }
+.coach-self-picker-head button { margin-left: auto; }
+.coach-self-editor .coach-self-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .coach-self-card {
   width: 100%;
   display: grid;
