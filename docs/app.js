@@ -767,11 +767,6 @@ function renderAuthMarkup(mode) {
       <span class="eyebrow">로그인</span>
       <h2 id="authTitle">내 강의 이어보기</h2>
       <p>예약 내역과 후기 작성 가능 강의를 계정으로 이어서 확인합니다.</p>
-      <div class="social-auth" aria-label="소셜 로그인">
-        <button class="google" type="button" data-oauth-provider="google" aria-label="Google로 계속하기" title="Google로 계속하기"><img src="assets/google-logo.jpg" alt="Google"></button>
-        <button class="naver" type="button" data-oauth-provider="naver" aria-label="네이버로 계속하기" title="네이버로 계속하기"><img src="assets/naver.jpg" alt="네이버"></button>
-        <button class="discord" type="button" data-oauth-provider="discord" aria-label="Discord로 계속하기" title="Discord로 계속하기"><img src="assets/discord-login.png" alt="Discord"></button>
-      </div>
       <label>이메일<input name="email" type="email" required maxlength="${EMAIL_MAX_LENGTH}" autocomplete="email" placeholder="example@email.com"></label>
       <label>비밀번호
         <span class="password-field">
@@ -780,6 +775,12 @@ function renderAuthMarkup(mode) {
         </span>
       </label>
       <button class="primary" type="submit">로그인</button>
+      <div class="auth-divider"><span>또는 소셜 계정으로</span></div>
+      <div class="social-auth" aria-label="소셜 로그인">
+        <button class="google" type="button" data-oauth-provider="google"><img src="assets/google-logo.jpg" alt=""><span>Google로 계속하기</span></button>
+        <button class="naver" type="button" data-oauth-provider="naver"><img src="assets/naver.jpg" alt=""><span>네이버로 계속하기</span></button>
+        <button class="discord" type="button" data-oauth-provider="discord"><img src="assets/discord-login.png" alt=""><span>Discord로 계속하기</span></button>
+      </div>
       <span class="auth-status" id="authStatus" aria-live="polite"></span>
     </form>
   `;

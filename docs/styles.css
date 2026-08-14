@@ -1046,20 +1046,34 @@ button {
   cursor: not-allowed;
   opacity: 0.6;
 }
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+.auth-divider::before,
+.auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.auth-divider span { white-space: nowrap; }
 .social-auth {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 .social-auth button {
-  display: grid;
-  place-items: center;
-  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 46px;
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
   font-weight: 900;
 }
+.social-auth button span { min-width: 150px; text-align: left; }
 .social-auth button img {
   width: 24px;
   height: 24px;
@@ -2897,5 +2911,4 @@ body[data-theme="dark"] .explorer-coach-body small {
   table {
     min-width: 560px;
   }
-  .social-auth { grid-template-columns: 1fr; }
 }
