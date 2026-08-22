@@ -4,14 +4,30 @@
   { id: "academy", label: "테스트" },
 ];
 
-const API_BASE_URL = "https://lucid-chzzk-auth-yhfg.onrender.com";
-const ADMIN_TOKEN_KEY = "coach-admin-token";
-const THEME_KEY = "coach-theme";
-const EMAIL_MAX_LENGTH = 254;
-const PASSWORD_MIN_LENGTH = 8;
-const PASSWORD_MAX_LENGTH = 128;
-const RESERVATION_STATUSES = ["신규", "결제대기", "코치확정대기", "상담중", "예약확정", "완료", "취소"];
-const COACH_API_TIMEOUT_MS = 60000;
+import {
+  ADMIN_TOKEN_KEY,
+  API_BASE_URL,
+  COACH_API_TIMEOUT_MS,
+  EMAIL_MAX_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  RESERVATION_STATUSES,
+  THEME_KEY,
+} from "./js/config.js";
+import { apiFetch as fetch } from "./js/api.js";
+import { userIsAdmin, userIsCoach, userRoles } from "./js/auth.js";
+import {
+  addLocalDays,
+  byId as $,
+  escapeHtml,
+  formatDateTime,
+  formatWon,
+  getIsoWeekday,
+  isoDateOnly,
+  localDateOnly,
+  parseReservationPrice,
+  splitCsv,
+} from "./js/utils.js";
 
 const filterSets = {
   league: {
@@ -238,10 +254,6 @@ const state = {
   reviewsByCoach: {},
   submittedReviewIds: [],
 };
-
-function $(id) {
-  return document.getElementById(id);
-}
 
 function migrateCoachImages(coaches) {
   return normalizeCoachProfiles(coaches.map((coach) => ({
@@ -548,20 +560,15 @@ function hasCoachMenuAccess() {
 }
 
 function getUserRoles(user = state.currentUser) {
-  const roles = Array.isArray(user?.roles)
-    ? user.roles
-    : String(user?.roles || "").split(/[\s,]+/).filter(Boolean);
-  return new Set([...(user?.role ? [user.role] : []), ...roles.map((role) => String(role).toLowerCase())]);
+  return userRoles(user);
 }
 
 function isAdminUser(user = state.currentUser) {
-  const roles = getUserRoles(user);
-  return Boolean(user?.isAdmin || user?.is_admin || roles.has("admin") || roles.has("관리자"));
+  return userIsAdmin(user);
 }
 
 function isCoachUser(user = state.currentUser) {
-  const roles = getUserRoles(user);
-  return Boolean(user?.isCoach || user?.is_coach || user?.coachKey || user?.coach_key || roles.has("coach") || roles.has("코치"));
+  return userIsCoach(user);
 }
 
 function getFallbackCoachKey(user = state.currentUser) {
@@ -1143,19 +1150,6 @@ function setStudentHeader(isCoach) {
     if (title) title.textContent = "내 강의 홈";
     if (balance) balance.innerHTML = "<span>사용 가능 포인트</span><strong>0원</strong>";
   }
-}
-
-function parseReservationPrice(value) {
-  const textValue = String(value || "");
-  const amount = Number((textValue.match(/[\d,]+/)?.[0] || "").replace(/,/g, "")) || 0;
-  const unitMatch = textValue.match(/(\d+(?:\.\d+)?)\s*(시간|hour|hours|게임)/i);
-  const unit = unitMatch?.[2] || "";
-  const units = Number(unitMatch?.[1] || 1) || 1;
-  return { amount, hours: /시간|hour/i.test(unit) ? units : 0 };
-}
-
-function formatWon(value) {
-  return `${Math.round(Number(value) || 0).toLocaleString("ko-KR")}원`;
 }
 
 function renderCoachDashboard(container) {
@@ -3390,22 +3384,6 @@ function renderDetailLink(label, text, url) {
   `;
 }
 
-function formatDateTime(value) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" });
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
 function renderBookings() {
   $("bookingStatusFilter").innerHTML = `
     <option value="all">전체 상태</option>
@@ -3933,27 +3911,6 @@ function normalizeCoachAvailability(slot) {
     lessonName: slot.lessonName || slot.lesson_name || slot.lesson || slot.bookingLesson || "",
     reservationId: slot.reservationId || slot.reservation_id || "",
   };
-}
-
-function localDateOnly(value) {
-  const date = value instanceof Date ? new Date(value) : new Date(`${String(value || "").slice(0, 10)}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? new Date() : date;
-}
-
-function isoDateOnly(value) {
-  const date = localDateOnly(value);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function addLocalDays(value, count) {
-  const date = localDateOnly(value);
-  date.setDate(date.getDate() + count);
-  return date;
-}
-
-function getIsoWeekday(value) {
-  const day = localDateOnly(value).getDay();
-  return day === 0 ? 7 : day;
 }
 
 function getCoachScheduleWeekStart() {
@@ -4714,10 +4671,6 @@ async function deleteSelectedCoach() {
   } catch (error) {
     alert(`코치 정보를 삭제하지 못했습니다.\n${error.message}`);
   }
-}
-
-function splitCsv(value) {
-  return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
 function categoryLabel(id) {
