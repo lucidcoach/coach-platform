@@ -1308,7 +1308,7 @@ function renderSidebarCoaches() {
     </button>
     ${selected ? `
       <button class="selected-side-coach active" type="button" data-side-coach-key="${escapeHtml(selected.key)}">
-        <img src="${selected.image}" alt="">
+        <img src="${escapeHtml(selected.image)}" alt="">
         <span>
           <strong>${escapeHtml(selected.name)}</strong>
           <small>${escapeHtml(selected.lessons)}개 강의 · ${escapeHtml(selected.tier)}</small>
@@ -1320,7 +1320,7 @@ function renderSidebarCoaches() {
         <span>최근 선택</span>
         ${recent.map((coach) => `
           <button class="recent-side-coach ${coach.key === state.selectedCoachKey ? "active" : ""}" type="button" data-side-coach-key="${escapeHtml(coach.key)}">
-            <img src="${coach.image}" alt="">
+            <img src="${escapeHtml(coach.image)}" alt="">
             <strong>${escapeHtml(coach.name)}</strong>
           </button>
         `).join("")}
@@ -1431,7 +1431,7 @@ function renderCoachExplorerCard(coach) {
   const badges = ["추천", coach.tier].slice(0, 2).map((badge) => `<span>${escapeHtml(badge)}</span>`).join("");
   return `
     <button class="explorer-coach-card ${coach.key === state.selectedCoachKey ? "active" : ""}" type="button" data-explorer-coach-key="${escapeHtml(coach.key)}">
-      <img src="${coach.image}" alt="" style="object-position: ${coach.imagePosition};">
+      <img src="${escapeHtml(coach.image)}" alt="" style="object-position: ${escapeHtml(coach.imagePosition)};">
       <span class="explorer-coach-body">
         <span class="explorer-card-head">
           <strong>${escapeHtml(coach.name)}</strong>
@@ -1909,7 +1909,7 @@ function renderLessonInfoBlocks(coach) {
 function renderLessonDetailMarkup(coach) {
   const reviews = coach.reviews || [];
   return `
-    <div class="lesson-detail-hero"><img src="${getDetailImage(coach)}" alt="" style="${getWideImageStyle(coach, "detailImagePosition")}"></div>
+    <div class="lesson-detail-hero"><img src="${escapeHtml(getDetailImage(coach))}" alt="" style="${escapeHtml(getWideImageStyle(coach, "detailImagePosition"))}"></div>
     <div class="lesson-detail-body">
       <div class="rank-badges">${getCoachBadges(coach).map(renderBadge).join("")}</div>
       <h2 id="lessonDetailTitle">${escapeHtml(coach.name)}</h2>
