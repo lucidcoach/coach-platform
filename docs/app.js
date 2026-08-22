@@ -13,7 +13,21 @@ import {
   PASSWORD_MIN_LENGTH,
   THEME_KEY,
 } from "./js/config.js";
-import { apiFetch as fetch, getAdminHeaders } from "./js/api.js";
+import { apiFetch as fetch } from "./js/api.js";
+import {
+  createCoachRequest,
+  decideCoachRequest,
+  deleteCoachFromApi,
+  fetchAdminCoachSettings,
+  fetchCoachRequests,
+  fetchUsers,
+  loginAdmin,
+  normalizeAdminCoachSetting,
+  resetCoachesInApi,
+  saveAdminCoachSettings,
+  saveCoachToApi,
+  updateUserRole,
+} from "./js/admin.js";
 import { userIsAdmin, userIsCoach, userRoles } from "./js/auth.js";
 import {
   buildReservationPayload,
@@ -232,11 +246,13 @@ const state = {
   adminCoachSettings: [],
   adminCoachSettingsLoadState: "idle",
   adminCoachSettingsLoadError: "",
+  adminCoachSettingsRequestId: 0,
   adminCoachQuery: "",
   adminSelectedCoachKey: "",
   bookings: [],
   bookingLoadState: "idle",
   bookingLoadError: "",
+  bookingRequestId: 0,
   coachDashboardLoadState: "idle",
   coachDashboardLoadError: "",
   studentReservationLoadState: "idle",
@@ -248,6 +264,7 @@ const state = {
   users: [],
   userLoadState: "idle",
   userLoadError: "",
+  userRequestId: 0,
   userQuery: "",
   userSaveStates: {},
   coachRequests: [],
@@ -2156,27 +2173,19 @@ async function loginForReservations() {
   if (!password) return false;
 
   try {
-    const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/admin/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ password }),
-    });
-    const result = await response.json().catch(() => ({}));
-    if (response.ok && result.ok && result.adminToken) {
+    const result = await loginAdmin(password);
+    if (result.adminToken) {
       sessionStorage.setItem(ADMIN_TOKEN_KEY, result.adminToken);
     }
-    if (response.ok && result.ok && !result.adminToken) {
+    if (!result.adminToken) {
       alert("관리자 인증 응답에 토큰이 없습니다. 서버를 최신 코드로 다시 배포해주세요.");
-      return false;
-    }
-    if (!response.ok || !result.ok) {
-      alert("관리자 비밀번호가 맞지 않거나 인증 서버에 연결할 수 없습니다.");
       return false;
     }
     return true;
   } catch (error) {
-    alert("관리자 인증 요청이 브라우저에서 차단되었습니다. 백엔드 CORS 허용 도메인에 현재 사이트 주소를 추가하고 서버를 다시 배포해야 합니다.");
+    alert(error.status === 401
+      ? "관리자 비밀번호가 맞지 않거나 인증 서버에 연결할 수 없습니다."
+      : "관리자 인증 요청이 브라우저에서 차단되었습니다. 백엔드 CORS 허용 도메인에 현재 사이트 주소를 추가하고 서버를 다시 배포해야 합니다.");
     console.warn("관리자 인증 실패", error);
     return false;
   }
@@ -2345,6 +2354,7 @@ async function loadCoachReservations() {
 async function loadReservations(options = {}) {
   const { promptForLogin = true, silent = false } = options;
   if (!API_BASE_URL || API_BASE_URL.includes("YOUR-COACH-API")) return;
+  const requestId = ++state.bookingRequestId;
   if (!silent) {
     state.bookingLoadState = "loading";
     state.bookingLoadError = "";
@@ -2352,7 +2362,9 @@ async function loadReservations(options = {}) {
   }
 
   try {
-    state.bookings = await fetchReservations();
+    const bookings = await fetchReservations();
+    if (requestId !== state.bookingRequestId) return;
+    state.bookings = bookings;
     state.bookingPendingStatuses = {};
     state.bookingLoadState = "loaded";
     state.bookingLoadError = "";
@@ -2382,6 +2394,7 @@ async function loadAdminRefundRequests() {
     state.adminRefundRequests = await runAdminRequest(() => fetchAdminRefundRequests());
     state.refundAdminLoadState = "loaded";
   } catch (error) {
+    if (requestId !== state.bookingRequestId) return;
     state.adminRefundRequests = [];
     state.refundAdminLoadState = "error";
     state.refundAdminLoadError = error.message || "환불 요청을 불러오지 못했습니다.";
@@ -2417,8 +2430,18 @@ function renderRefundAdminPanel() {
     `).join("")}</div>` : `<div class="refund-admin-empty">환불 요청이 없습니다.</div>`}
   `;
   $("reloadRefundRequestsBtn")?.addEventListener("click", loadAdminRefundRequests);
-  document.querySelectorAll("[data-refund-approve]").forEach((button) => button.addEventListener("click", () => decideRefundRequest(button.dataset.refundApprove, "approved")));
-  document.querySelectorAll("[data-refund-reject]").forEach((button) => button.addEventListener("click", () => decideRefundRequest(button.dataset.refundReject, "rejected")));
+  document.querySelectorAll("[data-refund-approve]").forEach((button) => button.addEventListener("click", async () => {
+    const controls = [...(button.closest("article")?.querySelectorAll("button") || [])];
+    controls.forEach((item) => { item.disabled = true; });
+    try { await decideRefundRequest(button.dataset.refundApprove, "approved"); }
+    finally { controls.forEach((item) => { item.disabled = false; }); }
+  }));
+  document.querySelectorAll("[data-refund-reject]").forEach((button) => button.addEventListener("click", async () => {
+    const controls = [...(button.closest("article")?.querySelectorAll("button") || [])];
+    controls.forEach((item) => { item.disabled = true; });
+    try { await decideRefundRequest(button.dataset.refundReject, "rejected"); }
+    finally { controls.forEach((item) => { item.disabled = false; }); }
+  }));
 }
 
 async function decideRefundRequest(requestId, status) {
@@ -2495,68 +2518,26 @@ async function loadCoachesFromApi() {
   render();
 }
 
-function normalizeAdminCoachSetting(item = {}) {
-  const coachKey = String(item.coachKey || item.coach_key || "").trim();
-  const publicLessons = state.coaches.filter((coach) => getCoachKey(coach) === coachKey);
-  const first = publicLessons[0] || {};
-  const rate = Number(item.commissionRate ?? item.commission_rate ?? 0);
-  return {
-    coachKey,
-    name: String(item.name || item.coachProfileName || item.coach_name || first.coachProfileName || first.name || coachKey || "이름 없음"),
-    lessonCount: Number(item.lessonCount ?? item.lesson_count ?? publicLessons.length ?? 0),
-    badges: Array.isArray(item.badges) ? item.badges.filter(Boolean) : [],
-    commissionRate: Number.isFinite(rate) ? rate : 0,
-    adminNote: String(item.adminNote ?? item.admin_note ?? ""),
-  };
-}
-
-async function fetchAdminCoachSettings() {
-  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/admin/coach-settings`, {
-    method: "GET",
-    headers: getAdminHeaders(),
-    credentials: "include",
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.ok) {
-    const error = new Error(result.error || `HTTP ${response.status}`);
-    error.status = response.status;
-    throw error;
-  }
-  return (result.coaches || []).map(normalizeAdminCoachSetting).filter((item) => item.coachKey);
-}
-
 async function loadAdminCoachSettings() {
+  const requestId = ++state.adminCoachSettingsRequestId;
   state.adminCoachSettingsLoadState = "loading";
   state.adminCoachSettingsLoadError = "";
   renderAdmin();
   try {
-    state.adminCoachSettings = await runAdminRequest(fetchAdminCoachSettings);
+    const settings = await runAdminRequest(() => fetchAdminCoachSettings(state.coaches));
+    if (requestId !== state.adminCoachSettingsRequestId) return;
+    state.adminCoachSettings = settings;
     state.adminCoachSettingsLoadState = "loaded";
     if (state.adminSelectedCoachKey && !state.adminCoachSettings.some((item) => item.coachKey === state.adminSelectedCoachKey)) {
       state.adminSelectedCoachKey = "";
     }
   } catch (error) {
+    if (requestId !== state.adminCoachSettingsRequestId) return;
     state.adminCoachSettings = [];
     state.adminCoachSettingsLoadState = "error";
     state.adminCoachSettingsLoadError = error.message || "코치 목록을 불러오지 못했습니다.";
   }
   renderAdmin();
-}
-
-async function saveAdminCoachSettings(coachKey, payload) {
-  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/admin/coach-settings/${encodeURIComponent(coachKey)}`, {
-    method: "PATCH",
-    headers: getAdminHeaders(true),
-    credentials: "include",
-    body: JSON.stringify(payload),
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.ok) {
-    const error = new Error(result.error || `HTTP ${response.status}`);
-    error.status = response.status;
-    throw error;
-  }
-  return normalizeAdminCoachSetting(result.coach || { coachKey, ...payload });
 }
 
 function applyCoachProfileToCatalog(profile) {
@@ -2672,54 +2653,10 @@ async function deleteCoachLessonApi(id) {
   if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
 }
 
-async function saveCoachToApi(coach, sortOrder) {
-  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches/${encodeURIComponent(coach.id)}`, {
-    method: "PATCH",
-    headers: getAdminHeaders(true),
-    credentials: "include",
-    body: JSON.stringify({ ...coach, sortOrder }),
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.ok) {
-    const error = new Error(result.error || `HTTP ${response.status}`);
-    error.status = response.status;
-    throw error;
-  }
-  return result.coach || coach;
-}
-
-async function deleteCoachFromApi(id) {
-  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-    headers: getAdminHeaders(),
-    credentials: "include",
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.ok) {
-    const error = new Error(result.error || `HTTP ${response.status}`);
-    error.status = response.status;
-    throw error;
-  }
-}
-
 async function resetCoachesToSamples() {
   const nextCoaches = structuredClone(samples);
   try {
-    const response = await runAdminRequest(async () => {
-      const request = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coaches/reset`, {
-        method: "POST",
-        headers: getAdminHeaders(true),
-        credentials: "include",
-        body: JSON.stringify({ coaches: nextCoaches }),
-      });
-      const result = await request.json().catch(() => ({}));
-      if (!request.ok || !result.ok) {
-        const error = new Error(result.error || `HTTP ${request.status}`);
-        error.status = request.status;
-        throw error;
-      }
-      return result;
-    });
+    const response = await runAdminRequest(() => resetCoachesInApi(nextCoaches));
     state.coaches = migrateCoachImages(response.coaches || nextCoaches);
     state.selectedCoachId = null;
     render();
@@ -2728,22 +2665,8 @@ async function resetCoachesToSamples() {
   }
 }
 
-async function fetchUsers() {
-  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/users`, {
-    method: "GET",
-    headers: getAdminHeaders(),
-    credentials: "include",
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.ok) {
-    const error = new Error(result.error || `HTTP ${response.status}`);
-    error.status = response.status;
-    throw error;
-  }
-  return result.users || [];
-}
-
 async function loadUsers() {
+  const requestId = ++state.userRequestId;
   state.userLoadState = "loading";
   state.coachRequestLoadState = "loading";
   state.userLoadError = "";
@@ -2755,6 +2678,7 @@ async function loadUsers() {
       runAdminRequest(fetchUsers),
       runAdminRequest(fetchCoachRequests),
     ]);
+    if (requestId !== state.userRequestId) return;
     state.users = users;
     state.coachRequests = requests;
     state.userLoadState = "loaded";
@@ -2762,6 +2686,7 @@ async function loadUsers() {
     renderUsers();
     renderCoachRequests();
   } catch (error) {
+    if (requestId !== state.userRequestId) return;
     state.userLoadState = "error";
     state.coachRequestLoadState = "error";
     state.userLoadError = "회원 목록을 불러오지 못했습니다.";
@@ -2769,22 +2694,6 @@ async function loadUsers() {
     renderUsers();
     renderCoachRequests();
   }
-}
-
-async function updateUserRole(id, payload) {
-  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/users/${encodeURIComponent(id)}`, {
-    method: "PATCH",
-    headers: getAdminHeaders(true),
-    credentials: "include",
-    body: JSON.stringify(payload),
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.ok) {
-    const error = new Error(result.error || `HTTP ${response.status}`);
-    error.status = response.status;
-    throw error;
-  }
-  return result.user;
 }
 
 async function saveUserRole(id) {
@@ -2862,53 +2771,6 @@ async function submitCoachApplication(event) {
       button.textContent = originalText;
     }
   }
-}
-
-async function createCoachRequest(payload) {
-  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach-requests`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(payload),
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.ok) {
-    const error = new Error(result.error || `HTTP ${response.status}`);
-    error.status = response.status;
-    throw error;
-  }
-  return result.request;
-}
-
-async function fetchCoachRequests() {
-  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach-requests`, {
-    method: "GET",
-    headers: getAdminHeaders(),
-    credentials: "include",
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.ok) {
-    const error = new Error(result.error || `HTTP ${response.status}`);
-    error.status = response.status;
-    throw error;
-  }
-  return result.requests || [];
-}
-
-async function decideCoachRequest(id, action) {
-  const response = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/coach-requests/${encodeURIComponent(id)}/${action}`, {
-    method: "POST",
-    headers: getAdminHeaders(true),
-    credentials: "include",
-    body: JSON.stringify({}),
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.ok) {
-    const error = new Error(result.error || `HTTP ${response.status}`);
-    error.status = response.status;
-    throw error;
-  }
-  return result;
 }
 
 async function approveCoachRequest(id) {
@@ -3171,6 +3033,7 @@ function renderBookings() {
   document.querySelectorAll("[data-booking-save]").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
+      button.disabled = true;
       saveReservationStatus(button.dataset.bookingSave);
     });
   });
@@ -3190,7 +3053,7 @@ function renderAdmin() {
   const query = state.adminCoachQuery;
   const settings = state.adminCoachSettings.length
     ? state.adminCoachSettings
-    : [...new Map(state.coaches.map((coach) => [getCoachKey(coach), normalizeAdminCoachSetting({ coachKey: getCoachKey(coach), badges: coach.badges })])).values()];
+    : [...new Map(state.coaches.map((coach) => [getCoachKey(coach), normalizeAdminCoachSetting({ coachKey: getCoachKey(coach), badges: coach.badges }, state.coaches)])).values()];
   const visible = settings.filter((coach) => !query || [coach.name, coach.coachKey].join(" ").toLowerCase().includes(query));
   const search = $("adminCoachSearchInput");
   if (search && search.value !== state.adminCoachQuery) search.value = state.adminCoachQuery;
@@ -3276,7 +3139,7 @@ function renderUsers() {
       </td>
       <td>
         <div class="inline-save">
-          <button class="mini primary-mini" type="button" data-user-save="${escapeHtml(user.id)}">저장</button>
+          <button class="mini primary-mini" type="button" data-user-save="${escapeHtml(user.id)}" ${state.userSaveStates[user.id] === "저장 중..." ? "disabled" : ""}>저장</button>
           <span class="save-status ${getUserSaveClass(user.id)}">${escapeHtml(state.userSaveStates[user.id] || "")}</span>
         </div>
       </td>
@@ -3337,10 +3200,20 @@ function renderCoachRequests() {
   `).join("") : `<tr><td colspan="5">접수된 코치 등록 요청이 없습니다.</td></tr>`;
 
   document.querySelectorAll("[data-request-approve]").forEach((button) => {
-    button.addEventListener("click", () => approveCoachRequest(button.dataset.requestApprove));
+    button.addEventListener("click", async () => {
+      const controls = [...(button.closest("tr")?.querySelectorAll("button") || [])];
+      controls.forEach((item) => { item.disabled = true; });
+      try { await approveCoachRequest(button.dataset.requestApprove); }
+      finally { controls.forEach((item) => { item.disabled = false; }); }
+    });
   });
   document.querySelectorAll("[data-request-reject]").forEach((button) => {
-    button.addEventListener("click", () => rejectCoachRequest(button.dataset.requestReject));
+    button.addEventListener("click", async () => {
+      const controls = [...(button.closest("tr")?.querySelectorAll("button") || [])];
+      controls.forEach((item) => { item.disabled = true; });
+      try { await rejectCoachRequest(button.dataset.requestReject); }
+      finally { controls.forEach((item) => { item.disabled = false; }); }
+    });
   });
 }
 
@@ -4016,7 +3889,7 @@ async function saveCoachSelfLesson(event) {
 
 function fillCoachForm(coach) {
   const setting = coach && coach.coachKey
-    ? normalizeAdminCoachSetting(coach)
+    ? normalizeAdminCoachSetting(coach, state.coaches)
     : null;
   $("coachForm").hidden = !setting;
   $("coachId").value = setting?.coachKey || "";
@@ -4364,7 +4237,7 @@ async function saveCoachFromForm() {
     adminNote: $("coachAdminNote").value.trim(),
   };
   try {
-    const saved = await runAdminRequest(() => saveAdminCoachSettings(coachKey, payload));
+    const saved = await runAdminRequest(() => saveAdminCoachSettings(coachKey, payload, state.coaches));
     state.adminCoachSettings = state.adminCoachSettings.map((item) => item.coachKey === coachKey ? saved : item);
     state.adminSelectedCoachKey = coachKey;
     await loadCoachesFromApi();
